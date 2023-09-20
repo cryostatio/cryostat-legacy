@@ -70,7 +70,7 @@ jobs:
       with:
         step: restore
     - run: git submodule init
-    - run: git submodule update --remote
+    - run: git submodule update
     - run: mvn -B -U -Dbuild.arch=${{ inputs.build-arch }} clean package
       env:
         GITHUB_TOKEN_REF: ${{ secrets.GITHUB_TOKEN }}

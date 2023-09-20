@@ -17,6 +17,7 @@ package io.cryostat.discovery;
 
 import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.Executors;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -26,6 +27,7 @@ import io.cryostat.VerticleDeployer;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformModule;
@@ -76,9 +78,12 @@ public abstract class DiscoveryModule {
             Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             Gson gson,
             WebClient http,
+            Clock clock,
             Logger logger) {
         return new DiscoveryStorage(
                 deployer,
+                Executors.newSingleThreadScheduledExecutor(),
+                Executors.newCachedThreadPool(),
                 pingPeriod,
                 builtin,
                 dao,
@@ -87,6 +92,7 @@ public abstract class DiscoveryModule {
                 matchExpressionEvaluator,
                 gson,
                 http,
+                clock,
                 logger);
     }
 

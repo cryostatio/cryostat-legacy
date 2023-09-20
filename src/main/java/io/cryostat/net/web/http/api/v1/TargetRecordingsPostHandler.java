@@ -153,9 +153,18 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                 .create(connection.getService())
                                                 .name(recordingName);
 
-                                String replace = attrs.get("replace");
-                                ReplacementPolicy replacementPolicy =
-                                        ReplacementPolicy.fromString(replace);
+                                ReplacementPolicy replace = ReplacementPolicy.NEVER;
+
+                                if (attrs.contains("restart")) {
+                                    replace =
+                                            Boolean.parseBoolean(attrs.get("restart"))
+                                                    ? ReplacementPolicy.ALWAYS
+                                                    : ReplacementPolicy.NEVER;
+                                }
+
+                                if (attrs.contains("replace")) {
+                                    replace = ReplacementPolicy.fromString(attrs.get("replace"));
+                                }
 
                                 if (attrs.contains("duration")) {
                                     builder =
@@ -201,7 +210,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                 eventSpecifier);
                                 IRecordingDescriptor descriptor =
                                         recordingTargetHelper.startRecording(
-                                                replacementPolicy,
+                                                replace,
                                                 connectionDescriptor,
                                                 builder.build(),
                                                 template.getLeft(),

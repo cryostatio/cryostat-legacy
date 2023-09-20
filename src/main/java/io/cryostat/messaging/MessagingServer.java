@@ -35,7 +35,7 @@ import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.messaging.notifications.NotificationListener;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.AuthorizationErrorException;
+import io.cryostat.net.AuthenticationErrorException;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -132,7 +132,7 @@ public class MessagingServer extends AbstractVerticle
                                                         .onFailure(
                                                                 () ->
                                                                         promise.fail(
-                                                                                new AuthorizationErrorException(
+                                                                                new AuthenticationErrorException(
                                                                                         "")))
                                                         .execute();
                                             } catch (InterruptedException
@@ -146,9 +146,9 @@ public class MessagingServer extends AbstractVerticle
                                             if (result.failed()) {
                                                 if (ExceptionUtils.hasCause(
                                                         result.cause(),
-                                                        AuthorizationErrorException.class)) {
+                                                        AuthenticationErrorException.class)) {
                                                     logger.info(
-                                                            (AuthorizationErrorException)
+                                                            (AuthenticationErrorException)
                                                                     result.cause());
                                                     logger.info(
                                                             "Disconnected remote client {} due to"

@@ -18,7 +18,6 @@ package io.cryostat.platform.internal;
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -94,8 +93,7 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
     private boolean testDockerApi() {
         CompletableFuture<Boolean> result = new CompletableFuture<>();
         URI requestPath = URI.create("http://d/v1.41/info");
-        ForkJoinPool.commonPool()
-                .submit(
+        new Thread(
                         () -> {
                             webClient
                                     .get()
@@ -117,7 +115,8 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
                                                 }
                                                 result.complete(true);
                                             });
-                        });
+                        })
+                .start();
         try {
             return result.get(2, TimeUnit.SECONDS);
         } catch (InterruptedException | TimeoutException | ExecutionException e) {

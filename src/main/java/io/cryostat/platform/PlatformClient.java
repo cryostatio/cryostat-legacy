@@ -15,9 +15,7 @@
  */
 package io.cryostat.platform;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
 
 import io.cryostat.platform.discovery.EnvironmentNode;
@@ -35,17 +33,10 @@ public interface PlatformClient {
 
     List<ServiceRef> listDiscoverableServices();
 
-    default List<ServiceRef> listUniqueReachableServices() {
-        Set<String> uniqueIds = new HashSet<>();
-        return listDiscoverableServices().stream()
-                .filter((ref) -> ref.getJvmId() != null && uniqueIds.add(ref.getJvmId()))
-                .toList();
-    }
-
     default boolean contains(ServiceRef ref) {
         var existingRef =
-                listUniqueReachableServices().stream()
-                        .filter(sr -> !sr.equals(ref) && sr.getJvmId().equals(ref.getJvmId()))
+                listDiscoverableServices().stream()
+                        .filter(sr -> sr.equals(ref) || sr.getJvmId().equals(ref.getJvmId()))
                         .findAny();
         return existingRef.isPresent();
     }

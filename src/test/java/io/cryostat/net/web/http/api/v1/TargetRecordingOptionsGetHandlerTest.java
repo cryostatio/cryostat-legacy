@@ -20,11 +20,11 @@ import java.util.Set;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -151,7 +151,7 @@ class TargetRecordingOptionsGetHandlerTest {
                         resp.putHeader(
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
-        IFlightRecorderService service = Mockito.mock(IFlightRecorderService.class);
+        CryostatFlightRecorderService service = Mockito.mock(CryostatFlightRecorderService.class);
         Mockito.when(jfrConnection.getService()).thenReturn(service);
 
         handler.handleAuthenticated(ctx);

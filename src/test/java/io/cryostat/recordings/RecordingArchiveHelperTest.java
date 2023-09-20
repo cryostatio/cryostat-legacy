@@ -34,10 +34,10 @@ import java.util.concurrent.ExecutionException;
 
 import javax.management.remote.JMXServiceURL;
 
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
@@ -91,7 +91,7 @@ class RecordingArchiveHelperTest {
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
     @Mock JFRConnection connection;
-    @Mock IFlightRecorderService service;
+    @Mock CryostatFlightRecorderService service;
     @Mock Vertx vertx;
     @Mock io.vertx.core.file.FileSystem vertxFs;
 
@@ -1165,12 +1165,15 @@ class RecordingArchiveHelperTest {
     void shouldGetArchivedTimeFromTimestamp() {
         // December 19, 2019 | 8:38:34 PM UTC
         String timestamp = "20191219T213834Z";
-        Long time = recordingArchiveHelper.getArchivedTimeFromTimestamp(timestamp);
+        long time = recordingArchiveHelper.getArchivedTimeFromTimestamp(timestamp);
         long expectedArchivedTime = Instant.parse("2019-12-19T21:38:34.00Z").toEpochMilli();
         MatcherAssert.assertThat(time, Matchers.equalTo(expectedArchivedTime));
 
         String invalid = "";
-        Long invalidTime = recordingArchiveHelper.getArchivedTimeFromTimestamp(invalid);
-        MatcherAssert.assertThat(invalidTime, Matchers.equalTo(Instant.now().toEpochMilli()));
+        long invalidTime = recordingArchiveHelper.getArchivedTimeFromTimestamp(invalid);
+        long tolerance = 10;
+        long now = Instant.now().toEpochMilli();
+        MatcherAssert.assertThat(invalidTime, Matchers.lessThanOrEqualTo(now + tolerance));
+        MatcherAssert.assertThat(invalidTime, Matchers.greaterThanOrEqualTo(now - tolerance));
     }
 }

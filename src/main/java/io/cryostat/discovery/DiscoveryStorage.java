@@ -28,7 +28,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import javax.script.ScriptException;
@@ -38,6 +42,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.StoredCredentials;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.core.sys.Clock;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.AbstractNode;
@@ -52,40 +57,44 @@ import io.cryostat.util.HttpStatusCodeIdentifier;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import dagger.Lazy;
-import io.vertx.core.CompositeFuture;
-import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.auth.authentication.UsernamePasswordCredentials;
 import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     public static final URI NO_CALLBACK = null;
     private final Duration pingPeriod;
     private final VerticleDeployer deployer;
+    private final ScheduledExecutorService scheduler;
+    private final ExecutorService executor;
     private final Lazy<BuiltInDiscovery> builtin;
     private final PluginInfoDao dao;
     private final Lazy<JvmIdHelper> jvmIdHelper;
     private final Lazy<CredentialsManager> credentialsManager;
     private final Lazy<MatchExpressionEvaluator> matchExpressionEvaluator;
     private final Gson gson;
+    private final Clock clock;
     private final WebClient http;
     private final Logger logger;
-    private long pluginPruneTimerId = -1L;
-    private long targetRetryTimeId = -1L;
+    private ScheduledFuture<?> pluginPruneTask;
+    private ScheduledFuture<?> targetRetryTask;
 
-    private final Map<TargetNode, UUID> nonConnectableTargets = new HashMap<>();
+    private final Map<Pair<TargetNode, UUID>, ConnectionAttemptRecord> nonConnectableTargets =
+            new ConcurrentHashMap<>();
 
     public static final String DISCOVERY_STARTUP_ADDRESS = "discovery-startup";
 
     DiscoveryStorage(
             VerticleDeployer deployer,
+            ScheduledExecutorService scheduler,
+            ExecutorService executor,
             Duration pingPeriod,
             Lazy<BuiltInDiscovery> builtin,
             PluginInfoDao dao,
@@ -94,8 +103,11 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             Gson gson,
             WebClient http,
+            Clock clock,
             Logger logger) {
         this.deployer = deployer;
+        this.scheduler = scheduler;
+        this.executor = executor;
         this.pingPeriod = pingPeriod;
         this.builtin = builtin;
         this.dao = dao;
@@ -104,55 +116,41 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         this.matchExpressionEvaluator = matchExpressionEvaluator;
         this.gson = gson;
         this.http = http;
+        this.clock = clock;
         this.logger = logger;
     }
 
     @Override
     public void start(Promise<Void> future) throws Exception {
         pingPrune()
-                .onSuccess(
-                        cf ->
-                                deployer.deploy(builtin.get(), true)
-                                        .onSuccess(ar -> future.complete())
-                                        .onFailure(t -> future.fail((Throwable) t))
-                                        .eventually(
-                                                m ->
-                                                        getVertx()
-                                                                .eventBus()
-                                                                .send(
-                                                                        DISCOVERY_STARTUP_ADDRESS,
-                                                                        "Discovery storage"
-                                                                                + " deployed")))
-                .onFailure(future::fail);
+                .whenComplete(
+                        (v, ex) -> {
+                            if (ex != null) {
+                                future.fail(ex);
+                                return;
+                            }
+                            deployer.deploy(builtin.get(), true)
+                                    .onSuccess(ar -> future.complete())
+                                    .onFailure(t -> future.fail((Throwable) t))
+                                    .eventually(
+                                            m ->
+                                                    getVertx()
+                                                            .eventBus()
+                                                            .send(
+                                                                    DISCOVERY_STARTUP_ADDRESS,
+                                                                    "Discovery storage deployed"));
+                        });
 
-        this.pluginPruneTimerId = getVertx().setPeriodic(pingPeriod.toMillis(), i -> pingPrune());
-        this.targetRetryTimeId =
-                getVertx()
-                        .setPeriodic(
-                                // TODO make this configurable, use an exponential backoff, have a
-                                // maximum retry policy, etc.
-                                15_000,
-                                i -> {
-                                    testNonConnectedTargets(
-                                            entry -> {
-                                                TargetNode targetNode = entry.getKey();
-                                                try {
-                                                    String id =
-                                                            jvmIdHelper
-                                                                    .get()
-                                                                    .resolveId(
-                                                                            targetNode.getTarget())
-                                                                    .getJvmId();
-                                                    return StringUtils.isNotBlank(id);
-                                                } catch (JvmIdGetException e) {
-                                                    logger.info(
-                                                            "Retain null jvmId for node [{}]",
-                                                            targetNode.getName());
-                                                    logger.info(e);
-                                                    return false;
-                                                }
-                                            });
-                                });
+        this.pluginPruneTask =
+                scheduler.scheduleAtFixedRate(
+                        this::pingPrune,
+                        pingPeriod.toMillis(),
+                        pingPeriod.toMillis(),
+                        TimeUnit.MILLISECONDS);
+        // TODO make this configurable
+        this.targetRetryTask =
+                scheduler.scheduleAtFixedRate(
+                        this::checkNonConnectedTargetJvmIds, 2, 2, TimeUnit.SECONDS);
         this.credentialsManager
                 .get()
                 .addListener(
@@ -162,11 +160,14 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                     testNonConnectedTargets(
                                             entry -> {
                                                 try {
-                                                    return matchExpressionEvaluator
-                                                            .get()
-                                                            .applies(
-                                                                    event.getPayload(),
-                                                                    entry.getKey().getTarget());
+                                                    ServiceRef target = entry.getKey().getTarget();
+                                                    boolean credentialsApply =
+                                                            matchExpressionEvaluator
+                                                                    .get()
+                                                                    .applies(
+                                                                            event.getPayload(),
+                                                                            target);
+                                                    return credentialsApply && testJvmId(target);
                                                 } catch (ScriptException e) {
                                                     logger.error(e);
                                                     return false;
@@ -180,108 +181,192 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                             event.getEventType().toString());
                             }
                         });
+
+        this.addTargetDiscoveryListener(
+                tde -> {
+                    switch (tde.getEventKind()) {
+                        case MODIFIED:
+                            testNonConnectedTargets(
+                                    entry ->
+                                            Objects.equals(
+                                                    tde.getServiceRef(),
+                                                    entry.getKey().getTarget()));
+                            break;
+                        case LOST:
+                            var it = nonConnectableTargets.entrySet().iterator();
+                            while (it.hasNext()) {
+                                var entry = it.next();
+                                if (Objects.equals(
+                                        tde.getServiceRef(), entry.getKey().getKey().getTarget())) {
+                                    it.remove();
+                                }
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                });
+    }
+
+    private void checkNonConnectedTargetJvmIds() {
+        testNonConnectedTargets(
+                entry -> {
+                    TargetNode targetNode = entry.getKey();
+                    ConnectionAttemptRecord attemptRecord = nonConnectableTargets.get(entry);
+                    // TODO make this configurable, use an exponential backoff, have a
+                    // maximum retry policy, etc.
+                    long nextAttempt =
+                            (attemptRecord.attemptCount * attemptRecord.attemptCount)
+                                    + attemptRecord.lastAttemptTimestamp;
+                    attemptRecord.attemptCount++;
+                    long now = clock.now().getEpochSecond();
+                    if (now < nextAttempt) {
+                        return false;
+                    }
+                    long elapsed =
+                            attemptRecord.lastAttemptTimestamp
+                                    - attemptRecord.firstAttemptTimestamp;
+                    if (elapsed > ConnectionAttemptRecord.MAX_ATTEMPT_INTERVAL) {
+                        return false;
+                    }
+                    return testJvmId(targetNode.getTarget());
+                });
+    }
+
+    private boolean testJvmId(ServiceRef serviceRef) {
+        try {
+            String id = jvmIdHelper.get().resolveId(serviceRef).getJvmId();
+            return StringUtils.isNotBlank(id);
+        } catch (JvmIdGetException e) {
+            logger.trace("Retain null jvmId for target [{}]", serviceRef.getServiceUri());
+            logger.trace(e);
+            return false;
+        }
     }
 
     private void testNonConnectedTargets(Predicate<Entry<TargetNode, UUID>> predicate) {
-        ForkJoinPool.commonPool()
-                .execute(
-                        () -> {
-                            Map<TargetNode, UUID> copy = new HashMap<>(nonConnectableTargets);
-                            for (var entry : copy.entrySet()) {
-                                try {
-                                    if (predicate.test(entry)) {
-                                        nonConnectableTargets.remove(entry.getKey());
-                                        UUID id = entry.getValue();
-                                        PluginInfo plugin = getById(id).orElseThrow();
-                                        EnvironmentNode original =
-                                                gson.fromJson(
-                                                        plugin.getSubtree(), EnvironmentNode.class);
-                                        update(id, original.getChildren());
-                                    }
-                                } catch (JsonSyntaxException e) {
-                                    throw new RuntimeException(e);
-                                }
+        Map<Pair<TargetNode, UUID>, ConnectionAttemptRecord> copy =
+                new HashMap<>(nonConnectableTargets);
+        for (var entry : copy.entrySet()) {
+            executor.submit(
+                    () -> {
+                        try {
+                            if (predicate.test(entry.getKey())) {
+                                nonConnectableTargets.remove(entry.getKey());
+                                UUID id = entry.getKey().getValue();
+                                PluginInfo plugin = getById(id).orElseThrow();
+                                EnvironmentNode original =
+                                        gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
+                                update(id, original.getChildren());
                             }
-                        });
+                        } catch (JsonSyntaxException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+        }
     }
 
     @Override
     public void stop() {
-        getVertx().cancelTimer(pluginPruneTimerId);
-        getVertx().cancelTimer(targetRetryTimeId);
+        if (this.pluginPruneTask != null) {
+            this.pluginPruneTask.cancel(false);
+        }
+        if (this.targetRetryTask != null) {
+            this.targetRetryTask.cancel(false);
+        }
     }
 
-    private CompositeFuture pingPrune() {
-        List<Future> futures =
+    private CompletableFuture<?> pingPrune() {
+        List<CompletableFuture<Boolean>> futures =
                 dao.getAll().stream()
                         .map(
                                 plugin -> {
                                     UUID key = plugin.getId();
                                     URI uri = plugin.getCallback();
-                                    return (Future)
-                                            ping(HttpMethod.POST, uri)
-                                                    .onSuccess(
-                                                            res -> {
-                                                                if (!Boolean.TRUE.equals(res)) {
-                                                                    removePlugin(key, uri);
-                                                                }
-                                                            });
+                                    return ping(HttpMethod.POST, uri)
+                                            .whenComplete(
+                                                    (v, t) -> {
+                                                        if (t != null || !Boolean.TRUE.equals(v)) {
+                                                            removePlugin(key, uri);
+                                                        }
+                                                    });
                                 })
                         .toList();
-        return CompositeFuture.join(futures);
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
     }
 
-    private Future<Boolean> ping(HttpMethod mtd, URI uri) {
+    private CompletableFuture<Boolean> ping(HttpMethod mtd, URI uri) {
         if (Objects.equals(uri, NO_CALLBACK)) {
-            return Future.succeededFuture(true);
+            return CompletableFuture.completedFuture(true);
         }
         HttpRequest<Buffer> req =
                 http.request(mtd, uri.getPort(), uri.getHost(), uri.getPath())
                         .ssl("https".equals(uri.getScheme()))
                         .timeout(1_000)
                         .followRedirects(true);
+        Optional<StoredCredentials> opt = getStoredCredentials(uri);
+        if (opt.isPresent()) {
+            StoredCredentials credentials = opt.get();
+            logger.info(
+                    "Using stored credentials id:{} referenced in ping callback userinfo",
+                    credentials.getId());
+            req =
+                    req.authentication(
+                            new UsernamePasswordCredentials(
+                                    credentials.getCredentials().getUsername(),
+                                    credentials.getCredentials().getPassword()));
+        }
+        final HttpRequest<Buffer> freq = req;
+        CompletableFuture<Boolean> result = new CompletableFuture<>();
+        executor.submit(
+                () -> {
+                    freq.send()
+                            .onComplete(
+                                    ar -> {
+                                        if (ar.failed()) {
+                                            logger.info(
+                                                    "{} {} failed: {}",
+                                                    mtd,
+                                                    uri,
+                                                    ExceptionUtils.getStackTrace(ar.cause()));
+                                            result.completeExceptionally(ar.cause());
+                                            return;
+                                        }
+                                        logger.info(
+                                                "{} {} status {}: {}",
+                                                mtd,
+                                                uri,
+                                                ar.result().statusCode(),
+                                                ar.result().statusMessage());
+                                        result.complete(
+                                                HttpStatusCodeIdentifier.isSuccessCode(
+                                                        ar.result().statusCode()));
+                                    });
+                });
+        return result;
+    }
+
+    private Optional<StoredCredentials> getStoredCredentials(URI uri) {
+        if (uri == NO_CALLBACK) {
+            return Optional.empty();
+        }
         String userInfo = uri.getUserInfo();
         if (StringUtils.isNotBlank(userInfo) && userInfo.contains(":")) {
             String[] parts = userInfo.split(":");
             if ("storedcredentials".equals(parts[0])) {
-                logger.info(
-                        "Using stored credentials id:{} referenced in ping callback userinfo",
-                        parts[1]);
                 Optional<StoredCredentials> opt =
                         credentialsManager.get().getById(Integer.parseInt(parts[1]));
                 if (opt.isEmpty()) {
-                    logger.warn("Could not find such credentials!");
-                    return Future.succeededFuture(false);
+                    logger.warn("Could not find stored credentials with id:{} !", parts[1]);
                 }
-                StoredCredentials credentials = opt.get();
-                req =
-                        req.authentication(
-                                new UsernamePasswordCredentials(
-                                        credentials.getCredentials().getUsername(),
-                                        credentials.getCredentials().getPassword()));
+                return opt;
             }
         }
-        return req.send()
-                .onComplete(
-                        ar -> {
-                            if (ar.failed()) {
-                                logger.info(
-                                        "{} {} failed: {}",
-                                        mtd,
-                                        uri,
-                                        ExceptionUtils.getStackTrace(ar.cause()));
-                                return;
-                            }
-                            logger.info(
-                                    "{} {} status {}: {}",
-                                    mtd,
-                                    uri,
-                                    ar.result().statusCode(),
-                                    ar.result().statusMessage());
-                        })
-                .map(HttpResponse::statusCode)
-                .map(HttpStatusCodeIdentifier::isSuccessCode)
-                .otherwise(false);
+        return Optional.empty();
+    }
+
+    private void deleteStoredCredentials(URI uri) {
+        getStoredCredentials(uri).ifPresent(sc -> credentialsManager.get().delete(sc.getId()));
     }
 
     private void removePlugin(UUID uuid, Object label) {
@@ -297,9 +382,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         // FIXME this method should return a Future and be performed async
         Objects.requireNonNull(realm, "realm");
         try {
-            CompletableFuture<Boolean> cf = new CompletableFuture<>();
-            ping(HttpMethod.GET, callback)
-                    .onComplete(ar -> cf.complete(ar.succeeded() && ar.result()));
+            CompletableFuture<Boolean> cf = ping(HttpMethod.GET, callback);
             if (!cf.get()) {
                 throw new Exception("callback ping failure");
             }
@@ -321,6 +404,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             logger.trace("Discovery Registration: \"{}\" [{}]", realm, id);
             return updated.getId();
         } catch (Exception e) {
+            deleteStoredCredentials(callback);
             throw new RegistrationException(realm, callback, e, e.getMessage());
         }
     }
@@ -344,7 +428,11 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 } catch (Exception e) {
                     logger.info("Update node [{}] with null jvmId", child.getName());
                     logger.info(e);
-                    nonConnectableTargets.putIfAbsent((TargetNode) child, id);
+                    ConnectionAttemptRecord attemptRecord = new ConnectionAttemptRecord();
+                    attemptRecord.firstAttemptTimestamp = clock.now().getEpochSecond();
+                    attemptRecord.lastAttemptTimestamp = attemptRecord.firstAttemptTimestamp;
+                    nonConnectableTargets.putIfAbsent(
+                            Pair.of((TargetNode) child, id), attemptRecord);
                 }
                 modifiedChildren.add(child);
             } else if (child instanceof EnvironmentNode) {
@@ -392,6 +480,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     public PluginInfo deregister(UUID id) {
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
+        deleteStoredCredentials(plugin.getCallback());
         dao.delete(id);
         findLeavesFrom(gson.fromJson(plugin.getSubtree(), EnvironmentNode.class)).stream()
                 .map(TargetNode::getTarget)
@@ -455,5 +544,12 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         NotFoundException(UUID id) {
             super(String.format("Unknown registration id: [%s]", id.toString()));
         }
+    }
+
+    private static class ConnectionAttemptRecord {
+        static final long MAX_ATTEMPT_INTERVAL = 60; // seconds from first try to last try
+        long attemptCount;
+        long firstAttemptTimestamp;
+        long lastAttemptTimestamp;
     }
 }

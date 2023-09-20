@@ -18,7 +18,6 @@ package itest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,6 +37,7 @@ import java.util.stream.Collectors;
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.recordings.RecordingTargetHelper.ReplacementPolicy;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -57,6 +57,8 @@ import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @TestMethodOrder(OrderAnnotation.class)
 class GraphQLIT extends ExternalTargetsTest {
@@ -1002,151 +1004,43 @@ class GraphQLIT extends ExternalTargetsTest {
     @Test
     @Order(13)
     void testReplaceAlwaysOnStoppedRecording() throws Exception {
-        JsonObject deletedObj = new JsonObject();
-        JsonObject[] notificationRecordingHolder = new JsonObject[1];
-
         try {
             // Start a Recording
-            startRecordingProcess(notificationRecordingHolder);
-            JsonObject notificationRecording = notificationRecordingHolder[0];
-
+            JsonObject notificationRecording = startRecording();
             Assertions.assertEquals("test", notificationRecording.getString("name"));
             Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
 
             // Stop the Recording
-            stopRecordingProcess(notificationRecordingHolder);
-            JsonObject notificationStopRecording = notificationRecordingHolder[0];
-
-            Assertions.assertEquals("test", notificationStopRecording.getString("name"));
-            Assertions.assertEquals("STOPPED", notificationStopRecording.getString("state"));
+            notificationRecording = stopRecording();
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("STOPPED", notificationRecording.getString("state"));
 
             // Restart the recording with replace:ALWAYS
-            restartRecordingWithReplaceAlways(notificationRecordingHolder);
-            JsonObject notificationRestartRecording = notificationRecordingHolder[0];
-
-            Assertions.assertEquals("test", notificationRestartRecording.getString("name"));
-            Assertions.assertEquals("RUNNING", notificationRestartRecording.getString("state"));
-
+            notificationRecording = restartRecording(ReplacementPolicy.ALWAYS);
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
         } finally {
             // Delete the Recording
-            deleteRecordingProcess(deletedObj);
-            Assertions.assertNull(deletedObj.getString("name"));
-            Assertions.assertNull(deletedObj.getString("state"));
+            deleteRecording();
         }
     }
 
     @Test
     @Order(14)
     void testReplaceNeverOnStoppedRecording() throws Exception {
-        JsonObject[] notificationRecordingHolder = new JsonObject[1];
-        JsonObject deletedObj = new JsonObject();
-
         try {
             // Start a Recording
-            startRecordingProcess(notificationRecordingHolder);
-            JsonObject notificationRecording = notificationRecordingHolder[0];
-
+            JsonObject notificationRecording = startRecording();
             Assertions.assertEquals("test", notificationRecording.getString("name"));
             Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
 
             // Stop the Recording
-            stopRecordingProcess(notificationRecordingHolder);
-            JsonObject notificationStopRecording = notificationRecordingHolder[0];
-
-            Assertions.assertEquals("test", notificationStopRecording.getString("name"));
-            Assertions.assertEquals("STOPPED", notificationStopRecording.getString("state"));
+            notificationRecording = stopRecording();
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("STOPPED", notificationRecording.getString("state"));
 
             // Restart the recording with replace:NEVER
-            restartRecordingWithReplaceNever();
-
-        } finally {
-            // Delete the Recording
-            deleteRecordingProcess(deletedObj);
-            Assertions.assertNull(deletedObj.getString("name"));
-            Assertions.assertNull(deletedObj.getString("state"));
-        }
-    }
-
-    @Test
-    @Order(15)
-    void testReplaceStoppedOnStoppedRecording() throws Exception {
-        JsonObject[] notificationRecordingHolder = new JsonObject[1];
-        JsonObject deletedObj = new JsonObject();
-
-        try {
-            // Start a Recording
-            startRecordingProcess(notificationRecordingHolder);
-            JsonObject notificationRecording = notificationRecordingHolder[0];
-
-            Assertions.assertEquals("test", notificationRecording.getString("name"));
-            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
-
-            // Stop the Recording
-            stopRecordingProcess(notificationRecordingHolder);
-            JsonObject notificationStopRecording = notificationRecordingHolder[0];
-
-            Assertions.assertEquals("test", notificationStopRecording.getString("name"));
-            Assertions.assertEquals("STOPPED", notificationStopRecording.getString("state"));
-
-            // Restart the recording with replace:STOPPED
-            restartRecordingWithReplaceStopped(notificationRecordingHolder);
-            JsonObject notificationRecreateRecording = notificationRecordingHolder[0];
-
-            Assertions.assertEquals("test", notificationRecreateRecording.getString("name"));
-            Assertions.assertEquals("RUNNING", notificationRecreateRecording.getString("state"));
-
-        } finally {
-            // Delete the Recording
-            deleteRecordingProcess(deletedObj);
-            Assertions.assertNull(deletedObj.getString("name"));
-            Assertions.assertNull(deletedObj.getString("state"));
-        }
-    }
-
-    @Test
-    @Order(16)
-    void testReplaceStoppedOnRunningRecording() throws Exception {
-        JsonObject[] notificationRecordingHolder = new JsonObject[1];
-        JsonObject deletedObj = new JsonObject();
-
-        try {
-            // Start a Recording
-            startRecordingProcess(notificationRecordingHolder);
-            JsonObject notificationRecording = notificationRecordingHolder[0];
-
-            Assertions.assertEquals("test", notificationRecording.getString("name"));
-            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
-
-            // Restart the recording with replace:STOPPED
-            CompletableFuture<JsonObject> resp = new CompletableFuture<>();
-            CountDownLatch latch = new CountDownLatch(1);
-            JsonObject query = new JsonObject();
-
-            query.put(
-                    "query",
-                    "query { targetNodes(filter: { name:"
-                        + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
-                        + " doStartRecording(recording: { name: \"test\", template:\"Profiling\","
-                        + " templateType: \"TARGET\", replace:STOPPED }) { name state}} }");
-
-            Thread.sleep(5000);
-            webClient
-                    .post("/api/v2.2/graphql")
-                    .sendJson(
-                            query,
-                            ar -> {
-                                if (assertRequestStatus(ar, resp)) {
-                                    resp.complete(ar.result().bodyAsJsonObject());
-                                    latch.countDown();
-                                }
-                            });
-
-            latch.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-            JsonObject response = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            JsonArray errors = response.getJsonArray("errors");
-            JsonObject error = errors.getJsonObject(0);
-
+            JsonObject error = restartRecordingWithError(ReplacementPolicy.NEVER);
             Assertions.assertTrue(
                     error.getString("message")
                             .contains("Recording with name \"test\" already exists"),
@@ -1154,169 +1048,194 @@ class GraphQLIT extends ExternalTargetsTest {
                             + " exists'");
         } finally {
             // Delete the Recording
-            deleteRecordingProcess(deletedObj);
-            Assertions.assertNull(deletedObj.getString("name"));
-            Assertions.assertNull(deletedObj.getString("state"));
+            deleteRecording();
+        }
+    }
+
+    @Test
+    @Order(15)
+    void testReplaceStoppedOnStoppedRecording() throws Exception {
+        try {
+            // Start a Recording
+            JsonObject notificationRecording = startRecording();
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+
+            // Stop the Recording
+            notificationRecording = stopRecording();
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("STOPPED", notificationRecording.getString("state"));
+
+            // Restart the recording with replace:STOPPED
+            notificationRecording = restartRecording(ReplacementPolicy.STOPPED);
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+        } finally {
+            // Delete the Recording
+            deleteRecording();
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"STOPPED", "NEVER"})
+    @Order(16)
+    void testReplaceStoppedOrNeverOnRunningRecording(String replace) throws Exception {
+        try {
+            // Start a Recording
+            JsonObject notificationRecording = startRecording();
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+
+            // Restart the recording with replace:NEVER
+            JsonObject error = restartRecordingWithError(ReplacementPolicy.STOPPED);
+            Assertions.assertTrue(
+                    error.getString("message")
+                            .contains("Recording with name \"test\" already exists"),
+                    "Expected error message to contain 'Recording with name \"test\" already"
+                            + " exists'");
+        } finally {
+            // Delete the Recording
+            deleteRecording();
         }
     }
 
     @Test
     @Order(17)
-    void testReplaceNeverOnRunningRecording() throws Exception {
-        JsonObject[] notificationRecordingHolder = new JsonObject[1];
-        JsonObject deletedObj = new JsonObject();
-
+    void testReplaceAlwaysOnRunningRecording() throws Exception {
         try {
             // Start a Recording
-            startRecordingProcess(notificationRecordingHolder);
-            JsonObject notificationRecording = notificationRecordingHolder[0];
-
+            JsonObject notificationRecording = startRecording();
             Assertions.assertEquals("test", notificationRecording.getString("name"));
             Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
 
-            // Restart the recording with replace:NEVER
-            restartRecordingWithReplaceNever();
-
+            // Restart the recording with replace:ALWAYS
+            notificationRecording = restartRecording(ReplacementPolicy.ALWAYS);
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
         } finally {
             // Delete the Recording
-            deleteRecordingProcess(deletedObj);
-            Assertions.assertNull(deletedObj.getString("name"));
-            Assertions.assertNull(deletedObj.getString("state"));
+            deleteRecording();
         }
     }
 
     @Test
     @Order(18)
-    void testReplaceAlwaysOnRunningRecording() throws Exception {
-        JsonObject[] notificationRecordingHolder = new JsonObject[1];
-        JsonObject deletedObj = new JsonObject();
-
+    void testRestartTrueOnRunningRecording() throws Exception {
         try {
             // Start a Recording
-            startRecordingProcess(notificationRecordingHolder);
-            JsonObject notificationRecording = notificationRecordingHolder[0];
-
+            JsonObject notificationRecording = startRecording();
             Assertions.assertEquals("test", notificationRecording.getString("name"));
             Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
 
             // Restart the recording with replace:ALWAYS
-            restartRecordingWithReplaceAlways(notificationRecordingHolder);
-            JsonObject notificationRestartRecording = notificationRecordingHolder[0];
-
-            Assertions.assertEquals("test", notificationRestartRecording.getString("name"));
-            Assertions.assertEquals("RUNNING", notificationRestartRecording.getString("state"));
-
+            notificationRecording = restartRecording(true);
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
         } finally {
             // Delete the Recording
-            deleteRecordingProcess(deletedObj);
-            Assertions.assertNull(deletedObj.getString("name"));
-            Assertions.assertNull(deletedObj.getString("state"));
+            deleteRecording();
         }
     }
 
     @Test
     @Order(19)
-    void testStartRecordingwithReplaceNever() throws Exception {
-        CountDownLatch latch = new CountDownLatch(2);
-        JsonObject deletedObj = new JsonObject();
-        JsonObject query = new JsonObject();
-
+    void testRestartFalseOnRunningRecording() throws Exception {
         try {
-            CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
-            query.put(
-                    "query",
-                    "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
-                            + " doStartRecording(recording: { name: \"test\",template:"
-                            + " \"Profiling\", templateType: \"TARGET\", replace:NEVER }) { name"
-                            + " state}} }");
-            Future<JsonObject> f =
-                    worker.submit(
-                            () -> {
-                                try {
-                                    return expectNotification(
-                                                    "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
-                                            .get();
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                } finally {
-                                    latch.countDown();
-                                }
-                            });
+            // Start a Recording
+            JsonObject notificationRecording = startRecording();
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
 
-            Thread.sleep(5000);
-
-            webClient
-                    .post("/api/v2.2/graphql")
-                    .sendJson(
-                            query,
-                            ar -> {
-                                if (assertRequestStatus(ar, resp)) {
-                                    resp.complete(
-                                            gson.fromJson(
-                                                    ar.result().bodyAsString(),
-                                                    StartRecordingMutationResponse.class));
-                                    latch.countDown();
-                                }
-                            });
-
-            latch.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-            // Ensure Active Recording is Created
-            JsonObject notification = f.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            JsonObject notificationCreateRecording =
-                    notification.getJsonObject("message").getJsonObject("recording");
-
-            Assertions.assertEquals("test", notificationCreateRecording.getString("name"));
-            Assertions.assertEquals("RUNNING", notificationCreateRecording.getString("state"));
-
+            // Restart the recording with replace:NEVER
+            JsonObject error = restartRecordingWithError(false);
+            Assertions.assertTrue(
+                    error.getString("message")
+                            .contains("Recording with name \"test\" already exists"),
+                    "Expected error message to contain 'Recording with name \"test\" already"
+                            + " exists'");
         } finally {
             // Delete the Recording
-            deleteRecordingProcess(deletedObj);
-            Assertions.assertNull(deletedObj.getString("name"));
-            Assertions.assertNull(deletedObj.getString("state"));
+            deleteRecording();
         }
     }
 
     @Test
     @Order(20)
-    void testStartRecordingwithReplaceAlways() throws Exception {
-        JsonObject[] notificationRecordingHolder = new JsonObject[1];
-        JsonObject deletedObj = new JsonObject();
-
+    void testRestartTrueOnStoppedRecording() throws Exception {
         try {
-            // Start the recording with replace:ALWAYS
-            restartRecordingWithReplaceAlways(notificationRecordingHolder);
-            JsonObject notificationRestartRecording = notificationRecordingHolder[0];
+            // Start a Recording
+            JsonObject notificationRecording = startRecording();
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
 
-            Assertions.assertEquals("test", notificationRestartRecording.getString("name"));
-            Assertions.assertEquals("RUNNING", notificationRestartRecording.getString("state"));
+            // Stop the Recording
+            notificationRecording = stopRecording();
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("STOPPED", notificationRecording.getString("state"));
+
+            // Restart the recording with replace:ALWAYS
+            notificationRecording = restartRecording(true);
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
         } finally {
             // Delete the Recording
-            deleteRecordingProcess(deletedObj);
-            Assertions.assertNull(deletedObj.getString("name"));
-            Assertions.assertNull(deletedObj.getString("state"));
+            deleteRecording();
         }
     }
 
     @Test
     @Order(21)
-    void testStartRecordingwithReplaceStopped() throws Exception {
-        JsonObject[] notificationRecordingHolder = new JsonObject[1];
-        JsonObject deletedObj = new JsonObject();
-
+    void testRestartFalseOnStoppedRecording() throws Exception {
         try {
-            // Restart the recording with replace:STOPPED
-            restartRecordingWithReplaceStopped(notificationRecordingHolder);
-            JsonObject notificationRecreateRecording = notificationRecordingHolder[0];
+            // Start a Recording
+            JsonObject notificationRecording = startRecording();
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
 
-            Assertions.assertEquals("test", notificationRecreateRecording.getString("name"));
-            Assertions.assertEquals("RUNNING", notificationRecreateRecording.getString("state"));
+            // Stop the Recording
+            notificationRecording = stopRecording();
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("STOPPED", notificationRecording.getString("state"));
 
+            // Restart the recording with replace:NEVER
+            JsonObject error = restartRecordingWithError(false);
+            Assertions.assertTrue(
+                    error.getString("message")
+                            .contains("Recording with name \"test\" already exists"),
+                    "Expected error message to contain 'Recording with name \"test\" already"
+                            + " exists'");
         } finally {
             // Delete the Recording
-            deleteRecordingProcess(deletedObj);
-            Assertions.assertNull(deletedObj.getString("name"));
-            Assertions.assertNull(deletedObj.getString("state"));
+            deleteRecording();
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ALWAYS", "STOPPED", "NEVER"})
+    @Order(22)
+    void testStartRecordingwithReplaceNever(String replace) throws Exception {
+        try {
+            JsonObject notificationRecording =
+                    restartRecording(ReplacementPolicy.fromString(replace));
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+        } finally {
+            // Delete the Recording
+            deleteRecording();
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @Order(23)
+    void testRestartRecordingWithReplaceTrue(boolean restart) throws Exception {
+        try {
+            JsonObject notificationRecording = restartRecording(restart);
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+        } finally {
+            // Delete the recording
+            deleteRecording();
         }
     }
 
@@ -2058,7 +1977,7 @@ class GraphQLIT extends ExternalTargetsTest {
     }
 
     // start recording
-    private void startRecordingProcess(JsonObject[] notificationRecordingHolder) throws Exception {
+    private JsonObject startRecording() throws Exception {
         JsonObject query = new JsonObject();
         CountDownLatch latch = new CountDownLatch(2);
 
@@ -2102,14 +2021,11 @@ class GraphQLIT extends ExternalTargetsTest {
         latch.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
         JsonObject notification = f.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        JsonObject notificationRecording =
-                notification.getJsonObject("message").getJsonObject("recording");
-
-        notificationRecordingHolder[0] = notificationRecording;
+        return notification.getJsonObject("message").getJsonObject("recording");
     }
 
     // Stop the Recording
-    private void stopRecordingProcess(JsonObject[] notificationRecordingHolder) throws Exception {
+    private JsonObject stopRecording() throws Exception {
         JsonObject query = new JsonObject();
         CountDownLatch latch = new CountDownLatch(2);
 
@@ -2153,14 +2069,11 @@ class GraphQLIT extends ExternalTargetsTest {
         latch.await(30, TimeUnit.SECONDS);
 
         JsonObject notification = f2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        JsonObject notificationRecording =
-                notification.getJsonObject("message").getJsonObject("recording");
-
-        notificationRecordingHolder[0] = notificationRecording;
+        return notification.getJsonObject("message").getJsonObject("recording");
     }
 
     // Delete the Recording
-    private void deleteRecordingProcess(JsonObject deletedObj) throws Exception {
+    private void deleteRecording() throws Exception {
         JsonObject query = new JsonObject();
         CountDownLatch latch = new CountDownLatch(1);
 
@@ -2187,22 +2100,24 @@ class GraphQLIT extends ExternalTargetsTest {
                         });
 
         latch.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        deletedObj = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     // Restart the recording with replace:ALWAYS
-    private void restartRecordingWithReplaceAlways(JsonObject[] notificationRecordingHolder)
-            throws Exception {
+    private JsonObject restartRecording(ReplacementPolicy replace) throws Exception {
         JsonObject query = new JsonObject();
         CountDownLatch latch = new CountDownLatch(2);
 
         CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
         query.put(
                 "query",
-                "query { targetNodes(filter: { name:"
-                        + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
-                        + " doStartRecording(recording: { name: \"test\", template:\"Profiling\","
-                        + " templateType: \"TARGET\", replace:ALWAYS}) { name state}} }");
+                String.format(
+                        "query { targetNodes(filter: { name:"
+                            + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
+                            + " doStartRecording(recording: { name: \"test\","
+                            + " template:\"Profiling\", templateType: \"TARGET\", replace: %s}) {"
+                            + " name state }} }",
+                        replace.name()));
         Future<JsonObject> f =
                 worker.submit(
                         () -> {
@@ -2236,27 +2151,23 @@ class GraphQLIT extends ExternalTargetsTest {
         latch.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
         JsonObject notification = f.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        JsonObject notificationRecording =
-                notification.getJsonObject("message").getJsonObject("recording");
-
-        notificationRecordingHolder[0] = notificationRecording;
+        return notification.getJsonObject("message").getJsonObject("recording");
     }
 
-    // Restart the recording with replace:STOPPED (utilise this helper ONLY when Recording is
-    // STOPPED)
-    private void restartRecordingWithReplaceStopped(JsonObject[] notificationRecordingHolder)
-            throws Exception {
-        CountDownLatch latch = new CountDownLatch(2);
+    private JsonObject restartRecording(boolean restart) throws Exception {
         JsonObject query = new JsonObject();
+        CountDownLatch latch = new CountDownLatch(2);
 
         CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
         query.put(
                 "query",
-                "query { targetNodes(filter: { name:"
-                        + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
-                        + " doStartRecording(recording: { name: \"test\", template:\"Profiling\","
-                        + " templateType: \"TARGET\", replace:STOPPED}) { name state}} }");
-
+                String.format(
+                        "query { targetNodes(filter: { name:"
+                            + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
+                            + " doStartRecording(recording: { name: \"test\","
+                            + " template:\"Profiling\", templateType: \"TARGET\", restart: %b}) {"
+                            + " name state }} }",
+                        restart));
         Future<JsonObject> f =
                 worker.submit(
                         () -> {
@@ -2272,6 +2183,7 @@ class GraphQLIT extends ExternalTargetsTest {
                         });
 
         Thread.sleep(5000);
+
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -2289,26 +2201,23 @@ class GraphQLIT extends ExternalTargetsTest {
         latch.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
         JsonObject notification = f.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        JsonObject notificationRecording =
-                notification.getJsonObject("message").getJsonObject("recording");
-
-        notificationRecordingHolder[0] = notificationRecording;
+        return notification.getJsonObject("message").getJsonObject("recording");
     }
 
-    // Restart a Recording with replace:NEVER (could be used with Replace:STOPPED on a running
-    // recording)
-    private void restartRecordingWithReplaceNever() throws Exception {
+    private JsonObject restartRecordingWithError(ReplacementPolicy replace) throws Exception {
         CompletableFuture<JsonObject> resp = new CompletableFuture<>();
         CountDownLatch latch = new CountDownLatch(1);
         JsonObject query = new JsonObject();
 
         query.put(
                 "query",
-                "query { targetNodes(filter: { name:"
-                        + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
-                        + " doStartRecording(recording: { name: \"test\", template:\"Profiling\","
-                        + " templateType: \"TARGET\", replace:NEVER }) { name state}} }");
-
+                String.format(
+                        "query { targetNodes(filter: { name:"
+                                + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\""
+                                + " }) { doStartRecording(recording: { name: \"test\","
+                                + " template:\"Profiling\", templateType: \"TARGET\", replace: %s})"
+                                + " { name state }} }",
+                        replace.name()));
         Thread.sleep(5000);
         webClient
                 .post("/api/v2.2/graphql")
@@ -2325,10 +2234,40 @@ class GraphQLIT extends ExternalTargetsTest {
 
         JsonObject response = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         JsonArray errors = response.getJsonArray("errors");
-        JsonObject error = errors.getJsonObject(0);
+        return errors.getJsonObject(0);
+    }
 
-        Assertions.assertTrue(
-                error.getString("message").contains("Recording with name \"test\" already exists"),
-                "Expected error message to contain 'Recording with name \"test\" already exists'");
+    private JsonObject restartRecordingWithError(boolean restart) throws Exception {
+        // Restart the recording with replace:STOPPED
+        CompletableFuture<JsonObject> resp = new CompletableFuture<>();
+        CountDownLatch latch = new CountDownLatch(1);
+        JsonObject query = new JsonObject();
+
+        query.put(
+                "query",
+                String.format(
+                        "query { targetNodes(filter: { name:"
+                                + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\""
+                                + " }) { doStartRecording(recording: { name: \"test\","
+                                + " template:\"Profiling\", templateType: \"TARGET\", restart: %b})"
+                                + " { name state }} }",
+                        restart));
+        Thread.sleep(5000);
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(ar.result().bodyAsJsonObject());
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        JsonObject response = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        JsonArray errors = response.getJsonArray("errors");
+        return errors.getJsonObject(0);
     }
 }

@@ -15,8 +15,8 @@
  */
 package io.cryostat.net;
 
-public class AuthorizationErrorException extends RuntimeException {
-    public AuthorizationErrorException(Throwable cause) {
-        super(cause);
+public class AuthenticationErrorException extends Exception {
+    public AuthenticationErrorException(String msg) {
+        super(msg);
     }
 }

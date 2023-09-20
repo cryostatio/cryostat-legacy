@@ -123,9 +123,9 @@ runDemoApps() {
         --env START_DELAY=60 \
         --pod cryostat-pod \
         --label io.cryostat.discovery="true" \
-        --label io.cryostat.jmxHost="localhost" \
+        --label io.cryostat.jmxHost="vertx-fib-demo-0" \
         --label io.cryostat.jmxPort="9089" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.1
 
     podman run \
         --name vertx-fib-demo-1 \
@@ -142,9 +142,9 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --pod cryostat-pod \
         --label io.cryostat.discovery="true" \
-        --label io.cryostat.jmxHost="localhost" \
+        --label io.cryostat.jmxHost="vertx-fib-demo-1" \
         --label io.cryostat.jmxPort="9093" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.1
 
     podman run \
         --name vertx-fib-demo-2 \
@@ -162,10 +162,10 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --pod cryostat-pod \
         --label io.cryostat.discovery="true" \
-        --label io.cryostat.jmxHost="localhost" \
+        --label io.cryostat.jmxHost="vertx-fib-demo-2" \
         --label io.cryostat.jmxPort="9094" \
-        --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
+        --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://vertx-fib-demo-2:9094/jmxrmi" \
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.1
 
     podman run \
         --name vertx-fib-demo-3 \
@@ -184,8 +184,8 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --pod cryostat-pod \
         --label io.cryostat.discovery="true" \
-        --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:9095/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
+        --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://vertx-fib-demo-3:9095/jmxrmi" \
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.1
 
     # this config is broken on purpose (missing required env vars) to test the agent's behaviour
     # when not properly set up
@@ -205,7 +205,7 @@ runDemoApps() {
         --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.port=9097 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -javaagent:/deployments/app/cryostat-agent.jar" \
         --env QUARKUS_HTTP_PORT=10010 \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
-        --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent" \
+        --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent-1" \
         --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
         --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
@@ -225,7 +225,7 @@ runDemoApps() {
         --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar" \
         --env QUARKUS_HTTP_PORT=10011 \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
-        --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent" \
+        --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent-2" \
         --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
         --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
@@ -234,7 +234,8 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
-        --env CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX="true" \
+        --env CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX="false" \
+        --env CRYOSTAT_AGENT_API_WRITES_ENABLED="true" \
         --rm -d quay.io/andrewazores/quarkus-test:latest
 
     # copy a jboss-client.jar into /clientlib first
@@ -259,13 +260,13 @@ runJfrDatasource() {
         --name jfr-datasource \
         --pull "${PULL_IMAGES}" \
         --pod cryostat-pod \
-        --cpus 0.1 \
-        --memory 512m \
+        --cpus 0.2 \
+        --memory 384M \
         --label io.cryostat.discovery="true" \
         --label io.cryostat.jmxHost="localhost" \
         --label io.cryostat.jmxPort="${RJMX_PORT}" \
         --restart on-failure \
-        --env JAVA_OPTS="-Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
+        --env JAVA_OPTS_APPEND="-XX:-ExitOnOutOfMemoryError -Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --rm -d "${DATASOURCE_IMAGE}"
 }
 
@@ -286,7 +287,7 @@ runGrafana() {
         --pull "${PULL_IMAGES}" \
         --pod cryostat-pod \
         --cpus 0.1 \
-        --memory 256M \
+        --memory 120M \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
         --env JFR_DATASOURCE_URL="http://${host}:${port}" \
@@ -312,10 +313,10 @@ runReportGenerator() {
         --label io.cryostat.discovery="true" \
         --label io.cryostat.jmxHost="localhost" \
         --label io.cryostat.jmxPort="${RJMX_PORT}" \
-        --cpus 0.128 \
-        --memory 256M \
+        --cpus 0.2 \
+        --memory 384M \
         --restart on-failure \
-        --env JAVA_OPTS="-Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
+        --env JAVA_OPTS_APPEND="-XX:-ExitOnOutOfMemoryError -Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --env QUARKUS_HTTP_PORT="${port}" \
         --rm -d "${REPORTS_IMAGE}"
 }

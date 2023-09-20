@@ -18,7 +18,7 @@ package io.cryostat.net.web.http.api.v2.graph;
 import java.util.Set;
 
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.AuthorizationErrorException;
+import io.cryostat.net.AuthenticationErrorException;
 import io.cryostat.net.security.PermissionedAction;
 
 import graphql.GraphQLContext;
@@ -53,7 +53,7 @@ abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, Per
                                 resourceActions())
                         .get();
         if (!authenticated) {
-            throw new AuthorizationErrorException("Unauthorized");
+            throw new AuthenticationErrorException("Unauthorized");
         }
         return getAuthenticated(environment);
     }

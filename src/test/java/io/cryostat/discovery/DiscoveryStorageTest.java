@@ -28,12 +28,15 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Singleton;
 
+import io.cryostat.DirectExecutorService;
+import io.cryostat.FakeScheduledExecutorService;
 import io.cryostat.MainModule;
 import io.cryostat.MockVertx;
 import io.cryostat.VerticleDeployer;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.core.sys.Clock;
 import io.cryostat.discovery.DiscoveryStorage.NotFoundException;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
@@ -82,6 +85,7 @@ class DiscoveryStorageTest {
     @Mock CredentialsManager credentialsManager;
     @Mock MatchExpressionEvaluator matchExpressionEvaluator;
     @Mock WebClient http;
+    @Mock Clock clock;
     @Mock Logger logger;
     Vertx vertx = MockVertx.vertx();
     Gson gson = MainModule.provideGson(logger);
@@ -106,6 +110,8 @@ class DiscoveryStorageTest {
         this.storage =
                 new DiscoveryStorage(
                         deployer,
+                        new FakeScheduledExecutorService(),
+                        new DirectExecutorService(),
                         Duration.ofMinutes(5),
                         () -> builtin,
                         dao,
@@ -114,6 +120,7 @@ class DiscoveryStorageTest {
                         () -> matchExpressionEvaluator,
                         gson,
                         http,
+                        clock,
                         logger);
         this.storage.init(vertx, null);
     }
@@ -201,13 +208,11 @@ class DiscoveryStorageTest {
             storage.start(p);
             f.join();
 
-            Mockito.verify(dao).delete(plugin.getId());
+            Mockito.verify(dao, Mockito.times(2)).delete(plugin.getId());
         }
 
         @Test
         void removesPluginsIfCallbackFails() throws Exception {
-            Mockito.when(deployer.deploy(Mockito.any(), Mockito.anyBoolean()))
-                    .thenReturn(Future.succeededFuture());
             EnvironmentNode realm =
                     new EnvironmentNode("realm", BaseNodeType.REALM, Map.of(), Set.of());
             PluginInfo plugin =
@@ -230,7 +235,6 @@ class DiscoveryStorageTest {
             Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
             Mockito.when(req.followRedirects(Mockito.anyBoolean())).thenReturn(req);
 
-            HttpResponse<Buffer> res = Mockito.mock(HttpResponse.class);
             Future<HttpResponse<Buffer>> future = Future.failedFuture("test failure");
             Mockito.when(req.send()).thenReturn(future);
 
@@ -240,7 +244,7 @@ class DiscoveryStorageTest {
             storage.start(p);
             f.join();
 
-            Mockito.verify(dao).delete(plugin.getId());
+            Mockito.verify(dao, Mockito.times(2)).delete(plugin.getId());
         }
 
         @Test
@@ -694,57 +698,6 @@ class DiscoveryStorageTest {
 
             MatcherAssert.assertThat(servicesList, Matchers.hasSize(4));
             MatcherAssert.assertThat(servicesList, Matchers.containsInAnyOrder(sr1, sr2, sr3, sr4));
-        }
-
-        @Test
-        void listsUniqueNonNullTreeLeaves() throws Exception {
-            ServiceRef sr1 =
-                    new ServiceRef(
-                            null, URI.create("service:jmx:rmi:///jndi/rmi://leaf:1/jmxrmi"), "sr1");
-            TargetNode leaf1 = new TargetNode(BaseNodeType.JVM, sr1);
-            ServiceRef sr2 =
-                    new ServiceRef(
-                            "same-id",
-                            URI.create("service:jmx:rmi:///jndi/rmi://leaf:2/jmxrmi"),
-                            "sr2");
-            TargetNode leaf2 = new TargetNode(BaseNodeType.JVM, sr2);
-            EnvironmentNode realm1 =
-                    new EnvironmentNode(
-                            DefaultPlatformClient.REALM,
-                            BaseNodeType.REALM,
-                            Map.of(),
-                            Set.of(leaf1, leaf2));
-            PluginInfo plugin1 = new PluginInfo();
-            plugin1.setSubtree(gson.toJson(realm1));
-
-            ServiceRef sr3 =
-                    new ServiceRef(
-                            "same-id",
-                            URI.create("service:jmx:rmi:///jndi/rmi://leaf:3/jmxrmi"),
-                            "sr3");
-            TargetNode leaf3 = new TargetNode(BaseNodeType.JVM, sr3);
-            ServiceRef sr4 =
-                    new ServiceRef(
-                            "other-id",
-                            URI.create("service:jmx:rmi:///jndi/rmi://leaf:4/jmxrmi"),
-                            "sr4");
-            TargetNode leaf4 = new TargetNode(BaseNodeType.JVM, sr4);
-            EnvironmentNode realm2 =
-                    new EnvironmentNode(
-                            CustomTargetPlatformClient.REALM,
-                            BaseNodeType.REALM,
-                            Map.of(),
-                            Set.of(leaf3, leaf4));
-            PluginInfo plugin2 = new PluginInfo();
-            plugin2.setSubtree(gson.toJson(realm2));
-
-            Mockito.when(dao.getAll()).thenReturn(List.of(plugin1, plugin2));
-
-            List<ServiceRef> servicesList = storage.listUniqueReachableServices();
-
-            MatcherAssert.assertThat(servicesList, Matchers.hasSize(2));
-            MatcherAssert.assertThat(servicesList, Matchers.containsInRelativeOrder(sr2, sr4));
-            // sr2 over sr3 because RealmOrder of "JDP" has higher priority than "Custom Targets"
         }
     }
 

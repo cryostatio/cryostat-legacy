@@ -19,7 +19,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Executors;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -97,21 +97,29 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static AgentConnection.Factory provideAgentConnectionFactory(
-            AgentClient.Factory clientFactory, JvmIdHelper idHelper, Logger logger) {
-        return new AgentConnection.Factory(clientFactory, idHelper, logger);
+            AgentClient.Factory clientFactory,
+            JvmIdHelper idHelper,
+            FileSystem fs,
+            Environment env,
+            Logger logger) {
+        return new AgentConnection.Factory(clientFactory, idHelper, fs, env, logger);
     }
 
     @Provides
     @Singleton
     static AgentClient.Factory provideAgentClientFactory(
-            Vertx vertx,
             Gson gson,
             @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeout,
             WebClient webClient,
             CredentialsManager credentialsManager,
             Logger logger) {
         return new AgentClient.Factory(
-                vertx, gson, httpTimeout, webClient, credentialsManager, logger);
+                Executors.newCachedThreadPool(),
+                gson,
+                httpTimeout,
+                webClient,
+                credentialsManager,
+                logger);
     }
 
     @Provides
@@ -122,15 +130,17 @@ public abstract class NetworkModule {
             DiscoveryStorage storage,
             @Named(Variables.TARGET_CACHE_TTL) Duration maxTargetTtl,
             @Named(Variables.TARGET_MAX_CONCURRENT_CONNECTIONS) int maxTargetConnections,
+            @Named(Variables.JMX_CONNECTION_TIMEOUT) long connectionTimeoutSeconds,
             Logger logger) {
         return new TargetConnectionManager(
                 connectionToolkit,
                 agentConnectionFactory,
                 storage,
-                ForkJoinPool.commonPool(),
+                Executors.newCachedThreadPool(),
                 Scheduler.systemScheduler(),
                 maxTargetTtl,
                 maxTargetConnections,
+                connectionTimeoutSeconds,
                 logger);
     }
 
@@ -144,7 +154,11 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static Vertx provideVertx() {
-        return Vertx.vertx(new VertxOptions().setPreferNativeTransport(true));
+        VertxOptions defaults = new VertxOptions();
+        return Vertx.vertx(
+                new VertxOptions()
+                        .setPreferNativeTransport(true)
+                        .setEventLoopPoolSize(defaults.getEventLoopPoolSize() + 6));
     }
 
     @Provides

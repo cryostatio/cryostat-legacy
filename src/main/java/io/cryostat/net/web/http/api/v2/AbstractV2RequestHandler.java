@@ -87,8 +87,11 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
         } catch (ApiException | HttpException e) {
             throw e;
         } catch (Exception e) {
-            if (AbstractAuthenticatedRequestHandler.isAuthFailure(e)) {
-                throw new ApiException(401, "HTTP Authorization Failure", e);
+            if (AbstractAuthenticatedRequestHandler.isAuthenticationFailure(e)) {
+                throw new ApiException(401, "HTTP Unauthorized", e);
+            }
+            if (AbstractAuthenticatedRequestHandler.isAuthorizationFailure(e)) {
+                throw new ApiException(403, "HTTP Forbidden", e);
             }
             if (AbstractAuthenticatedRequestHandler.isTargetConnectionFailure(e)) {
                 handleConnectionException(ctx, e);

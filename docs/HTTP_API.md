@@ -161,6 +161,7 @@
     `200` - The body is
     ```
         {
+          "cryostatVersion": "$CRYOSTAT_VERSION",
           "datasourceConfigured": $DATASOURCE_CONFIGURED,
           "datasourceAvailable": $DATASOURCE_AVAILABLE,
           "dashboardConfigured": $DASHBOARD_CONFIGURED,
@@ -169,6 +170,7 @@
           "reportsAvailable": $REPORTS_AVAILABLE
         }
     ```
+    `$CRYOSTAT_VERSION` is the version of the current Cryostat instance.
 
     `$DATASOURCE_CONFIGURED` is `true` if the relevant environment variable has
     been set to a non-empty value.
@@ -858,6 +860,10 @@
     event template using the form `template=$TEMPLATE`.
 
     **The request may include the following fields:**
+
+    `restart`: Whether to restart the recording if one already exists with the same name. **DEPRECATED**: See `replace` below.
+
+    `replace`: The replacement policy if a recording already exists with the same name. Policies can be `ALWAYS` (i.e. `restart=true`), `NEVER` (i.e.`restart=false`), and `STOPPED` (restart only when the existing one is stopped).
 
     `duration` - The duration of the recording, in seconds.
     If this field is not set, or if it is set to zero,

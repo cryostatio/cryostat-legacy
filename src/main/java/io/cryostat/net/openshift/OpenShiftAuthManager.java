@@ -44,8 +44,8 @@ import java.util.stream.Stream;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AbstractAuthManager;
+import io.cryostat.net.AuthenticationErrorException;
 import io.cryostat.net.AuthenticationScheme;
-import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.MissingEnvironmentVariableException;
 import io.cryostat.net.PermissionDeniedException;
 import io.cryostat.net.TokenNotFoundException;
@@ -178,7 +178,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             TokenReviewStatus status = fStatus.get();
             if (!Boolean.TRUE.equals(status.getAuthenticated())) {
                 return CompletableFuture.failedFuture(
-                        new AuthorizationErrorException("Authentication Failed"));
+                        new AuthenticationErrorException("Authentication Failed"));
             }
             return CompletableFuture.completedFuture(new UserInfo(status.getUser().getUsername()));
         } catch (ExecutionException ee) {
@@ -203,7 +203,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         } catch (ExecutionException ee) {
             Throwable cause = ee.getCause();
             if (cause instanceof PermissionDeniedException
-                    || cause instanceof AuthorizationErrorException
+                    || cause instanceof AuthenticationErrorException
                     || cause instanceof KubernetesClientException) {
                 return Optional.of(this.computeAuthorizationEndpoint().get());
             }
@@ -413,7 +413,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             TokenReviewStatus status = review.getStatus();
             if (StringUtils.isNotBlank(status.getError())) {
                 return CompletableFuture.failedFuture(
-                        new AuthorizationErrorException(status.getError()));
+                        new AuthenticationErrorException(status.getError()));
             }
             return CompletableFuture.completedFuture(status);
         } catch (KubernetesClientException e) {

@@ -140,7 +140,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
     }
 
     private void cleanup(RequestParameters params, Rule rule) {
-        storage.listUniqueReachableServices().stream()
+        storage.listDiscoverableServices().stream()
                 .forEach(
                         (ServiceRef ref) -> {
                             vertx.executeBlocking(
@@ -155,7 +155,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
                                                         new ConnectionDescriptor(
                                                                 targetId, credentials);
                                                 recordings.stopRecording(
-                                                        cd, rule.getRecordingName());
+                                                        cd, rule.getRecordingName(), true);
                                             }
                                             promise.complete();
                                         } catch (Exception e) {

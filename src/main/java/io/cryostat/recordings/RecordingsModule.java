@@ -21,7 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Set;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Executors;
 
 import javax.inject.Named;
 import javax.inject.Provider;
@@ -33,6 +33,7 @@ import io.cryostat.MainModule;
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
+import io.cryostat.core.EventOptionsBuilder;
 import io.cryostat.core.RecordingOptionsCustomizer;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
@@ -177,7 +178,7 @@ public abstract class RecordingsModule {
                                         PosixFilePermission.OWNER_EXECUTE)));
             }
             return new RecordingMetadataManager(
-                    ForkJoinPool.commonPool(),
+                    Executors.newSingleThreadExecutor(),
                     metadataDir,
                     archivedRecordingsPath,
                     connectionTimeoutSeconds,
@@ -210,7 +211,7 @@ public abstract class RecordingsModule {
                 credentialsManager,
                 storage,
                 connectionTimeoutSeconds,
-                ForkJoinPool.commonPool(),
+                Executors.newCachedThreadPool(),
                 Scheduler.systemScheduler(),
                 base32,
                 logger);
