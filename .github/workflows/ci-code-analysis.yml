@@ -16,7 +16,7 @@ jobs:
   spotless:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         repository: ${{ inputs.checkout-repo }}
         ref: ${{ inputs.checkout-ref }}
@@ -26,7 +26,7 @@ jobs:
   spotbugs:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         repository: ${{ inputs.checkout-repo }}
         ref: ${{ inputs.checkout-ref }}
@@ -35,7 +35,7 @@ jobs:
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: restore
-    - uses: actions/setup-java@v2
+    - uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'temurin'
@@ -52,7 +52,7 @@ jobs:
   shellcheck:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         repository: ${{ inputs.checkout-repo }}
         ref: ${{ inputs.checkout-ref }}
