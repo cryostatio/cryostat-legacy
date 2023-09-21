@@ -73,9 +73,14 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
 
     @Override
     public synchronized CompletableFuture<Path> exec(Path recording, Path saveFile, String filter)
-            throws NoSuchMethodException, SecurityException, IllegalAccessException,
-                    IllegalArgumentException, InvocationTargetException, IOException,
-                    InterruptedException, ReportGenerationException {
+            throws NoSuchMethodException,
+                    SecurityException,
+                    IllegalAccessException,
+                    IllegalArgumentException,
+                    InvocationTargetException,
+                    IOException,
+                    InterruptedException,
+                    ReportGenerationException {
         if (recording == null) {
             throw new IllegalArgumentException("Recording may not be null");
         }

@@ -268,9 +268,14 @@ class AgentJFRService implements CryostatFlightRecorderService {
             IConstrainedMap<String> recordingOptions,
             String templateName,
             TemplateType preferredTemplateType)
-            throws io.cryostat.core.FlightRecorderException, FlightRecorderException,
-                    ConnectionException, IOException, ServiceNotAvailableException,
-                    QuantityConversionException, EventOptionException, EventTypeException {
+            throws io.cryostat.core.FlightRecorderException,
+                    FlightRecorderException,
+                    ConnectionException,
+                    IOException,
+                    ServiceNotAvailableException,
+                    QuantityConversionException,
+                    EventOptionException,
+                    EventTypeException {
         StartRecordingRequest req;
         String recordingName = recordingOptions.get("name").toString();
         long duration =
@@ -321,9 +326,14 @@ class AgentJFRService implements CryostatFlightRecorderService {
     @Override
     public IRecordingDescriptor start(
             IConstrainedMap<String> recordingOptions, Template eventTemplate)
-            throws io.cryostat.core.FlightRecorderException, FlightRecorderException,
-                    ConnectionException, IOException, FlightRecorderException,
-                    ServiceNotAvailableException, QuantityConversionException, EventOptionException,
+            throws io.cryostat.core.FlightRecorderException,
+                    FlightRecorderException,
+                    ConnectionException,
+                    IOException,
+                    FlightRecorderException,
+                    ServiceNotAvailableException,
+                    QuantityConversionException,
+                    EventOptionException,
                     EventTypeException {
         return CryostatFlightRecorderService.super.start(recordingOptions, eventTemplate);
     }

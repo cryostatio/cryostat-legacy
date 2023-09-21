@@ -82,7 +82,10 @@ public class DiscoveryJwtHelper {
 
     public String createDiscoveryPluginJwt(
             String authzHeader, String realm, InetAddress requestAddr, URI resource)
-            throws MalformedURLException, SocketException, UnknownHostException, URISyntaxException,
+            throws MalformedURLException,
+                    SocketException,
+                    UnknownHostException,
+                    URISyntaxException,
                     JOSEException {
         URL hostUrl = webServer.get().getHostUrl();
         String issuer = hostUrl.toString();
@@ -115,8 +118,13 @@ public class DiscoveryJwtHelper {
 
     public JWT parseDiscoveryPluginJwt(
             String rawToken, String realm, URI resource, InetAddress requestAddr)
-            throws ParseException, JOSEException, BadJWTException, SocketException,
-                    UnknownHostException, URISyntaxException, MalformedURLException {
+            throws ParseException,
+                    JOSEException,
+                    BadJWTException,
+                    SocketException,
+                    UnknownHostException,
+                    URISyntaxException,
+                    MalformedURLException {
         return parseDiscoveryPluginJwt(rawToken, realm, resource, requestAddr, true);
     }
 
@@ -126,8 +134,13 @@ public class DiscoveryJwtHelper {
             URI resource,
             InetAddress requestAddr,
             boolean checkTimeClaims)
-            throws ParseException, JOSEException, BadJWTException, SocketException,
-                    UnknownHostException, URISyntaxException, MalformedURLException {
+            throws ParseException,
+                    JOSEException,
+                    BadJWTException,
+                    SocketException,
+                    UnknownHostException,
+                    URISyntaxException,
+                    MalformedURLException {
         JWEObject jwe = JWEObject.parse(rawToken);
         jwe.decrypt(decrypter);
 
