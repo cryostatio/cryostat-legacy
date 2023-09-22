@@ -12,11 +12,11 @@ on:
 jobs:
   check-before-build:
     runs-on: ubuntu-latest
-    if: github.repository_owner == 'cryostatio' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
+    if: github.repository_owner == 'cryostatio' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test') || startsWith(github.event.comment.body, '/retest'))
     permissions:
       pull-requests: write
     steps:
-    - name: Fail if needs-triage label applied 
+    - name: Fail if needs-triage label applied
       if: ${{ contains(github.event.issue.labels.*.name, 'needs-triage') }}
       run: exit 1
     - name: Show warning if permission is denied
@@ -43,12 +43,12 @@ jobs:
               repo,
               comment_id: context.payload.comment.id,
               content: "+1",
-            });  
+            });
 
-  checkout-branch: 
+  checkout-branch:
     runs-on: ubuntu-latest
     needs: [check-before-build]
-    outputs: 
+    outputs:
       PR_head_ref: ${{ fromJSON(steps.comment-branch.outputs.result).ref }}
       PR_head_sha: ${{ fromJSON(steps.comment-branch.outputs.result).sha }}
       PR_num: ${{ fromJSON(steps.comment-branch.outputs.result).num }}
@@ -73,9 +73,42 @@ jobs:
     with:
       checkout-repo: ${{ needs.checkout-branch.outputs.PR_repo }}
       checkout-ref: ${{ needs.checkout-branch.outputs.PR_head_ref }}
+
+  start-comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Capture Date and Time
+        id: date-time
+        run: echo "::set-output name=date-time::$(date +'%Y-%m-%d %H:%M:%S')"
+      - name: Start Comment
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            Workflow started at ${{steps.date-time.outputs.date-time}}.
       
   build-and-test:
     needs: [code-analysis, checkout-branch]
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: build-test
+        uses: ./.github/workflows/ci-build-image.yml
+        with:
+         build-arch: ${{ matrix.arch }}
+         checkout-repo: ${{ needs.checkout-branch.outputs.PR_repo }}
+         checkout-ref: ${{ needs.checkout-branch.outputs.PR_head_ref  }}
+         skip-itests: ${{ matrix.arch != 'amd64' }}
+      - name: Set BUILD_TEST_EXECUTED flag
+        id: set-build-test-executed
+        run: echo "BUILD_TEST_EXECUTED=true" >> $GITHUB_ENV
+
+  retest-integration:
+    needs: [code-analysis, checkout-branch, build-and-test]
+    if: startsWith(github.event.comment.body, '/retest') && env.BUILD_TEST_EXECUTED == 'true'
     strategy:
       matrix:
         arch: [amd64, arm64]
@@ -85,6 +118,30 @@ jobs:
       checkout-repo: ${{ needs.checkout-branch.outputs.PR_repo }}
       checkout-ref: ${{ needs.checkout-branch.outputs.PR_head_ref  }}
       skip-itests: ${{ matrix.arch != 'amd64' }}
+  
+  check-test-results:
+    runs-on: ubuntu-latest
+    needs: [build-and-test]
+    steps:
+      - name: Check Test Results
+        id: check-results
+        run: |
+          if [ ... ]; then
+            echo "Tests passed."
+            echo "::set-output name=test-status::success"
+          else
+            echo "Tests failed."
+            echo "::set-output name=test-status::failure"
+        continue-on-error: true
+      - name: Capture Date and Time
+        id: date-time
+        run: echo "::set-output name=date-time::$(date +'%Y-%m-%d %H:%M:%S')"
+      - name: Comment on PR
+        if: ${{ always() }}
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            Tests status: ${{ steps.check-results.outputs.test-status }} at ${{ steps.date-time.outputs.date-time }}.
 
   push-to-ghcr:
     runs-on: ubuntu-latest
@@ -92,7 +149,7 @@ jobs:
     strategy:
       matrix:
         arch: [amd64, arm64]
-    outputs: 
+    outputs:
       amd64_image: ${{ steps.amd64_image.outputs.image }}
       arm64_image: ${{ steps.arm64_image.outputs.image }}
     env:
@@ -138,7 +195,7 @@ jobs:
     - name: Create markdown table
       id: md-table
       uses: petems/csv-to-md-table-action@v3.0.0
-      with: 
+      with:
         csvinput: |
           ARCH, IMAGE
           amd64, ${{ env.amd64_image }}
@@ -150,7 +207,7 @@ jobs:
 
           To run smoketest:
           ```
-          # amd64          
+          # amd64
           CRYOSTAT_IMAGE=${{ env.amd64_image }} sh smoketest.sh
 
           # or arm64
