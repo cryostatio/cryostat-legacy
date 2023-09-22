@@ -576,17 +576,14 @@ public class RecordingArchiveHelper {
     }
 
     public Future<Path> getCachedReportPathFromPath(
-            String subdirectoryName, String recordingName, String filter, boolean formatted) {
+            String subdirectoryName, String recordingName, String filter) {
         CompletableFuture<Path> future = new CompletableFuture<>();
         try {
             Path tempSubdirectory = archivedRecordingsReportPath.resolve(subdirectoryName);
             if (!fs.exists(tempSubdirectory)) {
                 tempSubdirectory = fs.createDirectory(tempSubdirectory);
             }
-            String fileName =
-                    String.format(
-                            "%s-%s.report%s",
-                            recordingName, filter.hashCode(), formatted ? ".html" : ".json");
+            String fileName = String.format("%s-%s.report.json", recordingName, filter.hashCode());
             future.complete(tempSubdirectory.resolve(fileName).toAbsolutePath());
         } catch (IOException e) {
             future.completeExceptionally(e);
@@ -595,7 +592,7 @@ public class RecordingArchiveHelper {
     }
 
     public Future<Path> getCachedReportPath(
-            String sourceTarget, String recordingName, String filter, boolean formatted) {
+            String sourceTarget, String recordingName, String filter) {
         try {
             String jvmId = jvmIdHelper.getJvmId(sourceTarget);
             String subdirectory =
@@ -604,7 +601,7 @@ public class RecordingArchiveHelper {
                             : sourceTarget.equals(UPLOADED_RECORDINGS_SUBDIRECTORY)
                                     ? UPLOADED_RECORDINGS_SUBDIRECTORY
                                     : base32.encodeAsString(jvmId.getBytes(StandardCharsets.UTF_8));
-            return getCachedReportPathFromPath(subdirectory, recordingName, filter, formatted);
+            return getCachedReportPathFromPath(subdirectory, recordingName, filter);
         } catch (JvmIdGetException e) {
             return CompletableFuture.failedFuture(e);
         }

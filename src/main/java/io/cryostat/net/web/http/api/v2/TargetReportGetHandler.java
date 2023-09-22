@@ -91,7 +91,7 @@ class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
 
     @Override
     public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.JSON, HttpMimeType.HTML);
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override
@@ -109,22 +109,16 @@ class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        String contentType =
-                (ctx.getAcceptableContentType() == null)
-                        ? HttpMimeType.HTML.mime()
-                        : ctx.getAcceptableContentType();
-        boolean formatted = contentType.equals(HttpMimeType.HTML.mime());
         try {
             ctx.response()
-                    .putHeader(HttpHeaders.CONTENT_TYPE, contentType)
+                    .putHeader(HttpHeaders.CONTENT_TYPE, ctx.getAcceptableContentType())
                     .putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline")
                     .end(
                             reportService
                                     .get(
                                             getConnectionDescriptorFromJwt(ctx, jwt),
                                             recordingName,
-                                            rawFilter,
-                                            formatted)
+                                            rawFilter)
                                     .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
         } catch (CompletionException | ExecutionException ee) {
 

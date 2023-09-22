@@ -15,15 +15,12 @@
  */
 package io.cryostat.net.reports;
 
-import java.util.Set;
-
 import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.reports.ReportTransformer;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationListener;
@@ -32,7 +29,6 @@ import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.util.JavaProcess;
 
-import com.google.gson.Gson;
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
@@ -40,10 +36,7 @@ import dagger.multibindings.IntoSet;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 
-@Module(
-        includes = {
-            ReportTransformerModule.class,
-        })
+@Module
 public abstract class ReportsModule {
 
     public static final String REPORT_GENERATION_TIMEOUT_SECONDS =
@@ -144,19 +137,15 @@ public abstract class ReportsModule {
     @Provides
     static SubprocessReportGenerator provideSubprocessReportGenerator(
             Environment env,
-            Gson gson,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
-            Set<ReportTransformer> reportTransformers,
             Provider<JavaProcess.Builder> javaProcessBuilder,
             @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         return new SubprocessReportGenerator(
                 env,
-                gson,
                 fs,
                 targetConnectionManager,
-                reportTransformers,
                 javaProcessBuilder,
                 generationTimeoutSeconds,
                 logger);

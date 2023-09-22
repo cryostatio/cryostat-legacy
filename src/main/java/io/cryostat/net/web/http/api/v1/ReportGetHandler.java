@@ -113,7 +113,7 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
             Path report =
                     reportService
-                            .get(recordingName, rawFilter, true)
+                            .get(recordingName, rawFilter)
                             .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
             ctx.response()

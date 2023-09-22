@@ -96,7 +96,7 @@ class ReportGetFromPathWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
     @Override
     public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.HTML, HttpMimeType.JSON);
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override
@@ -116,17 +116,12 @@ class ReportGetFromPathWithJwtHandler extends AbstractAssetJwtConsumingHandler {
         try {
             List<String> queriedFilter = ctx.queryParam("filter");
             String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-            String contentType =
-                    (ctx.getAcceptableContentType() == null)
-                            ? HttpMimeType.HTML.mime()
-                            : ctx.getAcceptableContentType();
-            boolean formatted = contentType.equals(HttpMimeType.HTML.mime());
             Path report =
                     reportService
-                            .getFromPath(subdirectoryName, recordingName, rawFilter, formatted)
+                            .getFromPath(subdirectoryName, recordingName, rawFilter)
                             .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, contentType);
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, ctx.getAcceptableContentType());
             ctx.response().sendFile(report.toAbsolutePath().toString());
         } catch (ExecutionException | CompletionException e) {
             if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException

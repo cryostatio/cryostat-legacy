@@ -99,7 +99,7 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
 
     @Override
     public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.HTML, HttpMimeType.JSON_RAW);
+        return List.of(HttpMimeType.JSON_RAW);
     }
 
     @Override
@@ -115,14 +115,9 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
             recordingArchiveHelper.validateSourceTarget(sourceTarget);
             List<String> queriedFilter = params.getQueryParams().getAll("filter");
             String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-            String contentType =
-                    (params.getAcceptableContentType() == null)
-                            ? HttpMimeType.HTML.mime()
-                            : params.getAcceptableContentType();
-            boolean formatted = contentType.equals(HttpMimeType.HTML.mime());
             Path report =
                     reportService
-                            .get(sourceTarget, recordingName, rawFilter, formatted)
+                            .get(sourceTarget, recordingName, rawFilter)
                             .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
             return new IntermediateResponse<Path>().body(report);
         } catch (RecordingSourceTargetNotFoundException e) {

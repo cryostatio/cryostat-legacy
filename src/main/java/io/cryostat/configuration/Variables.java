@@ -26,7 +26,6 @@ public final class Variables {
     // report generation
     public static final String REPORT_GENERATOR_ENV = "CRYOSTAT_REPORT_GENERATOR";
     public static final String SUBPROCESS_MAX_HEAP_ENV = "CRYOSTAT_REPORT_GENERATION_MAX_HEAP";
-    public static final String REPORT_STATS_PATH = "CRYOSTAT_REPORT_STATS_PATH";
     public static final String ACTIVE_REPORTS_CACHE_EXPIRY_ENV =
             "CRYOSTAT_ACTIVE_REPORTS_CACHE_EXPIRY_SECONDS";
     public static final String ACTIVE_REPORTS_CACHE_REFRESH_ENV =
