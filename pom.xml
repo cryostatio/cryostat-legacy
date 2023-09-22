@@ -30,7 +30,7 @@
   <baseImage>localhost/cryostat-base</baseImage>
   <baseImageTag>latest-${build.os}-${build.arch}</baseImageTag>
   <baseImageTarball>base.tar.gz</baseImageTarball>
-  <node.version>v16.18.1</node.version>
+  <node.version>v18.17.1</node.version>
   <yarn.version>v1.22.19</yarn.version>
 
   <postgres.image>docker.io/postgres</postgres.image>
