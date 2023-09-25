@@ -42,7 +42,6 @@ import io.cryostat.core.CryostatCore;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.reports.InterruptibleReportGenerator;
 import io.cryostat.core.reports.InterruptibleReportGenerator.AnalysisResult;
-import io.cryostat.core.reports.InterruptibleReportGenerator.ReportGenerationEvent;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.util.RuleFilterParser;
@@ -99,9 +98,6 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         return CompletableFuture.supplyAsync(
                 () -> {
                     Process proc = null;
-                    ReportGenerationEvent evt = new ReportGenerationEvent(recording.toString());
-                    evt.begin();
-
                     try {
                         proc = procBuilder.exec();
                         proc.waitFor(generationTimeoutSeconds - 1, TimeUnit.SECONDS);
@@ -133,11 +129,6 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
                     } finally {
                         if (proc != null) {
                             proc.destroyForcibly();
-                        }
-
-                        evt.end();
-                        if (evt.shouldCommit()) {
-                            evt.commit();
                         }
                     }
                 });
