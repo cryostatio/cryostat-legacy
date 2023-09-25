@@ -16,6 +16,8 @@
 package io.cryostat.configuration;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,6 +40,7 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.rules.MatchExpressionEvaluator;
 import io.cryostat.rules.MatchExpressionValidationException;
 import io.cryostat.rules.MatchExpressionValidator;
+import io.cryostat.util.URIUtil;
 import io.cryostat.util.events.AbstractEventEmitter;
 import io.cryostat.util.events.EventType;
 
@@ -45,6 +48,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import dagger.Lazy;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 
 public class CredentialsManager
         extends AbstractEventEmitter<CredentialsManager.CredentialsEvent, String> {
@@ -160,12 +164,27 @@ public class CredentialsManager
     }
 
     public Credentials getCredentialsByTargetId(String targetId) throws ScriptException {
-        for (ServiceRef service : this.platformClient.listDiscoverableServices()) {
-            if (Objects.equals(targetId, service.getServiceUri().toString())) {
-                return getCredentials(service);
+        try {
+            for (ServiceRef service : this.platformClient.listDiscoverableServices()) {
+                URI uri = service.getServiceUri();
+                boolean match = false;
+                boolean isJmx = URIUtil.isJmxUrl(uri);
+                if (isJmx) {
+                    match = Objects.equals(uri.toString(), targetId);
+                } else {
+                    URI in = new URI(targetId);
+                    match = Objects.equals(uri, in);
+                    URI userless = new URIBuilder(uri).setUserInfo(null).build();
+                    match |= Objects.equals(userless, in);
+                }
+                if (match) {
+                    return getCredentials(service);
+                }
             }
+            return null;
+        } catch (URISyntaxException use) {
+            throw new IllegalStateException(use);
         }
-        return null;
     }
 
     public Credentials getCredentials(ServiceRef serviceRef) throws ScriptException {
