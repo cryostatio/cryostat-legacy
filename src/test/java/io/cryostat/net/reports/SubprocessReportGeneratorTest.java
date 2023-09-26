@@ -178,7 +178,7 @@ class SubprocessReportGeneratorTest {
         ArgumentCaptor<List<String>> captor = ArgumentCaptor.forClass(List.class);
         Mockito.verify(javaProcessBuilder).processArgs(captor.capture());
 
-        List<String> expected = List.of("/dest/recording.tmp", "/dest/somefile.tmp", "", "true");
+        List<String> expected = List.of("/dest/recording.tmp", "/dest/somefile.tmp", "");
         MatcherAssert.assertThat(captor.getValue(), Matchers.equalTo(expected));
     }
 
@@ -193,8 +193,7 @@ class SubprocessReportGeneratorTest {
         ArgumentCaptor<List<String>> captor = ArgumentCaptor.forClass(List.class);
         Mockito.verify(javaProcessBuilder).processArgs(captor.capture());
 
-        List<String> expected =
-                List.of("/dest/recording.tmp", "/dest/somefile.tmp", "someFilter", "false");
+        List<String> expected = List.of("/dest/recording.tmp", "/dest/somefile.tmp", "someFilter");
         MatcherAssert.assertThat(captor.getValue(), Matchers.equalTo(expected));
     }
 
