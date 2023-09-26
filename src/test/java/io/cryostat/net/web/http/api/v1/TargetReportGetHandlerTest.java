@@ -96,10 +96,9 @@ class TargetReportGetHandlerTest {
         }
 
         @Test
-        void shouldProduceHtmlAndJson() {
+        void shouldProduceJson() {
             MatcherAssert.assertThat(
-                    handler.produces(),
-                    Matchers.containsInAnyOrder(HttpMimeType.HTML, HttpMimeType.JSON));
+                    handler.produces(), Matchers.containsInAnyOrder(HttpMimeType.JSON));
         }
     }
 
@@ -122,7 +121,7 @@ class TargetReportGetHandlerTest {
 
         @Test
         void shouldHandleRecordingDownloadRequest() throws Exception {
-            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
 
             String targetId = "fooHost:0";
             String recordingName = "foo";
@@ -141,13 +140,13 @@ class TargetReportGetHandlerTest {
             handler.handle(ctx);
 
             verify(reportService).get(cd, recordingName, "");
-            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
             verify(resp).end("foobar");
         }
 
         @Test
         void shouldHandleRecordingDownloadRequestFiltered() throws Exception {
-            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
 
             String targetId = "fooHost:0";
             String recordingName = "foo";
@@ -166,7 +165,7 @@ class TargetReportGetHandlerTest {
             handler.handle(ctx);
 
             verify(reportService).get(cd, recordingName, "someFilter");
-            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
             verify(resp).end("foobar");
         }
 
@@ -197,7 +196,7 @@ class TargetReportGetHandlerTest {
 
         @Test
         void shouldRespond404IfRecordingNameNotFound() throws Exception {
-            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
 
             when(reportService.get(
                             Mockito.any(ConnectionDescriptor.class),
@@ -218,7 +217,7 @@ class TargetReportGetHandlerTest {
 
         @Test
         void shouldRespond404IfTargetNotFound() throws Exception {
-            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
 
             String targetId = "fooHost:0";
             String recordingName = "foo";
@@ -245,7 +244,7 @@ class TargetReportGetHandlerTest {
 
         @Test
         void shouldRespond404IfRecordingNotFound() throws Exception {
-            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
 
             String targetId = "fooHost:0";
             String recordingName = "foo";
