@@ -16,6 +16,7 @@
 package io.cryostat.util;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -37,6 +38,19 @@ public class URIUtil {
 
     public static URI convert(JMXServiceURL serviceUrl) throws URISyntaxException {
         return new URI(serviceUrl.toString());
+    }
+
+    public static boolean isJmxUrl(URI uri) {
+        return isJmxUrl(uri.toString());
+    }
+
+    public static boolean isJmxUrl(String uri) {
+        try {
+            new JMXServiceURL(uri);
+            return true;
+        } catch (MalformedURLException mue) {
+            return false;
+        }
     }
 
     public static boolean isRmiUrl(JMXServiceURL serviceUrl) {
