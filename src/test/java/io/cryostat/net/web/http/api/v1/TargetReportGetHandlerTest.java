@@ -130,8 +130,7 @@ class TargetReportGetHandlerTest {
             when(reportService.get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+                            Mockito.anyString()))
                     .thenReturn(content);
 
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
@@ -141,7 +140,7 @@ class TargetReportGetHandlerTest {
 
             handler.handle(ctx);
 
-            verify(reportService).get(cd, recordingName, "", true);
+            verify(reportService).get(cd, recordingName, "");
             verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
             verify(resp).end("foobar");
         }
@@ -156,8 +155,7 @@ class TargetReportGetHandlerTest {
             when(reportService.get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+                            Mockito.anyString()))
                     .thenReturn(content);
 
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
@@ -167,7 +165,7 @@ class TargetReportGetHandlerTest {
 
             handler.handle(ctx);
 
-            verify(reportService).get(cd, recordingName, "someFilter", true);
+            verify(reportService).get(cd, recordingName, "someFilter");
             verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
             verify(resp).end("foobar");
         }
@@ -182,8 +180,7 @@ class TargetReportGetHandlerTest {
             when(reportService.get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+                            Mockito.anyString()))
                     .thenReturn(content);
 
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
@@ -193,7 +190,7 @@ class TargetReportGetHandlerTest {
 
             handler.handle(ctx);
 
-            verify(reportService).get(cd, recordingName, "someFilter", false);
+            verify(reportService).get(cd, recordingName, "someFilter");
             verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
             verify(resp).end("foobar");
         }
@@ -205,8 +202,7 @@ class TargetReportGetHandlerTest {
             when(reportService.get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+                            Mockito.anyString()))
                     .thenThrow(
                             new CompletionException(
                                     new RecordingNotFoundException("fooHost:0", "someRecording")));
@@ -236,8 +232,7 @@ class TargetReportGetHandlerTest {
             when(reportService.get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+                            Mockito.anyString()))
                     .thenReturn(content);
 
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
@@ -264,8 +259,7 @@ class TargetReportGetHandlerTest {
             when(reportService.get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+                            Mockito.anyString()))
                     .thenReturn(content);
 
             when(ctx.pathParam("targetId")).thenReturn(targetId);

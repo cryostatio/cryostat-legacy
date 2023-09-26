@@ -148,8 +148,7 @@ class TargetReportGetHandlerTest {
             when(reports.get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+                            Mockito.anyString()))
                     .thenReturn(future);
             ApiException ex =
                     Assertions.assertThrows(
@@ -167,8 +166,7 @@ class TargetReportGetHandlerTest {
             when(reports.get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+                            Mockito.anyString()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
@@ -179,8 +177,7 @@ class TargetReportGetHandlerTest {
                     .get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.eq("myrecording"),
-                            Mockito.eq(""),
-                            Mockito.eq(true));
+                            Mockito.eq(""));
         }
 
         @Test
@@ -193,8 +190,7 @@ class TargetReportGetHandlerTest {
             when(reports.get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+                            Mockito.anyString()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
@@ -205,8 +201,7 @@ class TargetReportGetHandlerTest {
                     .get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.eq("myrecording"),
-                            Mockito.eq("someFilter"),
-                            Mockito.eq(true));
+                            Mockito.eq("someFilter"));
         }
 
         @Test
@@ -219,8 +214,7 @@ class TargetReportGetHandlerTest {
             when(reports.get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+                            Mockito.anyString()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
@@ -231,8 +225,7 @@ class TargetReportGetHandlerTest {
                     .get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.eq("myrecording"),
-                            Mockito.eq("someFilter"),
-                            Mockito.eq(false));
+                            Mockito.eq("someFilter"));
         }
     }
 }

@@ -145,11 +145,7 @@ class ReportGetFromPathWithJwtHandlerTest {
             Future<Path> future =
                     CompletableFuture.failedFuture(
                             new RecordingNotFoundException("mytarget", "myrecording"));
-            when(reports.getFromPath(
-                            Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+            when(reports.getFromPath(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(future);
             ApiException ex =
                     Assertions.assertThrows(
@@ -167,16 +163,12 @@ class ReportGetFromPathWithJwtHandlerTest {
             when(path.toAbsolutePath()).thenReturn(path);
             when(path.toString()).thenReturn("foo.jfr");
             Future<Path> future = CompletableFuture.completedFuture(path);
-            when(reports.getFromPath(
-                            Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+            when(reports.getFromPath(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
 
-            verify(reports).getFromPath("mydirectory", "myrecording", "", true);
+            verify(reports).getFromPath("mydirectory", "myrecording", "");
             InOrder inOrder = Mockito.inOrder(resp);
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
@@ -194,16 +186,12 @@ class ReportGetFromPathWithJwtHandlerTest {
             when(path.toString()).thenReturn("foo.jfr");
             when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
             Future<Path> future = CompletableFuture.completedFuture(path);
-            when(reports.getFromPath(
-                            Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+            when(reports.getFromPath(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
 
-            verify(reports).getFromPath("mydirectory", "myrecording", "someFilter", true);
+            verify(reports).getFromPath("mydirectory", "myrecording", "someFilter");
             InOrder inOrder = Mockito.inOrder(resp);
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
@@ -221,16 +209,12 @@ class ReportGetFromPathWithJwtHandlerTest {
             when(path.toString()).thenReturn("foo.jfr");
             when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
             Future<Path> future = CompletableFuture.completedFuture(path);
-            when(reports.getFromPath(
-                            Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+            when(reports.getFromPath(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
 
-            verify(reports).getFromPath("mydirectory", "myrecording", "someFilter", false);
+            verify(reports).getFromPath("mydirectory", "myrecording", "someFilter");
             InOrder inOrder = Mockito.inOrder(resp);
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());

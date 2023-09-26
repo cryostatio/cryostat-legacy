@@ -135,18 +135,14 @@ class ReportGetHandlerTest {
             Future<Path> future =
                     CompletableFuture.failedFuture(
                             new RecordingNotFoundException(sourceTarget, recordingName));
-            when(reportService.get(
-                            Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+            when(reportService.get(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(future);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
 
-            verify(reportService).get(sourceTarget, recordingName, "", true);
+            verify(reportService).get(sourceTarget, recordingName, "");
         }
 
         @Test
@@ -162,11 +158,7 @@ class ReportGetHandlerTest {
 
             Path fakePath = Mockito.mock(Path.class);
 
-            when(reportService.get(
-                            Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+            when(reportService.get(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(CompletableFuture.completedFuture(fakePath));
 
             IntermediateResponse<Path> response = handler.handle(params);
@@ -174,7 +166,7 @@ class ReportGetHandlerTest {
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
             MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(fakePath));
 
-            verify(reportService).get(sourceTarget, recordingName, "", true);
+            verify(reportService).get(sourceTarget, recordingName, "");
         }
 
         @Test
@@ -191,11 +183,7 @@ class ReportGetHandlerTest {
 
             Path fakePath = Mockito.mock(Path.class);
 
-            when(reportService.get(
-                            Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+            when(reportService.get(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(CompletableFuture.completedFuture(fakePath));
 
             IntermediateResponse<Path> response = handler.handle(params);
@@ -203,7 +191,7 @@ class ReportGetHandlerTest {
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
             MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(fakePath));
 
-            verify(reportService).get(sourceTarget, recordingName, "someFilter", true);
+            verify(reportService).get(sourceTarget, recordingName, "someFilter");
         }
 
         @Test
@@ -220,11 +208,7 @@ class ReportGetHandlerTest {
 
             Path fakePath = Mockito.mock(Path.class);
 
-            when(reportService.get(
-                            Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+            when(reportService.get(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(CompletableFuture.completedFuture(fakePath));
 
             IntermediateResponse<Path> response = handler.handle(params);
@@ -232,7 +216,7 @@ class ReportGetHandlerTest {
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
             MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(fakePath));
 
-            verify(reportService).get(sourceTarget, recordingName, "someFilter", false);
+            verify(reportService).get(sourceTarget, recordingName, "someFilter");
         }
     }
 }
