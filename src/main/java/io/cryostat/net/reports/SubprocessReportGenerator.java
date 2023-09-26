@@ -194,7 +194,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
             System.exit(ExitStatus.OTHER.code);
         }
 
-        if (args.length != 4) {
+        if (args.length != 3) {
             throw new IllegalArgumentException(Arrays.asList(args).toString());
         }
         var recording = Paths.get(args[0]);
