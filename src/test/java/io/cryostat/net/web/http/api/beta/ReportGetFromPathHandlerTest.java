@@ -102,10 +102,9 @@ class ReportGetFromPathHandlerTest {
         }
 
         @Test
-        void shouldProduceHtmlAndRawJson() {
+        void shouldProduceRawJson() {
             MatcherAssert.assertThat(
-                    handler.produces(),
-                    Matchers.containsInAnyOrder(HttpMimeType.HTML, HttpMimeType.JSON_RAW));
+                    handler.produces(), Matchers.containsInAnyOrder(HttpMimeType.JSON_RAW));
         }
 
         @Test
@@ -132,7 +131,6 @@ class ReportGetFromPathHandlerTest {
                                     "recordingName",
                                     recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
-            when(params.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
 
             Future<Path> future =
                     CompletableFuture.failedFuture(
@@ -161,7 +159,6 @@ class ReportGetFromPathHandlerTest {
                                     "recordingName",
                                     recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
-            when(params.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
 
             Path fakePath = Mockito.mock(Path.class);
 
@@ -191,7 +188,6 @@ class ReportGetFromPathHandlerTest {
                                     "recordingName",
                                     recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
-            when(params.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
 
             Path fakePath = Mockito.mock(Path.class);
 
@@ -221,7 +217,6 @@ class ReportGetFromPathHandlerTest {
                                     "recordingName",
                                     recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
-            when(params.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
 
             Path fakePath = Mockito.mock(Path.class);
 
