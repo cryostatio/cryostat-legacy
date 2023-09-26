@@ -104,10 +104,9 @@ class ReportGetHandlerTest {
         }
 
         @Test
-        void shouldProduceHtmlAndRawJson() {
+        void shouldProduceRawJson() {
             MatcherAssert.assertThat(
-                    handler.produces(),
-                    Matchers.containsInAnyOrder(HttpMimeType.HTML, HttpMimeType.JSON_RAW));
+                    handler.produces(), Matchers.containsInAnyOrder(HttpMimeType.JSON_RAW));
         }
 
         @Test
@@ -130,7 +129,6 @@ class ReportGetHandlerTest {
                     .thenReturn(
                             Map.of("sourceTarget", sourceTarget, "recordingName", recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
-            when(params.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
 
             Future<Path> future =
                     CompletableFuture.failedFuture(
@@ -154,7 +152,6 @@ class ReportGetHandlerTest {
                     .thenReturn(
                             Map.of("sourceTarget", sourceTarget, "recordingName", recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
-            when(params.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
 
             Path fakePath = Mockito.mock(Path.class);
 
@@ -179,7 +176,6 @@ class ReportGetHandlerTest {
                     .thenReturn(
                             Map.of("sourceTarget", sourceTarget, "recordingName", recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
-            when(params.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
 
             Path fakePath = Mockito.mock(Path.class);
 
@@ -204,7 +200,6 @@ class ReportGetHandlerTest {
                     .thenReturn(
                             Map.of("sourceTarget", sourceTarget, "recordingName", recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
-            when(params.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
 
             Path fakePath = Mockito.mock(Path.class);
 
