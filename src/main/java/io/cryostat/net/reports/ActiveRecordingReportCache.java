@@ -45,7 +45,7 @@ import com.github.benmanes.caffeine.cache.Scheduler;
 class ActiveRecordingReportCache implements NotificationListener<Map<String, Object>> {
     protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
     protected final FileSystem fs;
-    protected final LoadingCache<RecordingDescriptor, String> jsonCache;
+    protected final LoadingCache<RecordingDescriptor, String> cache;
     protected final TargetConnectionManager targetConnectionManager;
     protected final long generationTimeoutSeconds;
     protected final long cacheExpirySeconds;
@@ -70,7 +70,7 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
         this.cacheExpirySeconds = cacheExpirySeconds;
         this.cacheRefreshSeconds = cacheRefreshSeconds;
         this.logger = logger;
-        this.jsonCache =
+        this.cache =
                 Caffeine.newBuilder()
                         .scheduler(Scheduler.systemScheduler())
                         .expireAfterWrite(cacheExpirySeconds, TimeUnit.SECONDS)
@@ -84,9 +84,7 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
         CompletableFuture<String> f = new CompletableFuture<>();
         try {
             if (filter.isBlank()) {
-                f.complete(
-                        jsonCache.get(
-                                new RecordingDescriptor(connectionDescriptor, recordingName)));
+                f.complete(cache.get(new RecordingDescriptor(connectionDescriptor, recordingName)));
             } else {
                 f.complete(
                         getReport(
@@ -101,10 +99,10 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
 
     boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
         RecordingDescriptor key = new RecordingDescriptor(connectionDescriptor, recordingName);
-        boolean hasKey = jsonCache.asMap().containsKey(key);
+        boolean hasKey = cache.asMap().containsKey(key);
         if (hasKey) {
             logger.trace("Invalidated active report cache for {}", recordingName);
-            jsonCache.invalidate(key);
+            cache.invalidate(key);
         } else {
             logger.trace("No cache entry for {} to invalidate", recordingName);
         }
@@ -119,7 +117,7 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
             throws Exception {
         Path saveFile = null;
         try {
-            /* NOTE: Not always a cache miss since if a filter is specified or we want a JSON response, we do not even check the cache */
+            /* NOTE: Not always a cache miss since if a filter is specified we do not even check the cache */
             logger.trace("Active report cache miss for {}", recordingDescriptor.recordingName);
             try {
                 saveFile =
