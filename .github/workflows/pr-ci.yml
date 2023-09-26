@@ -19,20 +19,6 @@ jobs:
     - name: Fail if needs-triage label applied
       if: ${{ contains(github.event.issue.labels.*.name, 'needs-triage') }}
       run: exit 1
-    - name: Show warning if permission is denied
-      if: |
-        !(github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
-        && (!contains(github.event.issue.labels.*.name, 'safe-to-test') || github.event.issue.user.name != github.event.comment.user.name)
-      uses: thollander/actions-comment-pull-request@v2
-      with:
-        message: |-
-          You do not have permission to run the /build_test command. Please ask @cryostatio/reviewers
-          to resolve the issue.
-    - name: Fail if command permission is denied
-      if: |
-        !(github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
-        && (!contains(github.event.issue.labels.*.name, 'safe-to-test') || github.event.issue.user.name != github.event.comment.user.name)
-      run: exit 1
     - name: React to comment
       uses: actions/github-script@v4
       with:
