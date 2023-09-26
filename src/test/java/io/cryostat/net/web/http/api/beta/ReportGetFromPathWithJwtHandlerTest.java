@@ -112,10 +112,9 @@ class ReportGetFromPathWithJwtHandlerTest {
         }
 
         @Test
-        void shouldProduceHtmlAndJson() {
+        void shouldProduceJson() {
             MatcherAssert.assertThat(
-                    handler.produces(),
-                    Matchers.containsInAnyOrder(HttpMimeType.HTML, HttpMimeType.JSON));
+                    handler.produces(), Matchers.containsInAnyOrder(HttpMimeType.JSON));
         }
 
         @Test
@@ -138,7 +137,6 @@ class ReportGetFromPathWithJwtHandlerTest {
 
         @Test
         void shouldRespond404IfNotFound() throws Exception {
-            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
             when(ctx.pathParam("subdirectoryName")).thenReturn("mydirectory");
             when(ctx.pathParam("recordingName")).thenReturn("myrecording");
 
@@ -155,7 +153,7 @@ class ReportGetFromPathWithJwtHandlerTest {
 
         @Test
         void shouldSendFileIfFound() throws Exception {
-            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
             when(ctx.response()).thenReturn(resp);
             when(ctx.pathParam("subdirectoryName")).thenReturn("mydirectory");
             when(ctx.pathParam("recordingName")).thenReturn("myrecording");
@@ -171,13 +169,13 @@ class ReportGetFromPathWithJwtHandlerTest {
             verify(reports).getFromPath("mydirectory", "myrecording", "");
             InOrder inOrder = Mockito.inOrder(resp);
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
-            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
             inOrder.verify(resp).sendFile("foo.jfr");
         }
 
         @Test
         void shouldSendFileIfFoundFiltered() throws Exception {
-            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
             when(ctx.response()).thenReturn(resp);
             when(ctx.pathParam("subdirectoryName")).thenReturn("mydirectory");
             when(ctx.pathParam("recordingName")).thenReturn("myrecording");
@@ -194,7 +192,7 @@ class ReportGetFromPathWithJwtHandlerTest {
             verify(reports).getFromPath("mydirectory", "myrecording", "someFilter");
             InOrder inOrder = Mockito.inOrder(resp);
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
-            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
             inOrder.verify(resp).sendFile("foo.jfr");
         }
 
