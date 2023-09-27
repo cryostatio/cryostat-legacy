@@ -62,7 +62,7 @@ Run Requirements:
 * Initialize submodules via:  `git submodule init && git submodule update`
 
 ### Build project locally
-* `mvn compile`
+* `./mvnw compile`
 
 ### Build and run project locally in development hot-reload mode
 * `sh devserver.sh` - this will start the Vert.x backend in hot-reload mode, so
@@ -73,20 +73,20 @@ the `web-client` frontend for hot-reload development, see
 [cryostat-web Development Server](https://github.com/cryostatio/cryostat-web/blob/main/README.md#development-server).
 
 ### Build and push to local podman image registry
-* `mvn package`
-* Run `mvn -Dheadless=true clean package` to exclude web-client assets.
+* `./mvnw package`
+* Run `./mvnw -Dheadless=true clean package` to exclude web-client assets.
 The `clean` phase should always be specified here, or else previously-generated
 client assets will still be included into the built image.
 * For other OCI builders, use the `imageBuilder` Maven property. For example, to
-use docker, run: `mvn -DimageBuilder=$(which docker) clean verify`
+use docker, run: `./mvnw -DimageBuilder=$(which docker) clean verify`
 
 ## TEST
 
 ### Unit tests
-* `mvn test`
+* `./mvnw test`
 
 ### Integration tests and analysis tools
-* `mvn verify`
+* `./mvnw verify`
 
 ### Skipping tests
 * `-DskipUTs=true` to skip unit tests
@@ -94,7 +94,7 @@ use docker, run: `mvn -DimageBuilder=$(which docker) clean verify`
 * `-DskipTests=true` to skip all tests
 
 ### Running integration tests without rebuild
-* `mvn exec:exec@create-pod exec:exec@start-jfr-datasource
+* `./mvnw exec:exec@create-pod exec:exec@start-jfr-datasource
 exec:exec@start-grafana-dashboard exec:exec@start-container
 exec:exec@wait-for-container failsafe:integration-test
 exec:exec@stop-jfr-datasource exec:exec@stop-grafana exec:exec@stop-container
@@ -110,7 +110,7 @@ exec:exec@destroy-pod`
 ### Run on local podman*
 * `run.sh`
 
-Note: If you get a 'No plugin found' error, it is because maven has not downloaded all the necessary plugins. To resolve this error, manually run `mvn help:evaluate` to prompt maven to download the missing help plugin. 
+Note: If you get a 'No plugin found' error, it is because maven has not downloaded all the necessary plugins. To resolve this error, manually run `./mvnw help:evaluate` to prompt maven to download the missing help plugin.
 
 ### Run on local podman with Grafana, jfr-datasource and demo application*
 * `smoketest.sh`
