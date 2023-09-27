@@ -99,7 +99,7 @@ jobs:
 
   retest-integration:
     needs: [code-analysis, checkout-branch, build-and-test]
-    if: startsWith(github.event.comment.body, '/retest') && env.BUILD_TEST_EXECUTED == 'true'
+    if: startsWith(github.event.comment.body, '/retest') && BUILD_TEST_EXECUTED == 'true'
     strategy:
       matrix:
         arch: [amd64, arm64]
