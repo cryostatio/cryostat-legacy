@@ -88,11 +88,11 @@ jobs:
       - name: build-test
         uses: ./.github/workflows/ci-build-image.yml
         with:
-         build-arch: ${{ matrix.arch }}
-         checkout-repo: ${{ needs.checkout-branch.outputs.PR_repo }}
-         checkout-ref: ${{ needs.checkout-branch.outputs.PR_head_ref  }}
-         skip-itests: ${{ matrix.arch != 'amd64' }}
-         run-tests-only: true
+          build-arch: ${{ matrix.arch}}
+          checkout-repo: ${{ needs.checkout-branch.outputs.PR_repo }}
+          checkout-ref: ${{ needs.checkout-branch.outputs.PR_head_ref  }}
+          skip-itests: ${{ matrix.arch != 'amd64' }}
+          run-tests-only: true
       - name: Set BUILD_TEST_EXECUTED flag
         id: set-build-test-executed
         run: echo "BUILD_TEST_EXECUTED=true" >> $GITHUB_ENV
