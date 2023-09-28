@@ -128,7 +128,9 @@ class WebServerTest {
     @ValueSource(
             strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
     void shouldProvideSavedDownloadUrl(String recordingName)
-            throws UnknownHostException, MalformedURLException, SocketException,
+            throws UnknownHostException,
+                    MalformedURLException,
+                    SocketException,
                     URISyntaxException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
@@ -201,7 +203,9 @@ class WebServerTest {
     @ValueSource(
             strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
     void shouldProvideSavedReportUrl(String recordingName)
-            throws UnknownHostException, MalformedURLException, SocketException,
+            throws UnknownHostException,
+                    MalformedURLException,
+                    SocketException,
                     URISyntaxException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);

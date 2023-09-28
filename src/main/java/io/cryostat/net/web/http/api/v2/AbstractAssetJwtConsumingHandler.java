@@ -99,8 +99,12 @@ public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler
     }
 
     private JWT validateJwt(RoutingContext ctx)
-            throws ParseException, JOSEException, SocketException, UnknownHostException,
-                    URISyntaxException, MalformedURLException {
+            throws ParseException,
+                    JOSEException,
+                    SocketException,
+                    UnknownHostException,
+                    URISyntaxException,
+                    MalformedURLException {
         String token = ctx.queryParams().get("token");
         JWT parsed;
         try {

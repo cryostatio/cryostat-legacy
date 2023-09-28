@@ -238,7 +238,9 @@ public class WebServer extends AbstractVerticle {
     }
 
     public URL getHostUrl()
-            throws MalformedURLException, SocketException, UnknownHostException,
+            throws MalformedURLException,
+                    SocketException,
+                    UnknownHostException,
                     URISyntaxException {
         return getHostUri().toURL();
     }
