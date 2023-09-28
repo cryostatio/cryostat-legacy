@@ -19,9 +19,7 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 
 interface ReportGeneratorService {
-    CompletableFuture<Path> exec(Path in, Path out, String filter, boolean formatted)
-            throws Exception;
+    CompletableFuture<Path> exec(Path in, Path out, String filter) throws Exception;
 
-    CompletableFuture<Path> exec(RecordingDescriptor rd, String filter, boolean formatted)
-            throws Exception;
+    CompletableFuture<Path> exec(RecordingDescriptor rd, String filter) throws Exception;
 }

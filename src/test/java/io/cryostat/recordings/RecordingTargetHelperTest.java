@@ -211,10 +211,7 @@ public class RecordingTargetHelperTest {
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);
         Mockito.verify(reportService)
-                .delete(
-                        connectionDescriptorCaptor.capture(),
-                        Mockito.eq(recordingName),
-                        Mockito.eq(true));
+                .delete(connectionDescriptorCaptor.capture(), Mockito.eq(recordingName));
         MatcherAssert.assertThat(
                 connectionDescriptorCaptor.getValue().getTargetId(),
                 Matchers.equalTo(connectionDescriptor.getTargetId()));
@@ -264,10 +261,7 @@ public class RecordingTargetHelperTest {
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);
         Mockito.verify(reportService)
-                .delete(
-                        connectionDescriptorCaptor.capture(),
-                        Mockito.eq(recordingName),
-                        Mockito.eq(true));
+                .delete(connectionDescriptorCaptor.capture(), Mockito.eq(recordingName));
         MatcherAssert.assertThat(
                 connectionDescriptorCaptor.getValue().getTargetId(),
                 Matchers.equalTo(connectionDescriptor.getTargetId()));

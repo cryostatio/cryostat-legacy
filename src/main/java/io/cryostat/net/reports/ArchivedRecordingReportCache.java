@@ -49,15 +49,13 @@ class ArchivedRecordingReportCache {
         this.logger = logger;
     }
 
-    Future<Path> getFromPath(
-            String subdirectoryName, String recordingName, String filter, boolean formatted) {
+    Future<Path> getFromPath(String subdirectoryName, String recordingName, String filter) {
         CompletableFuture<Path> f = new CompletableFuture<>();
         Path dest = null;
         try {
             dest =
                     recordingArchiveHelper
-                            .getCachedReportPathFromPath(
-                                    subdirectoryName, recordingName, filter, formatted)
+                            .getCachedReportPathFromPath(subdirectoryName, recordingName, filter)
                             .get();
             if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
                 f.complete(dest);
@@ -73,7 +71,7 @@ class ArchivedRecordingReportCache {
             Path saveFile =
                     reportGeneratorServiceProvider
                             .get()
-                            .exec(archivedRecording, dest, filter, formatted)
+                            .exec(archivedRecording, dest, filter)
                             .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             f.complete(saveFile);
         } catch (Exception e) {
@@ -88,17 +86,17 @@ class ArchivedRecordingReportCache {
         return f;
     }
 
-    Future<Path> get(String recordingName, String filter, boolean formatted) {
-        return this.get(null, recordingName, filter, formatted);
+    Future<Path> get(String recordingName, String filter) {
+        return this.get(null, recordingName, filter);
     }
 
-    Future<Path> get(String sourceTarget, String recordingName, String filter, boolean formatted) {
+    Future<Path> get(String sourceTarget, String recordingName, String filter) {
         CompletableFuture<Path> f = new CompletableFuture<>();
         Path dest = null;
         try {
             dest =
                     recordingArchiveHelper
-                            .getCachedReportPath(sourceTarget, recordingName, filter, formatted)
+                            .getCachedReportPath(sourceTarget, recordingName, filter)
                             .get();
             if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
                 f.complete(dest);
@@ -111,7 +109,7 @@ class ArchivedRecordingReportCache {
             Path saveFile =
                     reportGeneratorServiceProvider
                             .get()
-                            .exec(archivedRecording, dest, filter, formatted)
+                            .exec(archivedRecording, dest, filter)
                             .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             f.complete(saveFile);
         } catch (Exception e) {

@@ -132,14 +132,14 @@ class ReportGetHandlerTest {
 
             when(ctx.pathParam("recordingName")).thenReturn("someRecording");
             when(ctx.queryParam("filter")).thenReturn(List.of());
-            when(reportService.get(Mockito.anyString(), Mockito.any(), Mockito.anyBoolean()))
+            when(reportService.get(Mockito.anyString(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(fakePath));
 
             handler.handle(ctx);
 
             when(ctx.pathParam("recordingName")).thenReturn("someRecording");
             when(ctx.queryParam("filter")).thenReturn(List.of());
-            when(reportService.get(Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean()))
+            when(reportService.get(Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(CompletableFuture.completedFuture(fakePath));
         }
 
@@ -166,14 +166,14 @@ class ReportGetHandlerTest {
 
             when(ctx.pathParam("recordingName")).thenReturn("someRecording");
             when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
-            when(reportService.get(Mockito.anyString(), Mockito.any(), Mockito.anyBoolean()))
+            when(reportService.get(Mockito.anyString(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(fakePath));
 
             handler.handle(ctx);
 
             when(ctx.pathParam("recordingName")).thenReturn("someRecording");
             when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
-            when(reportService.get(Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean()))
+            when(reportService.get(Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(CompletableFuture.completedFuture(fakePath));
         }
 
@@ -200,16 +200,16 @@ class ReportGetHandlerTest {
 
             when(ctx.pathParam("recordingName")).thenReturn("someRecording");
             when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
-            when(reportService.get(Mockito.anyString(), Mockito.any(), Mockito.anyBoolean()))
+            when(reportService.get(Mockito.anyString(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(fakePath));
 
             when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-            when(reportService.get(Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean()))
+            when(reportService.get(Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(
                             CompletableFuture.failedFuture(
                                     new RecordingNotFoundException(null, "someRecording")));
 
-            Mockito.verify(reportService).get("someRecording", "someFilter", false);
+            Mockito.verify(reportService).get("someRecording", "someFilter");
             Mockito.verify(resp).sendFile(fakePath.toString());
             Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
             Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "12345");
@@ -230,7 +230,7 @@ class ReportGetHandlerTest {
                     .thenReturn(resp);
 
             when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-            when(reportService.get(Mockito.anyString(), Mockito.any(), Mockito.anyBoolean()))
+            when(reportService.get(Mockito.anyString(), Mockito.any()))
                     .thenReturn(
                             CompletableFuture.failedFuture(
                                     new RecordingNotFoundException(null, "someRecording")));

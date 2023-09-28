@@ -59,8 +59,7 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
 
     @Override
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    public CompletableFuture<Path> exec(
-            Path recording, Path destination, String filter, boolean formatted) {
+    public CompletableFuture<Path> exec(Path recording, Path destination, String filter) {
         String reportGenerator = env.getEnv(Variables.REPORT_GENERATOR_ENV);
         logger.trace("POSTing {} to {}", recording, reportGenerator);
         var form =
@@ -73,7 +72,7 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
                                 HttpMimeType.OCTET_STREAM.mime());
 
         var f = new CompletableFuture<Path>();
-        String acceptHeader = formatted ? HttpMimeType.HTML.mime() : HttpMimeType.JSON.mime();
+        String acceptHeader = HttpMimeType.JSON.mime();
         this.http
                 .postAbs(String.format("%s/report", reportGenerator))
                 .putHeader(HttpHeaders.ACCEPT.toString(), acceptHeader)

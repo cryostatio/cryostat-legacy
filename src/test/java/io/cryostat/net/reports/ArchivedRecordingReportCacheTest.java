@@ -67,9 +67,7 @@ class ArchivedRecordingReportCacheTest {
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenReturn(destinationFile);
 
-        Mockito.when(
-                        recordingArchiveHelper.getCachedReportPath(
-                                sourceTarget, recordingName, "", true))
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName, ""))
                 .thenReturn(future1);
 
         Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(false);
@@ -90,7 +88,7 @@ class ArchivedRecordingReportCacheTest {
         ExecutionException ee =
                 Assertions.assertThrows(
                         ExecutionException.class,
-                        () -> cache.get(sourceTarget, recordingName, "", true).get());
+                        () -> cache.get(sourceTarget, recordingName, "").get());
 
         MatcherAssert.assertThat(
                 ExceptionUtils.getRootCause(ee),
@@ -104,9 +102,7 @@ class ArchivedRecordingReportCacheTest {
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenReturn(destinationFile);
 
-        Mockito.when(
-                        recordingArchiveHelper.getCachedReportPath(
-                                sourceTarget, recordingName, "", true))
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName, ""))
                 .thenReturn(future1);
 
         Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(false);
@@ -126,14 +122,13 @@ class ArchivedRecordingReportCacheTest {
                         subprocessReportGenerator.exec(
                                 Mockito.any(Path.class),
                                 Mockito.any(Path.class),
-                                Mockito.anyString(),
-                                Mockito.anyBoolean()))
+                                Mockito.anyString()))
                 .thenReturn(pathFuture);
 
-        Future<Path> res = cache.get(sourceTarget, recordingName, "", true);
+        Future<Path> res = cache.get(sourceTarget, recordingName, "");
 
         MatcherAssert.assertThat(res.get(), Matchers.sameInstance(destinationFile));
-        Mockito.verify(subprocessReportGenerator).exec(recording, destinationFile, "", true);
+        Mockito.verify(subprocessReportGenerator).exec(recording, destinationFile, "");
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
     }
 
@@ -144,7 +139,7 @@ class ArchivedRecordingReportCacheTest {
 
         Mockito.when(
                         recordingArchiveHelper.getCachedReportPath(
-                                sourceTarget, recordingName, "someFilter", true))
+                                sourceTarget, recordingName, "someFilter"))
                 .thenReturn(future1);
 
         Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(false);
@@ -164,15 +159,13 @@ class ArchivedRecordingReportCacheTest {
                         subprocessReportGenerator.exec(
                                 Mockito.any(Path.class),
                                 Mockito.any(Path.class),
-                                Mockito.anyString(),
-                                Mockito.anyBoolean()))
+                                Mockito.anyString()))
                 .thenReturn(pathFuture);
 
-        Future<Path> res = cache.get(sourceTarget, recordingName, "someFilter", true);
+        Future<Path> res = cache.get(sourceTarget, recordingName, "someFilter");
 
         MatcherAssert.assertThat(res.get(), Matchers.sameInstance(destinationFile));
-        Mockito.verify(subprocessReportGenerator)
-                .exec(recording, destinationFile, "someFilter", true);
+        Mockito.verify(subprocessReportGenerator).exec(recording, destinationFile, "someFilter");
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
     }
 
@@ -183,7 +176,7 @@ class ArchivedRecordingReportCacheTest {
 
         Mockito.when(
                         recordingArchiveHelper.getCachedReportPath(
-                                sourceTarget, recordingName, "someFilter", false))
+                                sourceTarget, recordingName, "someFilter"))
                 .thenReturn(future1);
 
         Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(false);
@@ -203,15 +196,13 @@ class ArchivedRecordingReportCacheTest {
                         subprocessReportGenerator.exec(
                                 Mockito.any(Path.class),
                                 Mockito.any(Path.class),
-                                Mockito.anyString(),
-                                Mockito.anyBoolean()))
+                                Mockito.anyString()))
                 .thenReturn(pathFuture);
 
-        Future<Path> res = cache.get(sourceTarget, recordingName, "someFilter", false);
+        Future<Path> res = cache.get(sourceTarget, recordingName, "someFilter");
 
         MatcherAssert.assertThat(res.get(), Matchers.sameInstance(destinationFile));
-        Mockito.verify(subprocessReportGenerator)
-                .exec(recording, destinationFile, "someFilter", false);
+        Mockito.verify(subprocessReportGenerator).exec(recording, destinationFile, "someFilter");
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
     }
 
@@ -220,15 +211,13 @@ class ArchivedRecordingReportCacheTest {
         CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
         Mockito.when(future.get()).thenReturn(destinationFile);
 
-        Mockito.when(
-                        recordingArchiveHelper.getCachedReportPath(
-                                sourceTarget, recordingName, "", true))
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName, ""))
                 .thenReturn(future);
 
         Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(true);
         Mockito.when(fs.isRegularFile(Mockito.any(Path.class))).thenReturn(true);
 
-        Future<Path> res = cache.get(sourceTarget, recordingName, "", true);
+        Future<Path> res = cache.get(sourceTarget, recordingName, "");
 
         MatcherAssert.assertThat(res.get(), Matchers.sameInstance(destinationFile));
         Mockito.verifyNoInteractions(subprocessReportGenerator);
@@ -241,9 +230,7 @@ class ArchivedRecordingReportCacheTest {
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenReturn(destinationFile);
 
-        Mockito.when(
-                        recordingArchiveHelper.getCachedReportPath(
-                                sourceTarget, recordingName, "", true))
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName, ""))
                 .thenReturn(future1);
 
         Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(false);
@@ -261,8 +248,7 @@ class ArchivedRecordingReportCacheTest {
                         subprocessReportGenerator.exec(
                                 Mockito.any(Path.class),
                                 Mockito.any(Path.class),
-                                Mockito.anyString(),
-                                Mockito.anyBoolean()))
+                                Mockito.anyString()))
                 .thenThrow(
                         new CompletionException(
                                 new SubprocessReportGenerator.SubprocessReportGenerationException(
@@ -270,8 +256,7 @@ class ArchivedRecordingReportCacheTest {
 
         ExecutionException ee =
                 Assertions.assertThrows(
-                        ExecutionException.class,
-                        () -> cache.get(sourceTarget, "foo", "", true).get());
+                        ExecutionException.class, () -> cache.get(sourceTarget, "foo", "").get());
 
         MatcherAssert.assertThat(
                 ExceptionUtils.getRootCause(ee),
@@ -285,17 +270,14 @@ class ArchivedRecordingReportCacheTest {
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenThrow(new CompletionException(new IOException()));
 
-        Mockito.when(
-                        recordingArchiveHelper.getCachedReportPath(
-                                sourceTarget, recordingName, "", true))
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName, ""))
                 .thenReturn(future1);
 
         Mockito.when(fs.deleteIfExists(Mockito.nullable(Path.class))).thenReturn(false);
 
         ExecutionException ee =
                 Assertions.assertThrows(
-                        ExecutionException.class,
-                        () -> cache.get(sourceTarget, "foo", "", true).get());
+                        ExecutionException.class, () -> cache.get(sourceTarget, "foo", "").get());
         MatcherAssert.assertThat(
                 ExceptionUtils.getRootCause(ee), Matchers.instanceOf(IOException.class));
 
@@ -307,9 +289,7 @@ class ArchivedRecordingReportCacheTest {
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenReturn(destinationFile);
 
-        Mockito.when(
-                        recordingArchiveHelper.getCachedReportPath(
-                                sourceTarget, recordingName, "", true))
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName, ""))
                 .thenReturn(future1);
 
         CompletableFuture<Path> future2 = Mockito.mock(CompletableFuture.class);
@@ -326,8 +306,7 @@ class ArchivedRecordingReportCacheTest {
 
         ExecutionException ee =
                 Assertions.assertThrows(
-                        ExecutionException.class,
-                        () -> cache.get(sourceTarget, "foo", "", true).get());
+                        ExecutionException.class, () -> cache.get(sourceTarget, "foo", "").get());
         MatcherAssert.assertThat(
                 ExceptionUtils.getRootCause(ee), Matchers.instanceOf(ArchivePathException.class));
 
