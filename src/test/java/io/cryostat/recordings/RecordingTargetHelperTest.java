@@ -53,6 +53,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingTargetHelper.ReplacementPolicy;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
@@ -80,6 +81,7 @@ public class RecordingTargetHelperTest {
     @Mock AuthManager auth;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock WebServer webServer;
+    @Mock JvmIdHelper jvmIdHelper;
     @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     @Mock NotificationFactory notificationFactory;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
@@ -113,6 +115,7 @@ public class RecordingTargetHelperTest {
                         vertx,
                         targetConnectionManager,
                         () -> webServer,
+                        () -> jvmIdHelper,
                         eventOptionsBuilderFactory,
                         notificationFactory,
                         recordingOptionsBuilderFactory,

@@ -45,6 +45,8 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 import dagger.Lazy;
@@ -72,6 +74,7 @@ public class RecordingTargetHelper {
     private final Vertx vertx;
     private final TargetConnectionManager targetConnectionManager;
     private final Lazy<WebServer> webServer;
+    private final Lazy<JvmIdHelper> jvmIdHelper;
     private final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     private final NotificationFactory notificationFactory;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
@@ -85,6 +88,7 @@ public class RecordingTargetHelper {
             Vertx vertx,
             TargetConnectionManager targetConnectionManager,
             Lazy<WebServer> webServer,
+            Lazy<JvmIdHelper> jvmIdHelper,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             NotificationFactory notificationFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
@@ -95,6 +99,7 @@ public class RecordingTargetHelper {
         this.vertx = vertx;
         this.targetConnectionManager = targetConnectionManager;
         this.webServer = webServer;
+        this.jvmIdHelper = jvmIdHelper;
         this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
         this.notificationFactory = notificationFactory;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
@@ -467,13 +472,18 @@ public class RecordingTargetHelper {
             String targetId,
             HyperlinkedSerializableRecordingDescriptor linkedDesc,
             String notificationCategory) {
-        notificationFactory
-                .createBuilder()
-                .metaCategory(notificationCategory)
-                .metaType(HttpMimeType.JSON)
-                .message(Map.of("recording", linkedDesc, "target", targetId))
-                .build()
-                .send();
+        try {
+                notificationFactory
+                        .createBuilder()
+                        .metaCategory(notificationCategory)
+                        .metaType(HttpMimeType.JSON)
+                        .message(Map.of("recording", linkedDesc, "target", targetId, "jvmId", jvmIdHelper.get().getJvmId(targetId)))
+                        .build()
+                        .send();
+        } catch (JvmIdGetException e) {
+            logger.info("Retain null jvmId for target [{}]", targetId);
+            logger.info(e);
+        }
     }
 
     private void cancelScheduledTasksIfExists(String targetId, String stoppedRecordingName)
