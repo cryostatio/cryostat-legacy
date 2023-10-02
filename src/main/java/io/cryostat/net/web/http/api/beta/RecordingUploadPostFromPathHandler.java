@@ -41,6 +41,7 @@ import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.rules.ArchivePathException;
@@ -56,11 +57,12 @@ import org.apache.commons.validator.routines.UrlValidator;
 
 class RecordingUploadPostFromPathHandler extends AbstractV2RequestHandler<String> {
 
-    static final String PATH = "fs/recordings/:subdirectoryName/:recordingName/upload";
+    static final String PATH = "fs/recordings/:jvmId/:recordingName/upload";
 
     private final Environment env;
     private final long httpTimeoutSeconds;
     private final WebClient webClient;
+    private final JvmIdHelper jvmIdHelper;
     private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
@@ -70,12 +72,14 @@ class RecordingUploadPostFromPathHandler extends AbstractV2RequestHandler<String
             Environment env,
             @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
             WebClient webClient,
+            JvmIdHelper jvmIdHelper,
             RecordingArchiveHelper recordingArchiveHelper,
             Gson gson) {
         super(auth, credentialsManager, gson);
         this.env = env;
         this.httpTimeoutSeconds = httpTimeoutSeconds;
         this.webClient = webClient;
+        this.jvmIdHelper = jvmIdHelper;
         this.recordingArchiveHelper = recordingArchiveHelper;
     }
 
@@ -116,9 +120,10 @@ class RecordingUploadPostFromPathHandler extends AbstractV2RequestHandler<String
 
     @Override
     public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
-        String subdirectoryName = params.getPathParams().get("subdirectoryName");
         String recordingName = params.getPathParams().get("recordingName");
+        String jvmId = params.getPathParams().get("jvmId");
         try {
+            String subdirectoryName = jvmIdHelper.jvmIdToSubdirectoryName(jvmId);
             URL uploadUrl = new URL(env.getEnv(Variables.GRAFANA_DATASOURCE_ENV));
             boolean isValidUploadUrl =
                     new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS).isValid(uploadUrl.toString());
