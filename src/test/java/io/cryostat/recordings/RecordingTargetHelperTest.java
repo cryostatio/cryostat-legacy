@@ -110,6 +110,16 @@ public class RecordingTargetHelperTest {
         lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
         lenient().when(vertx.setTimer(Mockito.anyLong(), Mockito.any())).thenReturn(1234L);
+        lenient()
+                .when(jvmIdHelper.jvmIdToSubdirectoryName(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                        @Override
+                        public String answer(InvocationOnMock invocation) throws Throwable {
+                                return invocation.getArgument(0);
+                        }
+                        });
+
         this.recordingTargetHelper =
                 new RecordingTargetHelper(
                         vertx,
@@ -199,6 +209,7 @@ public class RecordingTargetHelperTest {
                             }
                         });
 
+        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("id");
         Mockito.when(connection.getService()).thenReturn(service);
         IRecordingDescriptor descriptor = createDescriptor(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
@@ -227,7 +238,7 @@ public class RecordingTargetHelperTest {
         Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingDeleted");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
         Mockito.verify(notificationBuilder)
-                .message(Map.of("recording", linkedDesc, "target", "fooTarget"));
+                .message(Map.of("recording", linkedDesc, "target", "fooTarget", "jvmId", "id"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -249,6 +260,7 @@ public class RecordingTargetHelperTest {
                             }
                         });
 
+        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("id");
         Mockito.when(connection.getService()).thenReturn(service);
         IRecordingDescriptor descriptor = createDescriptor(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
@@ -277,7 +289,7 @@ public class RecordingTargetHelperTest {
         Mockito.verify(notificationBuilder).metaCategory("SnapshotDeleted");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
         Mockito.verify(notificationBuilder)
-                .message(Map.of("recording", linkedDesc, "target", "fooTarget"));
+                .message(Map.of("recording", linkedDesc, "target", "fooTarget", "jvmId", "id"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -314,6 +326,7 @@ public class RecordingTargetHelperTest {
                             }
                         });
 
+        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("id");
         Mockito.when(connection.getService()).thenReturn(service);
         IRecordingDescriptor descriptor = createDescriptor(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
@@ -351,6 +364,7 @@ public class RecordingTargetHelperTest {
                             }
                         });
 
+        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("id");
         Mockito.when(connection.getService()).thenReturn(service);
         IRecordingDescriptor descriptor = createDescriptor(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
@@ -517,6 +531,7 @@ public class RecordingTargetHelperTest {
         new Random(123456).nextBytes(src);
         InputStream snapshot = new ByteArrayInputStream(src);
         Mockito.when(snapshotOptional.get()).thenReturn(snapshot);
+        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("id");
 
         Mockito.when(targetConnectionManager.markConnectionInUse(connectionDescriptor))
                 .thenReturn(true);
@@ -537,7 +552,7 @@ public class RecordingTargetHelperTest {
         Mockito.verify(notificationBuilder).metaCategory("SnapshotCreated");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
         Mockito.verify(notificationBuilder)
-                .message(Map.of("recording", snapshotDescriptor, "target", "fooTarget"));
+                .message(Map.of("recording", snapshotDescriptor, "target", "fooTarget", "jvmId", "id"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
 
@@ -704,6 +719,7 @@ public class RecordingTargetHelperTest {
 
         Mockito.when(recordingOptions.get(Mockito.any())).thenReturn(recordingName, duration);
 
+        Mockito.when(jvmIdHelper.getJvmId(targetId)).thenReturn("id");
         Mockito.when(connection.getService()).thenReturn(service);
         Mockito.when(service.getAvailableRecordings())
                 .thenReturn(Collections.emptyList(), List.of(recordingDescriptor));
@@ -856,6 +872,7 @@ public class RecordingTargetHelperTest {
         Metadata metadata =
                 new Metadata(Map.of("template.name", "Profiling", "template.type", "TARGET"));
 
+        Mockito.when(jvmIdHelper.getJvmId(targetId)).thenReturn("id");
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         invocation -> {
@@ -910,6 +927,7 @@ public class RecordingTargetHelperTest {
         Metadata metadata =
                 new Metadata(Map.of("template.name", "Profiling", "template.type", "TARGET"));
 
+        Mockito.when(jvmIdHelper.getJvmId(targetId)).thenReturn("id");
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         invocation -> {
@@ -966,6 +984,7 @@ public class RecordingTargetHelperTest {
                                 return task.execute(connection);
                             }
                         });
+        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("id");
         Mockito.when(connection.getService()).thenReturn(service);
         IRecordingDescriptor descriptor = createDescriptor("someRecording");
         Mockito.when(descriptor.getName()).thenReturn("someRecording");
@@ -984,7 +1003,7 @@ public class RecordingTargetHelperTest {
         Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingStopped");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
         Mockito.verify(notificationBuilder)
-                .message(Map.of("recording", linkedDesc, "target", "fooTarget"));
+                .message(Map.of("recording", linkedDesc, "target", "fooTarget", "jvmId", "id"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
