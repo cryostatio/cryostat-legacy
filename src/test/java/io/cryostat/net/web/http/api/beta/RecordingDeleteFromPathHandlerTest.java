@@ -120,18 +120,20 @@ class RecordingDeleteFromPathHandlerTest {
         void shouldThrow404IfNoMatchingRecordingFound() throws Exception {
             String recordingName = "someRecording";
             String jvmId = "id";
+            String subdirectoryName = "someSubdirectory";
 
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(params.getPathParams())
                     .thenReturn(
                             Map.of(
-                                    "id",
+                                    "jvmId",
                                     jvmId,
                                     "recordingName",
                                     recordingName));
 
             Future<ArchivedRecordingInfo> future =
                     CompletableFuture.failedFuture(
-                            new RecordingNotFoundException(jvmId, recordingName));
+                            new RecordingNotFoundException(subdirectoryName, recordingName));
             when(recordingArchiveHelper.deleteRecordingFromPath(
                             Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(future);
@@ -145,12 +147,15 @@ class RecordingDeleteFromPathHandlerTest {
         void shouldHandleSuccessfulDELETERequest() throws Exception {
             String recordingName = "someRecording";
             String jvmId = "id";
+            String subdirectoryName = "someSubdirectory";
+
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(params.getPathParams())
                     .thenReturn(
                             Map.of(
                                     "recordingName",
                                     recordingName,
-                                    "id",
+                                    "jvmId",
                                     jvmId));
 
             CompletableFuture<ArchivedRecordingInfo> future = Mockito.mock(CompletableFuture.class);
@@ -164,7 +169,7 @@ class RecordingDeleteFromPathHandlerTest {
 
             verify(recordingArchiveHelper)
                     .deleteRecordingFromPath(
-                            Mockito.eq(jvmId), Mockito.eq(recordingName));
+                            Mockito.eq(subdirectoryName), Mockito.eq(recordingName));
         }
     }
 }

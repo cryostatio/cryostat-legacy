@@ -34,6 +34,7 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
@@ -62,6 +63,7 @@ class ReportGetFromPathWithJwtHandlerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
+    @Mock JvmIdHelper jvmIdHelper;
     @Mock ReportService reports;
     @Mock RecordingArchiveHelper archiveHelper;
     @Mock Logger logger;
@@ -74,6 +76,7 @@ class ReportGetFromPathWithJwtHandlerTest {
                         credentialsManager,
                         jwt,
                         () -> webServer,
+                        jvmIdHelper,
                         reports,
                         archiveHelper,
                         30,
@@ -108,7 +111,7 @@ class ReportGetFromPathWithJwtHandlerTest {
         void shouldUseExpectedPath() {
             MatcherAssert.assertThat(
                     handler.path(),
-                    Matchers.equalTo("/api/beta/fs/reports/:subdirectoryName/:recordingName/jwt"));
+                    Matchers.equalTo("/api/beta/fs/reports/:jvmId/:recordingName/jwt"));
         }
 
         @Test
@@ -137,12 +140,13 @@ class ReportGetFromPathWithJwtHandlerTest {
 
         @Test
         void shouldRespond404IfNotFound() throws Exception {
-            when(ctx.pathParam("subdirectoryName")).thenReturn("mydirectory");
+            when(ctx.pathParam("jvmId")).thenReturn("id");
             when(ctx.pathParam("recordingName")).thenReturn("myrecording");
+            when(jvmIdHelper.jvmIdToSubdirectoryName(Mockito.anyString())).thenReturn("mydirectory");
 
             Future<Path> future =
                     CompletableFuture.failedFuture(
-                            new RecordingNotFoundException("mytarget", "myrecording"));
+                            new RecordingNotFoundException("mydirectory", "myrecording"));
             when(reports.getFromPath(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(future);
             ApiException ex =
@@ -155,8 +159,9 @@ class ReportGetFromPathWithJwtHandlerTest {
         void shouldSendFileIfFound() throws Exception {
             when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
             when(ctx.response()).thenReturn(resp);
-            when(ctx.pathParam("subdirectoryName")).thenReturn("mydirectory");
+            when(ctx.pathParam("jvmId")).thenReturn("id");
             when(ctx.pathParam("recordingName")).thenReturn("myrecording");
+            when(jvmIdHelper.jvmIdToSubdirectoryName(Mockito.anyString())).thenReturn("mydirectory");
             Path path = Mockito.mock(Path.class);
             when(path.toAbsolutePath()).thenReturn(path);
             when(path.toString()).thenReturn("foo.jfr");
@@ -177,8 +182,9 @@ class ReportGetFromPathWithJwtHandlerTest {
         void shouldSendFileIfFoundFiltered() throws Exception {
             when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
             when(ctx.response()).thenReturn(resp);
-            when(ctx.pathParam("subdirectoryName")).thenReturn("mydirectory");
+            when(ctx.pathParam("jvmId")).thenReturn("id");
             when(ctx.pathParam("recordingName")).thenReturn("myrecording");
+            when(jvmIdHelper.jvmIdToSubdirectoryName(Mockito.anyString())).thenReturn("mydirectory");
             Path path = Mockito.mock(Path.class);
             when(path.toAbsolutePath()).thenReturn(path);
             when(path.toString()).thenReturn("foo.jfr");
@@ -200,8 +206,9 @@ class ReportGetFromPathWithJwtHandlerTest {
         void shouldSendFileIfFoundUnformatted() throws Exception {
             when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
             when(ctx.response()).thenReturn(resp);
-            when(ctx.pathParam("subdirectoryName")).thenReturn("mydirectory");
+            when(ctx.pathParam("jvmId")).thenReturn("id");
             when(ctx.pathParam("recordingName")).thenReturn("myrecording");
+            when(jvmIdHelper.jvmIdToSubdirectoryName(Mockito.anyString())).thenReturn("mydirectory");
             Path path = Mockito.mock(Path.class);
             when(path.toAbsolutePath()).thenReturn(path);
             when(path.toString()).thenReturn("foo.jfr");

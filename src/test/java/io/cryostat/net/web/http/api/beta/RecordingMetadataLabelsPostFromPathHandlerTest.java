@@ -146,20 +146,22 @@ public class RecordingMetadataLabelsPostFromPathHandlerTest {
             Map<String, String> labels = Map.of("key", "value");
             Metadata metadata = new Metadata(labels);
             String requestLabels = labels.toString();
+            String subdirectoryName = "someSubdirectory";
             Map<String, String> params = Mockito.mock(Map.class);
-
+            
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(requestParameters.getPathParams()).thenReturn(params);
             when(params.get("recordingName")).thenReturn(recordingName);
             when(params.get("jvmId")).thenReturn(jvmId);
             when(requestParameters.getBody()).thenReturn(requestLabels);
 
-            when(recordingArchiveHelper.getRecordingPathFromPath(jvmId, recordingName))
+            when(recordingArchiveHelper.getRecordingPathFromPath(subdirectoryName, recordingName))
                     .thenReturn(CompletableFuture.completedFuture(Path.of(recordingName)));
 
             when(recordingMetadataManager.parseRecordingLabels(requestLabels)).thenReturn(labels);
 
             when(recordingMetadataManager.setRecordingMetadataFromPath(
-                            jvmId, recordingName, metadata))
+                            subdirectoryName, recordingName, metadata))
                     .thenReturn(CompletableFuture.completedFuture(metadata));
 
             IntermediateResponse<Metadata> response = handler.handle(requestParameters);
@@ -187,15 +189,17 @@ public class RecordingMetadataLabelsPostFromPathHandlerTest {
         void shouldThrowWhenRecordingNotFound() throws Exception {
             String jvmId = "id";
             String recordingName = "someNonExistentRecording";
+            String subdirectoryName = "someSubdirectory";
             String labels = Map.of("key", "value").toString();
             Map<String, String> params = Mockito.mock(Map.class);
 
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(requestParameters.getPathParams()).thenReturn(params);
             when(params.get("recordingName")).thenReturn(recordingName);
             when(params.get("jvmId")).thenReturn(jvmId);
             when(requestParameters.getBody()).thenReturn(labels);
 
-            when(recordingArchiveHelper.getRecordingPathFromPath(jvmId, recordingName))
+            when(recordingArchiveHelper.getRecordingPathFromPath(subdirectoryName, recordingName))
                     .thenReturn(
                             CompletableFuture.failedFuture(
                                     new RecordingNotFoundException(

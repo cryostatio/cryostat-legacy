@@ -77,6 +77,7 @@ class RecordingUploadPostFromPathHandlerTest {
 
     static final String DATASOURCE_URL = "http://localhost:8080";
 
+    static final String jvmId = "id";
     static final String subdirectoryName = "foo";
     static final String recordingName = "bar";
 
@@ -157,11 +158,12 @@ class RecordingUploadPostFromPathHandlerTest {
 
         @Test
         void shouldThrowExceptionIfRecordingNotFound() throws Exception {
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(params.getPathParams())
                     .thenReturn(
                             Map.of(
-                                    "subdirectoryName",
-                                    subdirectoryName,
+                                    "jvmId",
+                                    jvmId,
                                     "recordingName",
                                     recordingName));
             when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
@@ -173,7 +175,7 @@ class RecordingUploadPostFromPathHandlerTest {
             ExecutionException e = Mockito.mock(ExecutionException.class);
             when(future.get()).thenThrow(e);
             when(e.getCause())
-                    .thenReturn(new RecordingNotFoundException(subdirectoryName, recordingName));
+                    .thenReturn(new RecordingNotFoundException("foo", recordingName));
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
@@ -182,11 +184,12 @@ class RecordingUploadPostFromPathHandlerTest {
 
         @Test
         void shouldDoUpload() throws Exception {
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn("foo");
             when(params.getPathParams())
                     .thenReturn(
                             Map.of(
-                                    "subdirectoryName",
-                                    subdirectoryName,
+                                    "jvmId",
+                                    jvmId,
                                     "recordingName",
                                     recordingName));
             when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
@@ -236,11 +239,12 @@ class RecordingUploadPostFromPathHandlerTest {
 
         @Test
         void shouldHandleInvalidResponseStatusCode() throws Exception {
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn("someSubdirectory");
             when(params.getPathParams())
                     .thenReturn(
                             Map.of(
-                                    "subdirectoryName",
-                                    subdirectoryName,
+                                    "jvmId",
+                                    jvmId,
                                     "recordingName",
                                     recordingName));
             when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
@@ -297,11 +301,12 @@ class RecordingUploadPostFromPathHandlerTest {
 
         @Test
         void shouldHandleNullStatusMessage() throws Exception {
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn("someSubdirectory");
             when(params.getPathParams())
                     .thenReturn(
                             Map.of(
-                                    "subdirectoryName",
-                                    subdirectoryName,
+                                    "jvmId",
+                                    jvmId,
                                     "recordingName",
                                     recordingName));
             when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
@@ -358,11 +363,12 @@ class RecordingUploadPostFromPathHandlerTest {
 
         @Test
         void shouldHandleNullResponseBody() throws Exception {
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn("someSubdirectory");
             when(params.getPathParams())
                     .thenReturn(
                             Map.of(
-                                    "subdirectoryName",
-                                    subdirectoryName,
+                                    "jvmId",
+                                    jvmId,
                                     "recordingName",
                                     recordingName));
             when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);

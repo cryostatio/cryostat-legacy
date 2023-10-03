@@ -30,6 +30,7 @@ import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
@@ -58,6 +59,7 @@ class RecordingGetFromPathWithJwtHandlerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
+    @Mock JvmIdHelper jvmIdHelper;
     @Mock RecordingArchiveHelper archive;
     @Mock Logger logger;
 
@@ -65,7 +67,7 @@ class RecordingGetFromPathWithJwtHandlerTest {
     void setup() {
         this.handler =
                 new RecordingGetFromPathWithJwtHandler(
-                        auth, credentialsManager, jwt, () -> webServer, archive, logger);
+                        auth, credentialsManager, jwt, () -> webServer, jvmIdHelper, archive, logger);
     }
 
     @Nested
@@ -86,7 +88,7 @@ class RecordingGetFromPathWithJwtHandlerTest {
             MatcherAssert.assertThat(
                     handler.path(),
                     Matchers.equalTo(
-                            "/api/beta/fs/recordings/:subdirectoryName/:recordingName/jwt"));
+                            "/api/beta/fs/recordings/:jvmId/:recordingName/jwt"));
         }
 
         @Test
@@ -115,8 +117,9 @@ class RecordingGetFromPathWithJwtHandlerTest {
 
         @Test
         void shouldRespond404IfNotFound() throws Exception {
-            when(ctx.pathParam("subdirectoryName")).thenReturn("mysubdirectory");
+            when(ctx.pathParam("jvmId")).thenReturn("id");
             when(ctx.pathParam("recordingName")).thenReturn("myrecording");
+            when(jvmIdHelper.jvmIdToSubdirectoryName(Mockito.anyString())).thenReturn("mysubdirectory");
             Future<Path> future =
                     CompletableFuture.failedFuture(
                             new RecordingNotFoundException("mysubdirectory", "myrecording"));
@@ -132,8 +135,9 @@ class RecordingGetFromPathWithJwtHandlerTest {
         void shouldSendFileIfFound() throws Exception {
             HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
             when(ctx.response()).thenReturn(resp);
-            when(ctx.pathParam("subdirectoryName")).thenReturn("mysubdirectory");
+            when(ctx.pathParam("jvmId")).thenReturn("id");
             when(ctx.pathParam("recordingName")).thenReturn("myrecording");
+            when(jvmIdHelper.jvmIdToSubdirectoryName(Mockito.anyString())).thenReturn("mysubdirectory");
             Path path = Mockito.mock(Path.class);
             when(path.toAbsolutePath()).thenReturn(path);
             when(path.toString()).thenReturn("foo.jfr");
