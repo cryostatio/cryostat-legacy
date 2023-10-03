@@ -34,6 +34,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
@@ -70,6 +71,7 @@ class RecordingUploadPostFromPathHandlerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock Environment env;
     @Mock WebClient webClient;
+    @Mock JvmIdHelper jvmIdHelper;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock Gson gson;
 
@@ -82,7 +84,7 @@ class RecordingUploadPostFromPathHandlerTest {
     void setup() {
         this.handler =
                 new RecordingUploadPostFromPathHandler(
-                        auth, credentialsManager, env, 30, webClient, recordingArchiveHelper, gson);
+                        auth, credentialsManager, env, 30, webClient, jvmIdHelper, recordingArchiveHelper, gson);
     }
 
     @Nested
@@ -115,7 +117,7 @@ class RecordingUploadPostFromPathHandlerTest {
             MatcherAssert.assertThat(
                     handler.path(),
                     Matchers.equalTo(
-                            "/api/beta/fs/recordings/:subdirectoryName/:recordingName/upload"));
+                            "/api/beta/fs/recordings/:jvmId/:recordingName/upload"));
         }
 
         @Test
