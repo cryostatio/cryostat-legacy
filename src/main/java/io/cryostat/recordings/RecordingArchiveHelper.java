@@ -414,7 +414,9 @@ public class RecordingArchiveHelper {
                                     "recording",
                                     archivedRecordingInfo,
                                     "target",
-                                    connectionDescriptor.getTargetId()))
+                                    connectionDescriptor.getTargetId(),
+                                    "jvmId",
+                                    jvmIdHelper.getJvmId(connectionDescriptor)))
                     .build()
                     .send();
         } catch (Exception e) {
@@ -454,7 +456,7 @@ public class RecordingArchiveHelper {
                     .createBuilder()
                     .metaCategory(DELETE_NOTIFICATION_CATEGORY)
                     .metaType(HttpMimeType.JSON)
-                    .message(Map.of("recording", archivedRecordingInfo, "target", targetId))
+                    .message(Map.of("recording", archivedRecordingInfo, "target", targetId, "jvmId", jvmIdHelper.getJvmId(targetId)))
                     .build()
                     .send();
             fs.deleteIfExists(recordingPath);
@@ -518,7 +520,7 @@ public class RecordingArchiveHelper {
                     .createBuilder()
                     .metaCategory(DELETE_NOTIFICATION_CATEGORY)
                     .metaType(HttpMimeType.JSON)
-                    .message(Map.of("recording", archivedRecordingInfo, "target", targetId))
+                    .message(Map.of("recording", archivedRecordingInfo, "target", targetId, "jvmId", jvmIdHelper.getJvmId(targetId)))
                     .build()
                     .send();
             checkEmptySubdirectory(parentPath);

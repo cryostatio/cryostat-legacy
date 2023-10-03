@@ -38,6 +38,8 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -76,6 +78,7 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
     private final NotificationFactory notificationFactory;
     private final LocalProbeTemplateService probeTemplateService;
     private final FileSystem fs;
+    private final JvmIdHelper jvmIdHelper;
     private final TargetConnectionManager connectionManager;
     private final Environment env;
     private static final String NOTIFICATION_CATEGORY = "ProbeTemplateApplied";
@@ -88,6 +91,7 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
             FileSystem fs,
             AuthManager auth,
             CredentialsManager credentialsManager,
+            JvmIdHelper jvmIdHelper,
             TargetConnectionManager connectionManager,
             Environment env,
             Gson gson) {
@@ -95,6 +99,7 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
         this.logger = logger;
         this.notificationFactory = notificationFactory;
         this.probeTemplateService = service;
+        this.jvmIdHelper = jvmIdHelper;
         this.connectionManager = connectionManager;
         this.env = env;
         this.fs = fs;
@@ -151,20 +156,27 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
                             new ByteArrayInputStream(
                                     templateContent.getBytes(StandardCharsets.UTF_8)));
                     List<Event> events = Arrays.asList(template.getEvents());
-                    notificationFactory
-                            .createBuilder()
-                            .metaCategory(NOTIFICATION_CATEGORY)
-                            .metaType(HttpMimeType.JSON)
-                            .message(
-                                    Map.of(
-                                            "targetId",
-                                            targetId,
-                                            "probeTemplate",
-                                            probeTemplate,
-                                            "events",
-                                            events))
-                            .build()
-                            .send();
+                    try {
+                        notificationFactory
+                                .createBuilder()
+                                .metaCategory(NOTIFICATION_CATEGORY)
+                                .metaType(HttpMimeType.JSON)
+                                .message(
+                                        Map.of(
+                                                "targetId",
+                                                targetId,
+                                                "probeTemplate",
+                                                probeTemplate,
+                                                "events",
+                                                events,
+                                                "jvmId",
+                                                jvmIdHelper.getJvmId(targetId)))
+                                .build()
+                                .send();
+                    } catch (JvmIdGetException e) {
+                        logger.info("Retain null jvmId for target [{}]", targetId);
+                        logger.info(e);
+                    }
                     return new IntermediateResponse<Void>().body(null);
                 });
     }
