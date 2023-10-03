@@ -110,15 +110,6 @@ public class RecordingTargetHelperTest {
         lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
         lenient().when(vertx.setTimer(Mockito.anyLong(), Mockito.any())).thenReturn(1234L);
-        lenient()
-                .when(jvmIdHelper.jvmIdToSubdirectoryName(Mockito.anyString()))
-                .thenAnswer(
-                        new Answer<String>() {
-                        @Override
-                        public String answer(InvocationOnMock invocation) throws Throwable {
-                                return invocation.getArgument(0);
-                        }
-                        });
 
         this.recordingTargetHelper =
                 new RecordingTargetHelper(

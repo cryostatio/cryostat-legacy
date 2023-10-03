@@ -110,6 +110,15 @@ public class RecordingMetadataManagerTest {
                                 return invocation.getArgument(0);
                             }
                         });
+        lenient()
+                .when(jvmIdHelper.subdirectoryNameToJvmId(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                                @Override
+                                public String answer(InvocationOnMock invocation) throws Throwable {
+                                return invocation.getArgument(0);
+                                }
+                        });
 
         this.recordingMetadataManager =
                 new RecordingMetadataManager(

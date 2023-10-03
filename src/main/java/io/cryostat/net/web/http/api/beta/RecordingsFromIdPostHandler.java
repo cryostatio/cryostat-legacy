@@ -70,7 +70,6 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
     private final FileSystem fs;
     private final JvmIdHelper idHelper;
     private final NotificationFactory notificationFactory;
-    private final JvmIdHelper jvmIdHelper;
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final RecordingMetadataManager recordingMetadataManager;
     private final Path savedRecordingsPath;
@@ -87,7 +86,6 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
             FileSystem fs,
             JvmIdHelper idHelper,
             NotificationFactory notificationFactory,
-            JvmIdHelper jvmIdHelper,
             RecordingArchiveHelper recordingArchiveHelper,
             RecordingMetadataManager recordingMetadataManager,
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
@@ -98,7 +96,6 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
         this.fs = fs;
         this.idHelper = idHelper;
         this.notificationFactory = notificationFactory;
-        this.jvmIdHelper = jvmIdHelper;
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.recordingMetadataManager = recordingMetadataManager;
         this.savedRecordingsPath = savedRecordingsPath;
@@ -303,13 +300,12 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
                                                                 "target",
                                                                 connectUrl,
                                                                 "jvmId",
-                                                                jvmIdHelper.getJvmId(connectUrl)))
+                                                                jvmId))
                                                 .build()
                                                 .send();
                                     } catch (URISyntaxException
                                             | UnknownHostException
-                                            | SocketException 
-                                            | JvmIdGetException e) {
+                                            | SocketException e) {
                                         logger.error(e);
                                         throw new ApiException(500, e);
                                     }

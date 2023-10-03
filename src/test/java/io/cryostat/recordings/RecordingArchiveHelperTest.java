@@ -267,7 +267,7 @@ class RecordingArchiveHelperTest {
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingSaved");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId));
+        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId, "jvmId", "mockId"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -355,7 +355,9 @@ class RecordingArchiveHelperTest {
                                 "recording",
                                 info,
                                 "target",
-                                serviceRef1.getServiceUri().toString()));
+                                serviceRef1.getServiceUri().toString(),
+                                "jvmId",
+                                "mockId"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -443,7 +445,7 @@ class RecordingArchiveHelperTest {
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingSaved");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId));
+        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId, "jvmId", "mockId"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -524,7 +526,7 @@ class RecordingArchiveHelperTest {
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingSaved");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId));
+        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId, "jvmId", "mockId"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -612,7 +614,7 @@ class RecordingArchiveHelperTest {
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingSaved");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId));
+        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId, "jvmId", "mockId"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -753,7 +755,7 @@ class RecordingArchiveHelperTest {
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingSaved");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId));
+        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId, "jvmId", "mockId"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -856,7 +858,7 @@ class RecordingArchiveHelperTest {
 
         MatcherAssert.assertThat(
                 messageCaptor.getValue(),
-                Matchers.equalTo(Map.of("recording", matcher, "target", "uploads")));
+                Matchers.equalTo(Map.of("recording", matcher, "target", "uploads", "jvmId", "mockId")));
     }
 
     @Test
