@@ -47,6 +47,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdDoesNotExistException;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
@@ -69,6 +70,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
     private final FileSystem fs;
     private final JvmIdHelper idHelper;
     private final NotificationFactory notificationFactory;
+    private final JvmIdHelper jvmIdHelper;
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final RecordingMetadataManager recordingMetadataManager;
     private final Path savedRecordingsPath;
@@ -85,6 +87,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
             FileSystem fs,
             JvmIdHelper idHelper,
             NotificationFactory notificationFactory,
+            JvmIdHelper jvmIdHelper,
             RecordingArchiveHelper recordingArchiveHelper,
             RecordingMetadataManager recordingMetadataManager,
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
@@ -95,6 +98,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
         this.fs = fs;
         this.idHelper = idHelper;
         this.notificationFactory = notificationFactory;
+        this.jvmIdHelper = jvmIdHelper;
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.recordingMetadataManager = recordingMetadataManager;
         this.savedRecordingsPath = savedRecordingsPath;
@@ -297,12 +301,15 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
                                                                         size,
                                                                         archivedTime),
                                                                 "target",
-                                                                connectUrl))
+                                                                connectUrl,
+                                                                "jvmId",
+                                                                jvmIdHelper.getJvmId(connectUrl)))
                                                 .build()
                                                 .send();
                                     } catch (URISyntaxException
                                             | UnknownHostException
-                                            | SocketException e) {
+                                            | SocketException 
+                                            | JvmIdGetException e) {
                                         logger.error(e);
                                         throw new ApiException(500, e);
                                     }

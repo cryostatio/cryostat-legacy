@@ -523,6 +523,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                                 recordingName,
                                 "target",
                                 connectUrl,
+                                "jvmId",
+                                jvmIdHelper.getJvmId(connectUrl),
                                 "metadata",
                                 metadata))
                 .build()
@@ -566,6 +568,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                                     recordingName,
                                     "target",
                                     connectionDescriptor.getTargetId(),
+                                    "jvmId",
+                                    jvmIdHelper.getJvmId(connectionDescriptor),
                                     "metadata",
                                     metadata))
                     .build()
