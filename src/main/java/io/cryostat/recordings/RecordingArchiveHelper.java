@@ -416,7 +416,7 @@ public class RecordingArchiveHelper {
                                     "target",
                                     connectionDescriptor.getTargetId(),
                                     "jvmId",
-                                    jvmIdHelper.getJvmId(connectionDescriptor)))
+                                    jvmIdHelper.getJvmId(connectionDescriptor.getTargetId())))
                     .build()
                     .send();
         } catch (Exception e) {

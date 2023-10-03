@@ -332,7 +332,7 @@ class RecordingsFromIdPostHandlerTest {
 
         MatcherAssert.assertThat(
                 messageCaptor.getValue(),
-                Matchers.equalTo(Map.of("recording", recordingInfo, "target", mockConnectUrl)));
+                Matchers.equalTo(Map.of("recording", recordingInfo, "target", mockConnectUrl, "jvmId", mockJvmId)));
     }
 
     @Test
@@ -491,7 +491,7 @@ class RecordingsFromIdPostHandlerTest {
 
         MatcherAssert.assertThat(
                 messageCaptor.getValue(),
-                Matchers.equalTo(Map.of("recording", recordingInfo, "target", mockConnectUrl)));
+                Matchers.equalTo(Map.of("recording", recordingInfo, "target", mockConnectUrl, "jvmId", mockJvmId)));
     }
 
     @Test

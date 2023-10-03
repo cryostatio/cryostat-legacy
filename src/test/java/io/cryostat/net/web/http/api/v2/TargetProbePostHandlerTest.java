@@ -41,6 +41,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.JvmIdHelper;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -54,7 +55,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 @ExtendWith(MockitoExtension.class)
 public class TargetProbePostHandlerTest {
@@ -68,6 +71,7 @@ public class TargetProbePostHandlerTest {
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
+    @Mock JvmIdHelper jvmIdHelper;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Environment env;
     Gson gson = MainModule.provideGson(logger);
@@ -86,6 +90,7 @@ public class TargetProbePostHandlerTest {
                 .thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
+
         this.handler =
                 new TargetProbePostHandler(
                         logger,
@@ -94,6 +99,7 @@ public class TargetProbePostHandlerTest {
                         fs,
                         auth,
                         credentialsManager,
+                        jvmIdHelper,
                         targetConnectionManager,
                         env,
                         gson);
@@ -144,7 +150,7 @@ public class TargetProbePostHandlerTest {
         @Test
         public void shouldRespondOK() throws Exception {
             Mockito.when(requestParams.getPathParams())
-                    .thenReturn(Map.of("targetId", "foo", "probeTemplate", "bar"));
+                    .thenReturn(Map.of("targetId", "foo", "probeTemplate", "bar", "jvmId", "id"));
             Mockito.when(requestParams.getHeaders()).thenReturn(MultiMap.caseInsensitiveMultiMap());
             JFRConnection connection = Mockito.mock(JFRConnection.class);
             IConnectionHandle handle = Mockito.mock(IConnectionHandle.class);
@@ -170,6 +176,7 @@ public class TargetProbePostHandlerTest {
                         + " </event> </events> </jfragent>";
             Mockito.when(templateService.getTemplateContent(Mockito.anyString()))
                     .thenReturn(templateContent);
+            Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("id");
             Mockito.when(connection.getHandle()).thenReturn(handle);
             Mockito.when(handle.getServiceOrDummy(MBeanServerConnection.class)).thenReturn(mbsc);
             Object result = Mockito.mock(Object.class);
@@ -188,6 +195,7 @@ public class TargetProbePostHandlerTest {
             MatcherAssert.assertThat(s.get("probeTemplate"), Matchers.equalTo("bar"));
             MatcherAssert.assertThat(s.get("targetId"), Matchers.equalTo("foo"));
             MatcherAssert.assertThat(s.get("events"), Matchers.instanceOf(List.class));
+            MatcherAssert.assertThat(s.get("jvmId"), Matchers.equalTo("id"));
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
         }
 
