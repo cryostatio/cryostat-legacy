@@ -213,6 +213,8 @@ class DiscoveryStorageTest {
 
         @Test
         void removesPluginsIfCallbackFails() throws Exception {
+            Mockito.when(deployer.deploy(Mockito.any(), Mockito.anyBoolean()))
+                    .thenReturn(Future.succeededFuture());
             EnvironmentNode realm =
                     new EnvironmentNode("realm", BaseNodeType.REALM, Map.of(), Set.of());
             PluginInfo plugin =
