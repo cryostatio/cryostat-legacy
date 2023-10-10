@@ -276,19 +276,25 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         }
     }
 
-    private CompletableFuture<?> pingPrune() {
-        List<CompletableFuture<Boolean>> futures =
+    private CompletableFuture<Void> pingPrune() {
+        List<CompletableFuture<Void>> futures =
                 dao.getAll().stream()
                         .map(
                                 plugin -> {
                                     UUID key = plugin.getId();
                                     URI uri = plugin.getCallback();
                                     return ping(HttpMethod.POST, uri)
-                                            .whenComplete(
+                                            .<Void>handle(
                                                     (v, t) -> {
                                                         if (t != null || !Boolean.TRUE.equals(v)) {
+                                                            if (t != null) {
+                                                                logger.warn(
+                                                                        ExceptionUtils
+                                                                                .getStackTrace(t));
+                                                            }
                                                             removePlugin(key, uri);
                                                         }
+                                                        return null;
                                                     });
                                 })
                         .toList();
