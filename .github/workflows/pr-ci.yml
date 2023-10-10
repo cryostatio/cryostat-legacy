@@ -12,7 +12,7 @@ on:
 jobs:
   check-before-build:
     runs-on: ubuntu-latest
-    if: github.event.issue.pull_request && (startsWith(github.event.comment.body, '/build_test') || startsWith(github.event.comment.body, '/retest'))
+    if: github.repository_owner == 'cryostatio' && github.event.issue.pull_request && (startsWith(github.event.comment.body, '/build_test') || startsWith(github.event.comment.body, '/retest'))
     permissions:
       pull-requests: write
     steps:
