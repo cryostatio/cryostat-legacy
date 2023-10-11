@@ -2,7 +2,7 @@ name: CI build and push
 
 concurrency:
   group: pr-${{ github.event.number }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 on:
   push:
