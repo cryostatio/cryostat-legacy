@@ -23,6 +23,10 @@ on:
         description: the Cryostat application version that will be built
         value: ${{ jobs.get-pom-properties.outputs.image-version }}
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   get-pom-properties:
     runs-on: ubuntu-latest
@@ -111,6 +115,10 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
+    - name: Download Cryostat Image Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: cryostat-${{ inputs.build-arch }}
     - name: Load cryostat image
       run: podman load -i cryostat-${{ inputs.build-arch }}.tar
     - uses: skjolber/maven-cache-github-action@v1
@@ -130,7 +138,7 @@ jobs:
 
   retest-integration-test:
     runs-on: ubuntu-latest
-    if: ${{ inputs.run-tests-only && !inputs.skip-itests }}
+    if: ${{ inputs.run-tests-only && !inputs.skip-itests}}
     steps:
       - name: Install xpath
         run: |
@@ -153,10 +161,6 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: Download Cryostat Image Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: cryostat-${{ inputs.build-arch }}
       - name: Load Cryostat Image
         run: podman load -i ./cryostat-${{ inputs.build-arch }}.tar
       - uses: skjolber/maven-cache-github-action@v1
