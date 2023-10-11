@@ -103,8 +103,7 @@ class ReportGetFromPathHandlerTest {
         @Test
         void shouldHandleCorrectPath() {
             MatcherAssert.assertThat(
-                    handler.path(),
-                    Matchers.equalTo("/api/beta/fs/reports/:jvmId/:recordingName"));
+                    handler.path(), Matchers.equalTo("/api/beta/fs/reports/:jvmId/:recordingName"));
         }
 
         @Test
@@ -129,12 +128,7 @@ class ReportGetFromPathHandlerTest {
             MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
             when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "jvmId",
-                                    jvmId,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
 
             Future<Path> future =
@@ -156,12 +150,7 @@ class ReportGetFromPathHandlerTest {
             MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
             when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "jvmId",
-                                    jvmId,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
 
             Path fakePath = Mockito.mock(Path.class);
@@ -185,12 +174,7 @@ class ReportGetFromPathHandlerTest {
 
             when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "jvmId",
-                                    jvmId,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
 
             Path fakePath = Mockito.mock(Path.class);
@@ -211,15 +195,10 @@ class ReportGetFromPathHandlerTest {
         void shouldRespondBySendingFileUnformatted() throws Exception {
             MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
             queryParams.add("filter", "someFilter");
-            
+
             when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "jvmId",
-                                    jvmId,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
 
             Path fakePath = Mockito.mock(Path.class);

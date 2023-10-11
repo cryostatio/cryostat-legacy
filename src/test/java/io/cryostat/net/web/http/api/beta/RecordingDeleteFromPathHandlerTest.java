@@ -124,12 +124,7 @@ class RecordingDeleteFromPathHandlerTest {
 
             when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "jvmId",
-                                    jvmId,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
 
             Future<ArchivedRecordingInfo> future =
                     CompletableFuture.failedFuture(
@@ -151,12 +146,7 @@ class RecordingDeleteFromPathHandlerTest {
 
             when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "recordingName",
-                                    recordingName,
-                                    "jvmId",
-                                    jvmId));
+                    .thenReturn(Map.of("recordingName", recordingName, "jvmId", jvmId));
 
             CompletableFuture<ArchivedRecordingInfo> future = Mockito.mock(CompletableFuture.class);
             when(recordingArchiveHelper.deleteRecordingFromPath(

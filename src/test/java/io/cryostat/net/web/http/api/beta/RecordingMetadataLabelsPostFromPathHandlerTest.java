@@ -148,7 +148,7 @@ public class RecordingMetadataLabelsPostFromPathHandlerTest {
             String requestLabels = labels.toString();
             String subdirectoryName = "someSubdirectory";
             Map<String, String> params = Mockito.mock(Map.class);
-            
+
             when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(requestParameters.getPathParams()).thenReturn(params);
             when(params.get("recordingName")).thenReturn(recordingName);

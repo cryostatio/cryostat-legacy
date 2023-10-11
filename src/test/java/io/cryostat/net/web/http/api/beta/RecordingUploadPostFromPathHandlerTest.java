@@ -85,7 +85,14 @@ class RecordingUploadPostFromPathHandlerTest {
     void setup() {
         this.handler =
                 new RecordingUploadPostFromPathHandler(
-                        auth, credentialsManager, env, 30, webClient, jvmIdHelper, recordingArchiveHelper, gson);
+                        auth,
+                        credentialsManager,
+                        env,
+                        30,
+                        webClient,
+                        jvmIdHelper,
+                        recordingArchiveHelper,
+                        gson);
     }
 
     @Nested
@@ -117,8 +124,7 @@ class RecordingUploadPostFromPathHandlerTest {
         void shouldHandleCorrectPath() {
             MatcherAssert.assertThat(
                     handler.path(),
-                    Matchers.equalTo(
-                            "/api/beta/fs/recordings/:jvmId/:recordingName/upload"));
+                    Matchers.equalTo("/api/beta/fs/recordings/:jvmId/:recordingName/upload"));
         }
 
         @Test
@@ -160,12 +166,7 @@ class RecordingUploadPostFromPathHandlerTest {
         void shouldThrowExceptionIfRecordingNotFound() throws Exception {
             when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "jvmId",
-                                    jvmId,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
             CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
@@ -174,8 +175,7 @@ class RecordingUploadPostFromPathHandlerTest {
                     .thenReturn(future);
             ExecutionException e = Mockito.mock(ExecutionException.class);
             when(future.get()).thenThrow(e);
-            when(e.getCause())
-                    .thenReturn(new RecordingNotFoundException("foo", recordingName));
+            when(e.getCause()).thenReturn(new RecordingNotFoundException("foo", recordingName));
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
@@ -186,12 +186,7 @@ class RecordingUploadPostFromPathHandlerTest {
         void shouldDoUpload() throws Exception {
             when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn("foo");
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "jvmId",
-                                    jvmId,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
             CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
@@ -241,12 +236,7 @@ class RecordingUploadPostFromPathHandlerTest {
         void shouldHandleInvalidResponseStatusCode() throws Exception {
             when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn("someSubdirectory");
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "jvmId",
-                                    jvmId,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
             CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
@@ -303,12 +293,7 @@ class RecordingUploadPostFromPathHandlerTest {
         void shouldHandleNullStatusMessage() throws Exception {
             when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn("someSubdirectory");
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "jvmId",
-                                    jvmId,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
             CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
@@ -365,12 +350,7 @@ class RecordingUploadPostFromPathHandlerTest {
         void shouldHandleNullResponseBody() throws Exception {
             when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn("someSubdirectory");
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "jvmId",
-                                    jvmId,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
             CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
