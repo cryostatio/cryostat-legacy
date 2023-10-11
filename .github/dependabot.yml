@@ -16,7 +16,7 @@ updates:
       - "dependencies"
       - "chore"
       - "safe-to-test"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 20
     registries:
       - "maven-github"
 
