@@ -72,7 +72,6 @@ jobs:
         step: restore
     - run: git submodule init
     - run: git submodule update
-      if: ${{ !inputs.run-tests-only }}
     - run: mvn -B -U -Dbuild.arch=${{ inputs.build-arch }} clean package
       env:
         GITHUB_TOKEN_REF: ${{ secrets.GITHUB_TOKEN }}
@@ -112,9 +111,6 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-    - uses: actions/download-artifact@v3
-      with:
-        name: cryostat-${{ inputs.build-arch }}
     - name: Load cryostat image
       run: podman load -i cryostat-${{ inputs.build-arch }}.tar
     - uses: skjolber/maven-cache-github-action@v1
