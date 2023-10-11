@@ -121,7 +121,7 @@ jobs:
           });
 
   check-test-results:
-    if: ${{ needs.build-and-test.result == 'success' || needs.retest-integration.result == 'success' }}
+    if: ${{ success(needs.build-and-test) || success(needs.retest-integration) }}
     runs-on: ubuntu-latest
     needs: [build-and-test, retest-integration]
     steps:
@@ -139,7 +139,6 @@ jobs:
     continue-on-error: true
           
   leave-test-status-comment:
-    if: ${{ needs.check-test-results.result == 'success' }}
     runs-on: ubuntu-latest
     needs: [check-test-results]
     steps:
@@ -147,9 +146,9 @@ jobs:
       uses: actions/github-script@v6
       with:
         script: |
-          const testStatus = "${{ needs.check-test-results.test-status }}";
           const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Toronto' });
-          const commentBody = `Tests status: ${testStatus} at ${currentTime}.`;
+          const testStatus = "${{ needs.check-test-results.outputs.test-status }}";
+          const commentBody = `Tests status: ${test-status } ${currentTime}.`;
           github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
