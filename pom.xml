@@ -97,7 +97,7 @@
   <io.vertx.web.version>4.4.4</io.vertx.web.version>
   <!-- https://repo1.maven.org/maven2/io/vertx/vertx-dependencies/${io.vertx.web.version}/vertx-dependencies-${io.vertx.web.version}.pom -->
   <!-- https://groups.google.com/g/vertx/c/uzzcgw-YuOg -->
-  <io.netty.netty-transport-native-epoll.version>4.1.94.Final</io.netty.netty-transport-native-epoll.version><!-- FIXME this should be tied to the vertx version -->
+  <io.netty.netty-transport-native-epoll.version>4.1.100.Final</io.netty.netty-transport-native-epoll.version><!-- FIXME this should be tied to the vertx version -->
   <!--
     FIXME this needs to be synced with the vertx version - is there a BOM to use or something?
     https://github.com/vert-x3/vertx-web/blob/${io.vertx.web.version}/vertx-web-graphql/pom.xml#L35
