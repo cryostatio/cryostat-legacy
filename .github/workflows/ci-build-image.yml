@@ -144,7 +144,7 @@ jobs:
 
   retest-integration-tests:
     runs-on: ubuntu-latest
-    if: ${{ !inputs.skip-itests && inputs.run-tests-only }}
+    if: ${{ !inputs.skip-itests && inputs.run-tests-only && inputs.pr-number != '' && inputs.sha-value != '' }}
     steps:
     - name: Install xpath
       run: |
