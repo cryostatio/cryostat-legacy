@@ -28,7 +28,6 @@ import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class TargetRecordingPatchIT extends StandardSelfTest {
