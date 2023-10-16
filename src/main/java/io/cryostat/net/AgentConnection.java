@@ -140,8 +140,11 @@ public class AgentConnection implements JFRConnection {
 
     @Override
     public MBeanMetrics getMBeanMetrics()
-            throws ConnectionException, IOException, InstanceNotFoundException,
-                    IntrospectionException, ReflectionException {
+            throws ConnectionException,
+                    IOException,
+                    InstanceNotFoundException,
+                    IntrospectionException,
+                    ReflectionException {
         try {
             return client.mbeanMetrics().toCompletionStage().toCompletableFuture().get();
         } catch (ExecutionException | InterruptedException e) {

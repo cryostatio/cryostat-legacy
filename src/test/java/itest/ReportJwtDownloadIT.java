@@ -49,9 +49,9 @@ public class ReportJwtDownloadIT extends JwtAssetsSelfTest {
                                             .replace("/api/v1/", "/api/v2.1/")));
             Thread.sleep(10_000L);
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-            headers.add(HttpHeaders.ACCEPT.toString(), HttpMimeType.HTML.mime());
+            headers.add(HttpHeaders.ACCEPT.toString(), HttpMimeType.JSON.mime());
             assetDownload =
-                    downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".html", headers)
+                    downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".json", headers)
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             Assertions.assertTrue(Files.isReadable(assetDownload));
             Assertions.assertTrue(Files.isRegularFile(assetDownload));

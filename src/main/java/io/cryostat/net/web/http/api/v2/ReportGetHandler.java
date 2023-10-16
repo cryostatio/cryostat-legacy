@@ -109,7 +109,7 @@ class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
         try {
             Path report =
                     reportService
-                            .get(recordingName, rawFilter, true)
+                            .get(recordingName, rawFilter)
                             .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
             ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
             ctx.response()

@@ -76,7 +76,10 @@ public class AssetJwtHelper {
     }
 
     public String createAssetDownloadJwt(String subject, String resource, String jmxauth)
-            throws JOSEException, SocketException, UnknownHostException, URISyntaxException,
+            throws JOSEException,
+                    SocketException,
+                    UnknownHostException,
+                    URISyntaxException,
                     MalformedURLException {
         String issuer = webServer.get().getHostUrl().toString();
         Date now = Date.from(Instant.now());
@@ -107,8 +110,13 @@ public class AssetJwtHelper {
     }
 
     public JWT parseAssetDownloadJwt(String rawToken)
-            throws ParseException, JOSEException, BadJWTException, SocketException,
-                    UnknownHostException, URISyntaxException, MalformedURLException {
+            throws ParseException,
+                    JOSEException,
+                    BadJWTException,
+                    SocketException,
+                    UnknownHostException,
+                    URISyntaxException,
+                    MalformedURLException {
         JWEObject jwe = JWEObject.parse(rawToken);
         jwe.decrypt(decrypter);
 

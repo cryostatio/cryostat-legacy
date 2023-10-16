@@ -15,7 +15,6 @@
  */
 package io.cryostat.net.reports;
 
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 
 import java.nio.file.Path;
@@ -79,7 +78,7 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldReturnFalseWhenDeletingNonExistentReport() {
-        Assertions.assertFalse(cache.delete(new ConnectionDescriptor("foo"), "bar", false));
+        Assertions.assertFalse(cache.delete(new ConnectionDescriptor("foo"), "bar"));
     }
 
     @Test
@@ -87,9 +86,7 @@ class ActiveRecordingReportCacheTest {
         Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
         Mockito.when(
                         subprocessReportGenerator.exec(
-                                Mockito.any(RecordingDescriptor.class),
-                                anyString(),
-                                Mockito.anyBoolean()))
+                                Mockito.any(RecordingDescriptor.class), anyString()))
                 .thenReturn(pathFuture);
         Mockito.when(fs.readString(destinationFile)).thenReturn(REPORT_DOC);
 
@@ -97,8 +94,8 @@ class ActiveRecordingReportCacheTest {
         String recordingName = "bar";
 
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
-        cache.get(connectionDescriptor, recordingName, "", true);
-        Assertions.assertTrue(cache.delete(connectionDescriptor, recordingName, true));
+        cache.get(connectionDescriptor, recordingName, "");
+        Assertions.assertTrue(cache.delete(connectionDescriptor, recordingName));
     }
 
     @Test
@@ -106,18 +103,18 @@ class ActiveRecordingReportCacheTest {
         Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
         Mockito.when(
                         subprocessReportGenerator.exec(
-                                Mockito.any(RecordingDescriptor.class), anyString(), anyBoolean()))
+                                Mockito.any(RecordingDescriptor.class), anyString()))
                 .thenReturn(pathFuture);
         Mockito.when(fs.readString(destinationFile)).thenReturn(REPORT_DOC);
 
         String targetId = "foo";
 
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
-        Future<String> report = cache.get(connectionDescriptor, "foo", "", true);
+        Future<String> report = cache.get(connectionDescriptor, "foo", "");
         MatcherAssert.assertThat(report.get(), Matchers.equalTo(REPORT_DOC));
 
         Mockito.verify(subprocessReportGenerator)
-                .exec(Mockito.any(RecordingDescriptor.class), Mockito.eq(""), Mockito.eq(true));
+                .exec(Mockito.any(RecordingDescriptor.class), Mockito.eq(""));
         Mockito.verify(fs).readString(destinationFile);
     }
 
@@ -126,21 +123,18 @@ class ActiveRecordingReportCacheTest {
         Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
         Mockito.when(
                         subprocessReportGenerator.exec(
-                                Mockito.any(RecordingDescriptor.class), anyString(), anyBoolean()))
+                                Mockito.any(RecordingDescriptor.class), anyString()))
                 .thenReturn(pathFuture);
         Mockito.when(fs.readString(destinationFile)).thenReturn(REPORT_DOC);
 
         String targetId = "foo";
 
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
-        Future<String> report = cache.get(connectionDescriptor, "foo", "non-null", true);
+        Future<String> report = cache.get(connectionDescriptor, "foo", "non-null");
         MatcherAssert.assertThat(report.get(), Matchers.equalTo(REPORT_DOC));
 
         Mockito.verify(subprocessReportGenerator)
-                .exec(
-                        Mockito.any(RecordingDescriptor.class),
-                        Mockito.eq("non-null"),
-                        Mockito.eq(true));
+                .exec(Mockito.any(RecordingDescriptor.class), Mockito.eq("non-null"));
         Mockito.verify(fs).readString(destinationFile);
     }
 
@@ -149,21 +143,18 @@ class ActiveRecordingReportCacheTest {
         Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
         Mockito.when(
                         subprocessReportGenerator.exec(
-                                Mockito.any(RecordingDescriptor.class), anyString(), anyBoolean()))
+                                Mockito.any(RecordingDescriptor.class), anyString()))
                 .thenReturn(pathFuture);
         Mockito.when(fs.readString(destinationFile)).thenReturn(REPORT_JSON);
 
         String targetId = "foo";
 
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
-        Future<String> report = cache.get(connectionDescriptor, "foo", "non-null", false);
+        Future<String> report = cache.get(connectionDescriptor, "foo", "non-null");
         MatcherAssert.assertThat(report.get(), Matchers.equalTo(REPORT_JSON));
 
         Mockito.verify(subprocessReportGenerator)
-                .exec(
-                        Mockito.any(RecordingDescriptor.class),
-                        Mockito.eq("non-null"),
-                        Mockito.eq(false));
+                .exec(Mockito.any(RecordingDescriptor.class), Mockito.eq("non-null"));
         Mockito.verify(fs).readString(destinationFile);
     }
 
@@ -172,7 +163,7 @@ class ActiveRecordingReportCacheTest {
         Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
         Mockito.when(
                         subprocessReportGenerator.exec(
-                                Mockito.any(RecordingDescriptor.class), anyString(), anyBoolean()))
+                                Mockito.any(RecordingDescriptor.class), anyString()))
                 .thenReturn(pathFuture);
         Mockito.when(fs.readString(destinationFile)).thenReturn(REPORT_DOC);
 
@@ -180,13 +171,13 @@ class ActiveRecordingReportCacheTest {
         String recordingName = "bar";
 
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
-        String report1 = cache.get(connectionDescriptor, recordingName, "", true).get();
+        String report1 = cache.get(connectionDescriptor, recordingName, "").get();
         MatcherAssert.assertThat(report1, Matchers.equalTo(REPORT_DOC));
-        String report2 = cache.get(connectionDescriptor, recordingName, "", true).get();
+        String report2 = cache.get(connectionDescriptor, recordingName, "").get();
         MatcherAssert.assertThat(report2, Matchers.equalTo(report1));
 
         Mockito.verify(subprocessReportGenerator, Mockito.times(1))
-                .exec(Mockito.any(RecordingDescriptor.class), anyString(), anyBoolean());
+                .exec(Mockito.any(RecordingDescriptor.class), anyString());
     }
 
     @SuppressWarnings("rawtypes")
@@ -195,7 +186,7 @@ class ActiveRecordingReportCacheTest {
         Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
         Mockito.when(
                         subprocessReportGenerator.exec(
-                                Mockito.any(RecordingDescriptor.class), anyString(), anyBoolean()))
+                                Mockito.any(RecordingDescriptor.class), anyString()))
                 .thenReturn(pathFuture);
         Mockito.when(fs.readString(destinationFile)).thenReturn(REPORT_DOC);
 
@@ -212,14 +203,14 @@ class ActiveRecordingReportCacheTest {
                 .thenReturn(Map.of("target", targetId, "recording", hsrd));
 
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
-        String report1 = cache.get(connectionDescriptor, recordingName, "", true).get();
+        String report1 = cache.get(connectionDescriptor, recordingName, "").get();
         MatcherAssert.assertThat(report1, Matchers.equalTo(REPORT_DOC));
         cache.onNotification(notification);
-        String report2 = cache.get(connectionDescriptor, recordingName, "", true).get();
+        String report2 = cache.get(connectionDescriptor, recordingName, "").get();
         MatcherAssert.assertThat(report2, Matchers.equalTo(report1));
 
         Mockito.verify(subprocessReportGenerator, Mockito.times(2))
-                .exec(Mockito.any(RecordingDescriptor.class), anyString(), anyBoolean());
+                .exec(Mockito.any(RecordingDescriptor.class), anyString());
     }
 
     @Test
@@ -227,11 +218,10 @@ class ActiveRecordingReportCacheTest {
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("foo");
         Mockito.when(
                         subprocessReportGenerator.exec(
-                                Mockito.any(RecordingDescriptor.class), anyString(), anyBoolean()))
+                                Mockito.any(RecordingDescriptor.class), anyString()))
                 .thenThrow(new CompletionException(new RecordingNotFoundException("", "")));
         Assertions.assertThrows(
-                ExecutionException.class,
-                () -> cache.get(connectionDescriptor, "bar", "", true).get());
+                ExecutionException.class, () -> cache.get(connectionDescriptor, "bar", "").get());
     }
 
     @Test
@@ -239,13 +229,12 @@ class ActiveRecordingReportCacheTest {
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("foo");
         Mockito.when(
                         subprocessReportGenerator.exec(
-                                Mockito.any(RecordingDescriptor.class), anyString(), anyBoolean()))
+                                Mockito.any(RecordingDescriptor.class), anyString()))
                 .thenThrow(
                         new CompletionException(
                                 new SubprocessReportGenerator.SubprocessReportGenerationException(
                                         SubprocessReportGenerator.ExitStatus.OTHER)));
         Assertions.assertThrows(
-                ExecutionException.class,
-                () -> cache.get(connectionDescriptor, "bar", "", true).get());
+                ExecutionException.class, () -> cache.get(connectionDescriptor, "bar", "").get());
     }
 }

@@ -104,10 +104,9 @@ class TargetReportGetHandlerTest {
         }
 
         @Test
-        void shouldProduceHtmlAndJson() {
+        void shouldProduceJson() {
             MatcherAssert.assertThat(
-                    handler.produces(),
-                    Matchers.containsInAnyOrder(HttpMimeType.HTML, HttpMimeType.JSON));
+                    handler.produces(), Matchers.containsInAnyOrder(HttpMimeType.JSON));
         }
 
         @Test
@@ -139,7 +138,7 @@ class TargetReportGetHandlerTest {
 
         @Test
         void shouldRespond404IfNotFound() throws Exception {
-            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
             when(ctx.pathParam("recordingName")).thenReturn("myrecording");
 
             Future<String> future =
@@ -148,8 +147,7 @@ class TargetReportGetHandlerTest {
             when(reports.get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+                            Mockito.anyString()))
                     .thenReturn(future);
             ApiException ex =
                     Assertions.assertThrows(
@@ -159,7 +157,7 @@ class TargetReportGetHandlerTest {
 
         @Test
         void shouldSendFileIfFound() throws Exception {
-            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
             when(ctx.pathParam("recordingName")).thenReturn("myrecording");
             when(ctx.queryParam("filter")).thenReturn(List.of());
 
@@ -167,25 +165,23 @@ class TargetReportGetHandlerTest {
             when(reports.get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+                            Mockito.anyString()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
 
-            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
             verify(resp).end("report text");
             verify(reports)
                     .get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.eq("myrecording"),
-                            Mockito.eq(""),
-                            Mockito.eq(true));
+                            Mockito.eq(""));
         }
 
         @Test
         void shouldSendFileIfFoundFiltered() throws Exception {
-            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
             when(ctx.pathParam("recordingName")).thenReturn("myrecording");
             when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
 
@@ -193,20 +189,18 @@ class TargetReportGetHandlerTest {
             when(reports.get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+                            Mockito.anyString()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
 
-            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
             verify(resp).end("report text");
             verify(reports)
                     .get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.eq("myrecording"),
-                            Mockito.eq("someFilter"),
-                            Mockito.eq(true));
+                            Mockito.eq("someFilter"));
         }
 
         @Test
@@ -219,8 +213,7 @@ class TargetReportGetHandlerTest {
             when(reports.get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.anyString(),
-                            Mockito.anyString(),
-                            Mockito.anyBoolean()))
+                            Mockito.anyString()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
@@ -231,8 +224,7 @@ class TargetReportGetHandlerTest {
                     .get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.eq("myrecording"),
-                            Mockito.eq("someFilter"),
-                            Mockito.eq(false));
+                            Mockito.eq("someFilter"));
         }
     }
 }

@@ -105,8 +105,12 @@ abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler
     }
 
     private JWT validateJwt(RoutingContext ctx)
-            throws ParseException, JOSEException, SocketException, UnknownHostException,
-                    URISyntaxException, MalformedURLException {
+            throws ParseException,
+                    JOSEException,
+                    SocketException,
+                    UnknownHostException,
+                    URISyntaxException,
+                    MalformedURLException {
         String token = ctx.queryParams().get("token");
         if (StringUtils.isBlank(token)) {
             throw new ApiException(401);

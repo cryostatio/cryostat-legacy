@@ -102,7 +102,9 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
 
         @BeforeEach
         void setup()
-                throws MalformedURLException, SocketException, UnknownHostException,
+                throws MalformedURLException,
+                        SocketException,
+                        UnknownHostException,
                         URISyntaxException {
             headers = MultiMap.caseInsensitiveMultiMap();
             queryParams = MultiMap.caseInsensitiveMultiMap();
@@ -213,8 +215,13 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
 
         @BeforeEach
         void setup()
-                throws MalformedURLException, SocketException, UnknownHostException,
-                        URISyntaxException, ParseException, JOSEException, BadJWTException {
+                throws MalformedURLException,
+                        SocketException,
+                        UnknownHostException,
+                        URISyntaxException,
+                        ParseException,
+                        JOSEException,
+                        BadJWTException {
             headers = MultiMap.caseInsensitiveMultiMap();
             queryParams = MultiMap.caseInsensitiveMultiMap();
             queryParams.set("token", "mytoken");
