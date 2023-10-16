@@ -127,7 +127,6 @@ jobs:
     steps:
     - name: Leave Actions Run Comment
       uses: actions/github-script@v6
-      if: always()
       with:
         script: |
           const runURL = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }}`;
@@ -146,7 +145,6 @@ jobs:
     steps:
     - name: Leave Actions Run Comment
       uses: actions/github-script@v6
-      if: always()
       with:
         script: |
           const runURL = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }}`;
