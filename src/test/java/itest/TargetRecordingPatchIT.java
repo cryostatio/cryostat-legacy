@@ -109,7 +109,7 @@ public class TargetRecordingPatchIT extends StandardSelfTest {
                                 }
                             });
             JsonArray listResp = listRespFuture1.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            Assertions.assertTrue(listResp.isEmpty());
+            MatcherAssert.assertThat(listResp, Matchers.equalTo(new JsonArray()));
 
         } finally {
 
