@@ -111,7 +111,7 @@ Once its done, you can click `Create Pull Request` and wait for approval.
 #### Some useful PR commands
 
 Once a PR is created you can:
-- comment `/request_review` to request review from the **crysostatio/reviewers** team. This will add a label `review-requested` which will be removed if changes are requested.
+- comment `/request_review` to request review from the **cryostatio/reviewers** team. This will add a label `review-requested` which will be removed if changes are requested.
 
 #### Result
 
