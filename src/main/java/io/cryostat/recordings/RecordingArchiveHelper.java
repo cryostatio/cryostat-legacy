@@ -710,7 +710,7 @@ public class RecordingArchiveHelper {
                                                                         "beta/fs/recordings"),
                                                         webServer
                                                                 .getArchivedReportURL(
-                                                                        subdirectoryName, file)
+                                                                        jvmId, file)
                                                                 .replace(
                                                                         "beta/reports",
                                                                         "beta/fs/reports"),
