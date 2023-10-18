@@ -178,8 +178,7 @@ public class FileSystemArchivedRequestsIT extends JwtAssetsSelfTest {
                                 .getPath()
                                 .replaceFirst(
                                         "/api/v1/recordings",
-                                        String.format(
-                                                "/api/beta/fs/recordings/%s", jvmId));
+                                        String.format("/api/beta/fs/recordings/%s", jvmId));
                 cleanupCreatedResources(updatedArchivedPath);
             }
             if (assetDownload != null) {
