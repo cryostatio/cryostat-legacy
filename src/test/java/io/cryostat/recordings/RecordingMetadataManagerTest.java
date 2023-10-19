@@ -91,6 +91,9 @@ public class RecordingMetadataManagerTest {
 
         lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
         lenient()
+                .when(notificationFactory.createOwnedResourceBuilder(Mockito.anyString()))
+                .thenReturn(notificationBuilder);
+        lenient()
                 .when(notificationBuilder.metaCategory(Mockito.any()))
                 .thenReturn(notificationBuilder);
         lenient()
@@ -114,10 +117,10 @@ public class RecordingMetadataManagerTest {
                 .when(jvmIdHelper.subdirectoryNameToJvmId(Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {
-                                @Override
-                                public String answer(InvocationOnMock invocation) throws Throwable {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
                                 return invocation.getArgument(0);
-                                }
+                            }
                         });
 
         this.recordingMetadataManager =

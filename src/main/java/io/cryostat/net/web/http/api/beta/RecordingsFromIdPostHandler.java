@@ -47,7 +47,6 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdDoesNotExistException;
-import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
@@ -275,9 +274,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
                                     try {
 
                                         notificationFactory
-                                                .createBuilder()
-                                                .metaCategory(NOTIFICATION_CATEGORY)
-                                                .metaType(HttpMimeType.JSON)
+                                                .createOwnedResourceBuilder(NOTIFICATION_CATEGORY)
                                                 .message(
                                                         Map.of(
                                                                 "recording",

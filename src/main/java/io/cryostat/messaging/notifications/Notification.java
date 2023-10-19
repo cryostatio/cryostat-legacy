@@ -15,8 +15,6 @@
  */
 package io.cryostat.messaging.notifications;
 
-import java.time.Instant;
-
 import io.cryostat.net.web.http.HttpMimeType;
 
 public class Notification<T> {
@@ -87,7 +85,6 @@ public class Notification<T> {
     public static class Meta {
         private final String category;
         private final MetaType type;
-        private final long serverTime = Instant.now().getEpochSecond();
 
         public Meta(String category, MetaType type) {
             this.category = category;

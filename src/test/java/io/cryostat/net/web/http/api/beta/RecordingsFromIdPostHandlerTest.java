@@ -105,7 +105,9 @@ class RecordingsFromIdPostHandlerTest {
 
     @BeforeEach
     void setup() {
-        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationFactory.createOwnedResourceBuilder(Mockito.anyString()))
+                .thenReturn(notificationBuilder);
         lenient()
                 .when(notificationBuilder.metaCategory(Mockito.any()))
                 .thenReturn(notificationBuilder);
@@ -323,16 +325,21 @@ class RecordingsFromIdPostHandlerTest {
                         0,
                         expectedArchivedTime);
         ArgumentCaptor<Map<String, Object>> messageCaptor = ArgumentCaptor.forClass(Map.class);
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("ArchivedRecordingCreated");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationFactory).createOwnedResourceBuilder("ArchivedRecordingCreated");
         Mockito.verify(notificationBuilder).message(messageCaptor.capture());
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
 
         MatcherAssert.assertThat(
                 messageCaptor.getValue(),
-                Matchers.equalTo(Map.of("recording", recordingInfo, "target", mockConnectUrl, "jvmId", mockJvmId)));
+                Matchers.equalTo(
+                        Map.of(
+                                "recording",
+                                recordingInfo,
+                                "target",
+                                mockConnectUrl,
+                                "jvmId",
+                                mockJvmId)));
     }
 
     @Test
@@ -482,16 +489,21 @@ class RecordingsFromIdPostHandlerTest {
                         0,
                         expectedArchivedTime);
         ArgumentCaptor<Map<String, Object>> messageCaptor = ArgumentCaptor.forClass(Map.class);
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("ArchivedRecordingCreated");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationFactory).createOwnedResourceBuilder("ArchivedRecordingCreated");
         Mockito.verify(notificationBuilder).message(messageCaptor.capture());
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
 
         MatcherAssert.assertThat(
                 messageCaptor.getValue(),
-                Matchers.equalTo(Map.of("recording", recordingInfo, "target", mockConnectUrl, "jvmId", mockJvmId)));
+                Matchers.equalTo(
+                        Map.of(
+                                "recording",
+                                recordingInfo,
+                                "target",
+                                mockConnectUrl,
+                                "jvmId",
+                                mockJvmId)));
     }
 
     @Test

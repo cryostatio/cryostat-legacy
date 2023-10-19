@@ -102,6 +102,9 @@ class RecordingArchiveHelperTest {
     void setup() {
         lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
         lenient()
+                .when(notificationFactory.createOwnedResourceBuilder(Mockito.anyString()))
+                .thenReturn(notificationBuilder);
+        lenient()
                 .when(notificationBuilder.metaCategory(Mockito.any()))
                 .thenReturn(notificationBuilder);
         lenient()
@@ -264,10 +267,9 @@ class RecordingArchiveHelperTest {
 
         MatcherAssert.assertThat(info.getName(), Matchers.equalTo(savedName));
         Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingSaved");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId, "jvmId", "mockId"));
+        Mockito.verify(notificationFactory).createOwnedResourceBuilder("ActiveRecordingSaved");
+        Mockito.verify(notificationBuilder)
+                .message(Map.of("recording", info, "target", targetId, "jvmId", "mockId"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -346,9 +348,7 @@ class RecordingArchiveHelperTest {
 
         MatcherAssert.assertThat(info.getName(), Matchers.equalTo(savedName));
         Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingSaved");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationFactory).createOwnedResourceBuilder("ActiveRecordingSaved");
         Mockito.verify(notificationBuilder)
                 .message(
                         Map.of(
@@ -442,10 +442,9 @@ class RecordingArchiveHelperTest {
 
         MatcherAssert.assertThat(info.getName(), Matchers.equalTo(savedName));
         Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingSaved");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId, "jvmId", "mockId"));
+        Mockito.verify(notificationFactory).createOwnedResourceBuilder("ActiveRecordingSaved");
+        Mockito.verify(notificationBuilder)
+                .message(Map.of("recording", info, "target", targetId, "jvmId", "mockId"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -523,10 +522,9 @@ class RecordingArchiveHelperTest {
 
         MatcherAssert.assertThat(info.getName(), Matchers.equalTo(savedName));
         Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingSaved");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId, "jvmId", "mockId"));
+        Mockito.verify(notificationFactory).createOwnedResourceBuilder("ActiveRecordingSaved");
+        Mockito.verify(notificationBuilder)
+                .message(Map.of("recording", info, "target", targetId, "jvmId", "mockId"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -611,10 +609,9 @@ class RecordingArchiveHelperTest {
 
         MatcherAssert.assertThat(info.getName(), Matchers.equalTo(savedName));
         Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingSaved");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId, "jvmId", "mockId"));
+        Mockito.verify(notificationFactory).createOwnedResourceBuilder("ActiveRecordingSaved");
+        Mockito.verify(notificationBuilder)
+                .message(Map.of("recording", info, "target", targetId, "jvmId", "mockId"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -752,10 +749,9 @@ class RecordingArchiveHelperTest {
 
         MatcherAssert.assertThat(info.getName(), Matchers.equalTo(savedName));
         Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingSaved");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId, "jvmId", "mockId"));
+        Mockito.verify(notificationFactory).createOwnedResourceBuilder("ActiveRecordingSaved");
+        Mockito.verify(notificationBuilder)
+                .message(Map.of("recording", info, "target", targetId, "jvmId", "mockId"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -837,9 +833,7 @@ class RecordingArchiveHelperTest {
                                 .toAbsolutePath());
 
         Mockito.verify(fs).deleteIfExists(destinationFile);
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("ArchivedRecordingDeleted");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationFactory).createOwnedResourceBuilder("ArchivedRecordingDeleted");
         Mockito.verify(notificationBuilder).message(messageCaptor.capture());
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
@@ -858,7 +852,8 @@ class RecordingArchiveHelperTest {
 
         MatcherAssert.assertThat(
                 messageCaptor.getValue(),
-                Matchers.equalTo(Map.of("recording", matcher, "target", "uploads", "jvmId", "mockId")));
+                Matchers.equalTo(
+                        Map.of("recording", matcher, "target", "uploads", "jvmId", "mockId")));
     }
 
     @Test

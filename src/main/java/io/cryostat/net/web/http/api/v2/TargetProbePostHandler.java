@@ -158,9 +158,7 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
                     List<Event> events = Arrays.asList(template.getEvents());
                     try {
                         notificationFactory
-                                .createBuilder()
-                                .metaCategory(NOTIFICATION_CATEGORY)
-                                .metaType(HttpMimeType.JSON)
+                                .createOwnedResourceBuilder(NOTIFICATION_CATEGORY)
                                 .message(
                                         Map.of(
                                                 "targetId",

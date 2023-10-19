@@ -47,7 +47,6 @@ import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
@@ -514,9 +513,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                 StandardOpenOption.TRUNCATE_EXISTING);
 
         notificationFactory
-                .createBuilder()
-                .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
-                .metaType(HttpMimeType.JSON)
+                .createOwnedResourceBuilder(NOTIFICATION_CATEGORY)
                 .message(
                         Map.of(
                                 "recordingName",
@@ -524,7 +521,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                 "target",
                                 connectUrl,
                                 "jvmId",
-                                jvmIdHelper.getJvmId(connectUrl),
+                                jvmId,
                                 "metadata",
                                 metadata))
                 .build()
@@ -559,9 +556,7 @@ public class RecordingMetadataManager extends AbstractVerticle
 
         if (issueNotification) {
             notificationFactory
-                    .createBuilder()
-                    .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
-                    .metaType(HttpMimeType.JSON)
+                    .createOwnedResourceBuilder(NOTIFICATION_CATEGORY)
                     .message(
                             Map.of(
                                     "recordingName",
@@ -569,7 +564,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                     "target",
                                     connectionDescriptor.getTargetId(),
                                     "jvmId",
-                                    jvmIdHelper.getJvmId(connectionDescriptor),
+                                    jvmId,
                                     "metadata",
                                     metadata))
                     .build()

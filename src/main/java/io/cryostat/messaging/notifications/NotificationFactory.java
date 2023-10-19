@@ -15,6 +15,8 @@
  */
 package io.cryostat.messaging.notifications;
 
+import io.cryostat.net.web.http.HttpMimeType;
+
 public class NotificationFactory {
 
     private final NotificationSource source;
@@ -25,5 +27,11 @@ public class NotificationFactory {
 
     public <T> Notification.Builder<T> createBuilder() {
         return new Notification.Builder<T>(source);
+    }
+
+    public <T> Notification.Builder<T> createOwnedResourceBuilder(String notificationCategory) {
+        return new Notification.Builder<T>(source)
+                .metaType(HttpMimeType.JSON)
+                .metaCategory(notificationCategory);
     }
 }

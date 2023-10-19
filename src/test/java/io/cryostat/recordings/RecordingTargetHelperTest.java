@@ -53,7 +53,6 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingTargetHelper.ReplacementPolicy;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
@@ -98,6 +97,9 @@ public class RecordingTargetHelperTest {
     @BeforeEach
     void setup() {
         lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationFactory.createOwnedResourceBuilder(Mockito.anyString()))
+                .thenReturn(notificationBuilder);
         lenient()
                 .when(notificationBuilder.metaCategory(Mockito.any()))
                 .thenReturn(notificationBuilder);
@@ -225,9 +227,7 @@ public class RecordingTargetHelperTest {
         HyperlinkedSerializableRecordingDescriptor linkedDesc =
                 new HyperlinkedSerializableRecordingDescriptor(descriptor, null, null, metadata);
 
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingDeleted");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationFactory).createOwnedResourceBuilder("ActiveRecordingDeleted");
         Mockito.verify(notificationBuilder)
                 .message(Map.of("recording", linkedDesc, "target", "fooTarget", "jvmId", "id"));
         Mockito.verify(notificationBuilder).build();
@@ -276,9 +276,7 @@ public class RecordingTargetHelperTest {
         HyperlinkedSerializableRecordingDescriptor linkedDesc =
                 new HyperlinkedSerializableRecordingDescriptor(descriptor, null, null, metadata);
 
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("SnapshotDeleted");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationFactory).createOwnedResourceBuilder("SnapshotDeleted");
         Mockito.verify(notificationBuilder)
                 .message(Map.of("recording", linkedDesc, "target", "fooTarget", "jvmId", "id"));
         Mockito.verify(notificationBuilder).build();
@@ -329,7 +327,7 @@ public class RecordingTargetHelperTest {
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
 
-        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingDeleted");
+        Mockito.verify(notificationFactory).createOwnedResourceBuilder("ActiveRecordingDeleted");
     }
 
     @ParameterizedTest
@@ -367,7 +365,7 @@ public class RecordingTargetHelperTest {
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
 
-        Mockito.verify(notificationBuilder).metaCategory("SnapshotDeleted");
+        Mockito.verify(notificationFactory).createOwnedResourceBuilder("SnapshotDeleted");
     }
 
     @Test
@@ -539,11 +537,16 @@ public class RecordingTargetHelperTest {
                         .verifySnapshot(connectionDescriptor, snapshotDescriptor)
                         .get();
 
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("SnapshotCreated");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationFactory).createOwnedResourceBuilder("SnapshotCreated");
         Mockito.verify(notificationBuilder)
-                .message(Map.of("recording", snapshotDescriptor, "target", "fooTarget", "jvmId", "id"));
+                .message(
+                        Map.of(
+                                "recording",
+                                snapshotDescriptor,
+                                "target",
+                                "fooTarget",
+                                "jvmId",
+                                "id"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
 
@@ -585,9 +588,8 @@ public class RecordingTargetHelperTest {
                         .verifySnapshot(connectionDescriptor, snapshotDescriptor, false)
                         .get();
 
-        Mockito.verify(notificationFactory, Mockito.never()).createBuilder();
-        Mockito.verify(notificationBuilder, Mockito.never()).metaCategory("SnapshotCreated");
-        Mockito.verify(notificationBuilder, Mockito.never()).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationFactory, Mockito.never())
+                .createOwnedResourceBuilder("SnapshotCreated");
         Mockito.verify(notificationBuilder, Mockito.never())
                 .message(Map.of("recording", snapshotDescriptor, "target", "fooTarget"));
         Mockito.verify(notificationBuilder, Mockito.never()).build();
@@ -749,9 +751,7 @@ public class RecordingTargetHelperTest {
 
         ArgumentCaptor<Map> messageCaptor = ArgumentCaptor.forClass(Map.class);
 
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingCreated");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationFactory).createOwnedResourceBuilder("ActiveRecordingCreated");
         Mockito.verify(notificationBuilder).message(messageCaptor.capture());
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
@@ -990,9 +990,7 @@ public class RecordingTargetHelperTest {
                 new HyperlinkedSerializableRecordingDescriptor(
                         descriptor, null, null, RecordingState.STOPPED);
 
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingStopped");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationFactory).createOwnedResourceBuilder("ActiveRecordingStopped");
         Mockito.verify(notificationBuilder)
                 .message(Map.of("recording", linkedDesc, "target", "fooTarget", "jvmId", "id"));
         Mockito.verify(notificationBuilder).build();
