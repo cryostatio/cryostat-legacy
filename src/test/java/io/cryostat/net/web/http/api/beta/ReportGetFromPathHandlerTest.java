@@ -33,6 +33,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.google.gson.Gson;
@@ -56,13 +57,18 @@ class ReportGetFromPathHandlerTest {
     @Mock AuthManager authManager;
     @Mock CredentialsManager credentialsManager;
     @Mock Gson gson;
+    @Mock JvmIdHelper jvmIdHelper;
     @Mock ReportService reportService;
+
+    static final String jvmId = "id";
+    static final String recordingName = "someRecording";
+    static final String subdirectoryName = "someSubdirectory";
 
     @BeforeEach
     void setup() {
         this.handler =
                 new ReportGetFromPathHandler(
-                        authManager, credentialsManager, gson, reportService, 30);
+                        authManager, credentialsManager, gson, jvmIdHelper, reportService, 30);
     }
 
     @Nested
@@ -97,8 +103,7 @@ class ReportGetFromPathHandlerTest {
         @Test
         void shouldHandleCorrectPath() {
             MatcherAssert.assertThat(
-                    handler.path(),
-                    Matchers.equalTo("/api/beta/fs/reports/:subdirectoryName/:recordingName"));
+                    handler.path(), Matchers.equalTo("/api/beta/fs/reports/:jvmId/:recordingName"));
         }
 
         @Test
@@ -121,15 +126,9 @@ class ReportGetFromPathHandlerTest {
         @Test
         void shouldThrow404IfNoMatchingRecordingFound() throws Exception {
             MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
-            String recordingName = "someRecording";
-            String subdirectoryName = "someDirectory";
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "subdirectoryName",
-                                    subdirectoryName,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
 
             Future<Path> future =
@@ -149,15 +148,9 @@ class ReportGetFromPathHandlerTest {
         @Test
         void shouldRespondBySendingFile() throws Exception {
             MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
-            String recordingName = "someRecording";
-            String subdirectoryName = "subdirectoryName";
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "subdirectoryName",
-                                    subdirectoryName,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
 
             Path fakePath = Mockito.mock(Path.class);
@@ -178,15 +171,10 @@ class ReportGetFromPathHandlerTest {
         void shouldRespondBySendingFileFiltered() throws Exception {
             MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
             queryParams.add("filter", "someFilter");
-            String recordingName = "someRecording";
-            String subdirectoryName = "subdirectoryName";
+
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "subdirectoryName",
-                                    subdirectoryName,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
 
             Path fakePath = Mockito.mock(Path.class);
@@ -207,15 +195,10 @@ class ReportGetFromPathHandlerTest {
         void shouldRespondBySendingFileUnformatted() throws Exception {
             MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
             queryParams.add("filter", "someFilter");
-            String recordingName = "someRecording";
-            String subdirectoryName = "subdirectoryName";
+
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "subdirectoryName",
-                                    subdirectoryName,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
 
             Path fakePath = Mockito.mock(Path.class);

@@ -31,6 +31,7 @@ import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.rules.ArchivePathException;
@@ -40,17 +41,20 @@ import io.vertx.core.http.HttpMethod;
 
 public class RecordingDeleteFromPathHandler extends AbstractV2RequestHandler<Void> {
 
-    static final String PATH = "fs/recordings/:subdirectoryName/:recordingName";
+    static final String PATH = "fs/recordings/:jvmId/:recordingName";
 
     private final RecordingArchiveHelper recordingArchiveHelper;
+    private final JvmIdHelper jvmIdHelper;
 
     @Inject
     RecordingDeleteFromPathHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
             Gson gson,
+            JvmIdHelper jvmIdHelper,
             RecordingArchiveHelper recordingArchiveHelper) {
         super(auth, credentialsManager, gson);
+        this.jvmIdHelper = jvmIdHelper;
         this.recordingArchiveHelper = recordingArchiveHelper;
     }
 
@@ -91,9 +95,10 @@ public class RecordingDeleteFromPathHandler extends AbstractV2RequestHandler<Voi
 
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws Exception {
-        String subdirectoryName = params.getPathParams().get("subdirectoryName");
         String recordingName = params.getPathParams().get("recordingName");
+        String jvmId = params.getPathParams().get("jvmId");
         try {
+            String subdirectoryName = jvmIdHelper.jvmIdToSubdirectoryName(jvmId);
             recordingArchiveHelper.deleteRecordingFromPath(subdirectoryName, recordingName).get();
             return new IntermediateResponse<Void>().body(null);
         } catch (ExecutionException e) {

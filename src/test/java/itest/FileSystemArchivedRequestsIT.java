@@ -18,7 +18,6 @@ package itest;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -39,7 +38,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.JwtAssetsSelfTest;
 import itest.util.Podman;
-import org.apache.commons.codec.binary.Base32;
 import org.apache.http.client.utils.URIBuilder;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -48,7 +46,6 @@ import org.junit.jupiter.api.Test;
 
 public class FileSystemArchivedRequestsIT extends JwtAssetsSelfTest {
     private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
-    private static final Base32 base32 = new Base32();
 
     static final String TEST_RECORDING_NAME = "FileSystemArchivedRequestsIT";
 
@@ -57,7 +54,7 @@ public class FileSystemArchivedRequestsIT extends JwtAssetsSelfTest {
         URL resource = null;
         URL archivedResource = null;
         Path assetDownload = null;
-        String subdirectoryName = null;
+        String jvmId = null;
         try {
             JsonObject creationResponse = createRecording();
             resource = new URL(creationResponse.getString("downloadUrl"));
@@ -97,8 +94,7 @@ public class FileSystemArchivedRequestsIT extends JwtAssetsSelfTest {
             MatcherAssert.assertThat(labels, Matchers.equalTo(expectedLabels));
 
             // post metadata fromPath
-            subdirectoryName =
-                    base32.encodeAsString(dir.getString("jvmId").getBytes(StandardCharsets.UTF_8));
+            jvmId = dir.getString("jvmId");
             String recordingName = archivedRecording.getString("name");
             Map<String, String> uploadMetadata = Map.of("label", "test");
             CompletableFuture<JsonObject> metadataFuture = new CompletableFuture<>();
@@ -106,7 +102,7 @@ public class FileSystemArchivedRequestsIT extends JwtAssetsSelfTest {
                     .post(
                             String.format(
                                     "/api/beta/fs/recordings/%s/%s/metadata/labels",
-                                    subdirectoryName, recordingName))
+                                    jvmId, recordingName))
                     .sendBuffer(
                             Buffer.buffer(gson.toJson(uploadMetadata, Map.class)),
                             ar -> {
@@ -182,8 +178,7 @@ public class FileSystemArchivedRequestsIT extends JwtAssetsSelfTest {
                                 .getPath()
                                 .replaceFirst(
                                         "/api/v1/recordings",
-                                        String.format(
-                                                "/api/beta/fs/recordings/%s", subdirectoryName));
+                                        String.format("/api/beta/fs/recordings/%s", jvmId));
                 cleanupCreatedResources(updatedArchivedPath);
             }
             if (assetDownload != null) {
