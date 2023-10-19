@@ -275,37 +275,30 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
                                     try {
 
                                         notificationFactory
-                                                .createBuilder()
-                                                .metaCategory(NOTIFICATION_CATEGORY)
-                                                .metaType(HttpMimeType.JSON)
-                                                .message(
-                                                        Map.of(
-                                                                "recording",
-                                                                new ArchivedRecordingInfo(
-                                                                        connectUrl,
-                                                                        fsName,
-                                                                        webServer
-                                                                                .get()
-                                                                                .getArchivedDownloadURL(
-                                                                                        connectUrl,
-                                                                                        fsName),
-                                                                        webServer
-                                                                                .get()
-                                                                                .getArchivedReportURL(
-                                                                                        connectUrl,
-                                                                                        fsName),
-                                                                        metadata,
-                                                                        size,
-                                                                        archivedTime),
-                                                                "target",
+                                                .createOwnedResourceBuilder(
+                                                        connectUrl, NOTIFICATION_CATEGORY)
+                                                .messageEntry(
+                                                        "recording",
+                                                        new ArchivedRecordingInfo(
                                                                 connectUrl,
-                                                                "jvmId",
-                                                                jvmId))
+                                                                fsName,
+                                                                webServer
+                                                                        .get()
+                                                                        .getArchivedDownloadURL(
+                                                                                connectUrl, fsName),
+                                                                webServer
+                                                                        .get()
+                                                                        .getArchivedReportURL(
+                                                                                connectUrl, fsName),
+                                                                metadata,
+                                                                size,
+                                                                archivedTime))
                                                 .build()
                                                 .send();
                                     } catch (URISyntaxException
                                             | UnknownHostException
-                                            | SocketException e) {
+                                            | SocketException
+                                            | JvmIdGetException e) {
                                         logger.error(e);
                                         throw new ApiException(500, e);
                                     }

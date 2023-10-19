@@ -158,19 +158,9 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
                     List<Event> events = Arrays.asList(template.getEvents());
                     try {
                         notificationFactory
-                                .createBuilder()
-                                .metaCategory(NOTIFICATION_CATEGORY)
-                                .metaType(HttpMimeType.JSON)
-                                .message(
-                                        Map.of(
-                                                "targetId",
-                                                targetId,
-                                                "probeTemplate",
-                                                probeTemplate,
-                                                "events",
-                                                events,
-                                                "jvmId",
-                                                jvmIdHelper.getJvmId(targetId)))
+                                .createOwnedResourceBuilder(targetId, NOTIFICATION_CATEGORY)
+                                .messageEntry("probeTemplate", probeTemplate)
+                                .messageEntry("events", events)
                                 .build()
                                 .send();
                     } catch (JvmIdGetException e) {

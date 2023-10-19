@@ -44,8 +44,6 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebServer;
-import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
@@ -473,13 +471,11 @@ public class RecordingTargetHelper {
             HyperlinkedSerializableRecordingDescriptor linkedDesc,
             String notificationCategory) {
         try {
-                notificationFactory
-                        .createBuilder()
-                        .metaCategory(notificationCategory)
-                        .metaType(HttpMimeType.JSON)
-                        .message(Map.of("recording", linkedDesc, "target", targetId, "jvmId", jvmIdHelper.get().getJvmId(targetId)))
-                        .build()
-                        .send();
+            notificationFactory
+                    .createOwnedResourceBuilder(targetId, notificationCategory)
+                    .messageEntry("recording", linkedDesc)
+                    .build()
+                    .send();
         } catch (JvmIdGetException e) {
             logger.info("Retain null jvmId for target [{}]", targetId);
             logger.info(e);

@@ -45,6 +45,7 @@ import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdDoesNotExistException;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
@@ -69,7 +70,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -89,7 +89,7 @@ class RecordingsFromIdPostHandlerTest {
     @Mock WebServer webServer;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
-    @Mock Notification.Builder notificationBuilder;
+    @Mock Notification.OwnedResourceBuilder notificationOwnedResourceBuilder;
     @Mock JvmIdHelper jvmIdHelper;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock RecordingMetadataManager recordingMetadataManager;
@@ -104,19 +104,29 @@ class RecordingsFromIdPostHandlerTest {
     String mockConnectUrl = "someConnectUrl";
 
     @BeforeEach
-    void setup() {
-        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+    void setup() throws JvmIdGetException {
         lenient()
-                .when(notificationBuilder.metaCategory(Mockito.any()))
-                .thenReturn(notificationBuilder);
+                .when(
+                        notificationFactory.createOwnedResourceBuilder(
+                                Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(notificationOwnedResourceBuilder);
         lenient()
-                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
-                .thenReturn(notificationBuilder);
+                .when(notificationOwnedResourceBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationOwnedResourceBuilder);
         lenient()
-                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
-                .thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.build()).thenReturn(notification);
+                .when(
+                        notificationOwnedResourceBuilder.metaType(
+                                Mockito.any(Notification.MetaType.class)))
+                .thenReturn(notificationOwnedResourceBuilder);
+        lenient()
+                .when(notificationOwnedResourceBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationOwnedResourceBuilder);
+        lenient()
+                .when(
+                        notificationOwnedResourceBuilder.messageEntry(
+                                Mockito.anyString(), Mockito.any()))
+                .thenReturn(notificationOwnedResourceBuilder);
+        lenient().when(notificationOwnedResourceBuilder.build()).thenReturn(notification);
         lenient().when(mockServiceRef.getServiceUri()).thenReturn(mockConnectUri);
         lenient().when(mockConnectUri.toString()).thenReturn(mockConnectUrl);
 
@@ -322,17 +332,11 @@ class RecordingsFromIdPostHandlerTest {
                         new Metadata(),
                         0,
                         expectedArchivedTime);
-        ArgumentCaptor<Map<String, Object>> messageCaptor = ArgumentCaptor.forClass(Map.class);
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("ArchivedRecordingCreated");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(messageCaptor.capture());
-        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notificationFactory)
+                .createOwnedResourceBuilder(mockConnectUrl, "ArchivedRecordingCreated");
+        Mockito.verify(notificationOwnedResourceBuilder).messageEntry("recording", recordingInfo);
+        Mockito.verify(notificationOwnedResourceBuilder).build();
         Mockito.verify(notification).send();
-
-        MatcherAssert.assertThat(
-                messageCaptor.getValue(),
-                Matchers.equalTo(Map.of("recording", recordingInfo, "target", mockConnectUrl, "jvmId", mockJvmId)));
     }
 
     @Test
@@ -481,17 +485,11 @@ class RecordingsFromIdPostHandlerTest {
                         metadata,
                         0,
                         expectedArchivedTime);
-        ArgumentCaptor<Map<String, Object>> messageCaptor = ArgumentCaptor.forClass(Map.class);
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("ArchivedRecordingCreated");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(messageCaptor.capture());
-        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notificationFactory)
+                .createOwnedResourceBuilder(mockConnectUrl, "ArchivedRecordingCreated");
+        Mockito.verify(notificationOwnedResourceBuilder).messageEntry("recording", recordingInfo);
+        Mockito.verify(notificationOwnedResourceBuilder).build();
         Mockito.verify(notification).send();
-
-        MatcherAssert.assertThat(
-                messageCaptor.getValue(),
-                Matchers.equalTo(Map.of("recording", recordingInfo, "target", mockConnectUrl, "jvmId", mockJvmId)));
     }
 
     @Test

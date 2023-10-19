@@ -16,6 +16,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.lenient;
 
 import java.util.List;
@@ -42,6 +43,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -55,9 +57,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 
 @ExtendWith(MockitoExtension.class)
 public class TargetProbePostHandlerTest {
@@ -71,25 +71,36 @@ public class TargetProbePostHandlerTest {
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
+    @Mock Notification.OwnedResourceBuilder notificationOwnedResourceBuilder;
     @Mock JvmIdHelper jvmIdHelper;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Environment env;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
-    void setup() {
-        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+    void setup() throws JvmIdGetException {
         lenient()
-                .when(notificationBuilder.metaCategory(Mockito.any()))
-                .thenReturn(notificationBuilder);
+                .when(
+                        notificationFactory.createOwnedResourceBuilder(
+                                Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(notificationOwnedResourceBuilder);
         lenient()
-                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
-                .thenReturn(notificationBuilder);
+                .when(notificationOwnedResourceBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationOwnedResourceBuilder);
         lenient()
-                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
-                .thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.build()).thenReturn(notification);
+                .when(
+                        notificationOwnedResourceBuilder.metaType(
+                                Mockito.any(Notification.MetaType.class)))
+                .thenReturn(notificationOwnedResourceBuilder);
+        lenient()
+                .when(notificationOwnedResourceBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationOwnedResourceBuilder);
+        lenient()
+                .when(
+                        notificationOwnedResourceBuilder.messageEntry(
+                                Mockito.anyString(), Mockito.any()))
+                .thenReturn(notificationOwnedResourceBuilder);
+        lenient().when(notificationOwnedResourceBuilder.build()).thenReturn(notification);
 
         this.handler =
                 new TargetProbePostHandler(
@@ -176,7 +187,6 @@ public class TargetProbePostHandlerTest {
                         + " </event> </events> </jfragent>";
             Mockito.when(templateService.getTemplateContent(Mockito.anyString()))
                     .thenReturn(templateContent);
-            Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("id");
             Mockito.when(connection.getHandle()).thenReturn(handle);
             Mockito.when(handle.getServiceOrDummy(MBeanServerConnection.class)).thenReturn(mbsc);
             Object result = Mockito.mock(Object.class);
@@ -187,15 +197,21 @@ public class TargetProbePostHandlerTest {
                                     any(Object[].class),
                                     any(String[].class)))
                     .thenReturn(result);
-            IntermediateResponse<Void> response = handler.handle(requestParams);
-            ArgumentCaptor<Map> argumentCaptor = ArgumentCaptor.forClass(Map.class);
 
-            Mockito.verify(notificationBuilder).message(argumentCaptor.capture());
-            Map<String, Object> s = argumentCaptor.getValue();
-            MatcherAssert.assertThat(s.get("probeTemplate"), Matchers.equalTo("bar"));
-            MatcherAssert.assertThat(s.get("targetId"), Matchers.equalTo("foo"));
-            MatcherAssert.assertThat(s.get("events"), Matchers.instanceOf(List.class));
-            MatcherAssert.assertThat(s.get("jvmId"), Matchers.equalTo("id"));
+            IntermediateResponse<Void> response = handler.handle(requestParams);
+
+            Mockito.verify(notificationFactory)
+                    .createOwnedResourceBuilder("foo", "ProbeTemplateApplied");
+            Mockito.verify(notificationOwnedResourceBuilder)
+                    .messageEntry("probeTemplate", "bar");
+            Mockito.verify(notificationOwnedResourceBuilder).build();
+            Mockito.verify(notification).send();
+            
+            ArgumentCaptor<Object> argumentCaptor = ArgumentCaptor.forClass(Object.class);
+            Mockito.verify(notificationOwnedResourceBuilder).messageEntry(Mockito.matches("events"), argumentCaptor.capture());
+            Object s = argumentCaptor.getValue();
+            MatcherAssert.assertThat(s, Matchers.instanceOf(List.class));
+
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
         }
 

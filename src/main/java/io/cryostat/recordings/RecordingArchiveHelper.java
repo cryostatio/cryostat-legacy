@@ -34,7 +34,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
@@ -66,7 +65,6 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
@@ -385,6 +383,8 @@ public class RecordingArchiveHelper {
             validateSavePath(recordingName, savePath);
             Path filenamePath = savePath.getFileName();
             String filename = filenamePath.toString();
+            String targetId = connectionDescriptor.getTargetId();
+            String jvmId = jvmIdHelper.getJvmId(targetId);
             Metadata metadata =
                     recordingMetadataManager
                             .copyMetadataToArchives(connectionDescriptor, recordingName, filename)
@@ -406,17 +406,9 @@ public class RecordingArchiveHelper {
                             getArchivedTime(filename));
             future.complete(archivedRecordingInfo);
             notificationFactory
-                    .createBuilder()
-                    .metaCategory(SAVE_NOTIFICATION_CATEGORY)
-                    .metaType(HttpMimeType.JSON)
-                    .message(
-                            Map.of(
-                                    "recording",
-                                    archivedRecordingInfo,
-                                    "target",
-                                    connectionDescriptor.getTargetId(),
-                                    "jvmId",
-                                    jvmIdHelper.getJvmId(connectionDescriptor.getTargetId())))
+                    .createOwnedResourceBuilder(
+                            connectionDescriptor.getTargetId(), SAVE_NOTIFICATION_CATEGORY)
+                    .messageEntry("recording", archivedRecordingInfo)
                     .build()
                     .send();
         } catch (Exception e) {
@@ -453,10 +445,8 @@ public class RecordingArchiveHelper {
                             getFileSize(filename),
                             getArchivedTime(filename));
             notificationFactory
-                    .createBuilder()
-                    .metaCategory(DELETE_NOTIFICATION_CATEGORY)
-                    .metaType(HttpMimeType.JSON)
-                    .message(Map.of("recording", archivedRecordingInfo, "target", targetId, "jvmId", jvmIdHelper.getJvmId(targetId)))
+                    .createOwnedResourceBuilder(targetId, DELETE_NOTIFICATION_CATEGORY)
+                    .messageEntry("recording", archivedRecordingInfo)
                     .build()
                     .send();
             fs.deleteIfExists(recordingPath);
@@ -517,10 +507,8 @@ public class RecordingArchiveHelper {
                             getFileSize(filename),
                             getArchivedTime(filename));
             notificationFactory
-                    .createBuilder()
-                    .metaCategory(DELETE_NOTIFICATION_CATEGORY)
-                    .metaType(HttpMimeType.JSON)
-                    .message(Map.of("recording", archivedRecordingInfo, "target", targetId, "jvmId", jvmIdHelper.getJvmId(targetId)))
+                    .createOwnedResourceBuilder(targetId, DELETE_NOTIFICATION_CATEGORY)
+                    .messageEntry("recording", archivedRecordingInfo)
                     .build()
                     .send();
             checkEmptySubdirectory(parentPath);
