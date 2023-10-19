@@ -47,6 +47,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdDoesNotExistException;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
@@ -274,35 +275,30 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
                                     try {
 
                                         notificationFactory
-                                                .createOwnedResourceBuilder(NOTIFICATION_CATEGORY)
-                                                .message(
-                                                        Map.of(
-                                                                "recording",
-                                                                new ArchivedRecordingInfo(
-                                                                        connectUrl,
-                                                                        fsName,
-                                                                        webServer
-                                                                                .get()
-                                                                                .getArchivedDownloadURL(
-                                                                                        connectUrl,
-                                                                                        fsName),
-                                                                        webServer
-                                                                                .get()
-                                                                                .getArchivedReportURL(
-                                                                                        connectUrl,
-                                                                                        fsName),
-                                                                        metadata,
-                                                                        size,
-                                                                        archivedTime),
-                                                                "target",
+                                                .createOwnedResourceBuilder(
+                                                        connectUrl, NOTIFICATION_CATEGORY)
+                                                .messageEntry(
+                                                        "recording",
+                                                        new ArchivedRecordingInfo(
                                                                 connectUrl,
-                                                                "jvmId",
-                                                                jvmId))
+                                                                fsName,
+                                                                webServer
+                                                                        .get()
+                                                                        .getArchivedDownloadURL(
+                                                                                connectUrl, fsName),
+                                                                webServer
+                                                                        .get()
+                                                                        .getArchivedReportURL(
+                                                                                connectUrl, fsName),
+                                                                metadata,
+                                                                size,
+                                                                archivedTime))
                                                 .build()
                                                 .send();
                                     } catch (URISyntaxException
                                             | UnknownHostException
-                                            | SocketException e) {
+                                            | SocketException
+                                            | JvmIdGetException e) {
                                         logger.error(e);
                                         throw new ApiException(500, e);
                                     }
