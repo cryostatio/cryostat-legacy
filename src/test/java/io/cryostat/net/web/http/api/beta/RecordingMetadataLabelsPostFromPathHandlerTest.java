@@ -36,6 +36,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
@@ -61,6 +62,7 @@ public class RecordingMetadataLabelsPostFromPathHandlerTest {
     @Mock AuthManager authManager;
     @Mock CredentialsManager credentialsManager;
     @Mock Gson gson;
+    @Mock JvmIdHelper jvmIdHelper;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock RecordingMetadataManager recordingMetadataManager;
     @Mock RequestParameters params;
@@ -77,6 +79,7 @@ public class RecordingMetadataLabelsPostFromPathHandlerTest {
                         authManager,
                         credentialsManager,
                         gson,
+                        jvmIdHelper,
                         recordingArchiveHelper,
                         recordingMetadataManager);
     }
@@ -104,7 +107,7 @@ public class RecordingMetadataLabelsPostFromPathHandlerTest {
             MatcherAssert.assertThat(
                     handler.path(),
                     Matchers.equalTo(
-                            "/api/beta/fs/recordings/:subdirectoryName/:recordingName/metadata/labels"));
+                            "/api/beta/fs/recordings/:jvmId/:recordingName/metadata/labels"));
         }
 
         @Test
@@ -139,15 +142,17 @@ public class RecordingMetadataLabelsPostFromPathHandlerTest {
         @Test
         void shouldUpdateLabels() throws Exception {
             String recordingName = "someRecording";
-            String subdirectoryName = "someTarget";
+            String jvmId = "id";
             Map<String, String> labels = Map.of("key", "value");
             Metadata metadata = new Metadata(labels);
             String requestLabels = labels.toString();
+            String subdirectoryName = "someSubdirectory";
             Map<String, String> params = Mockito.mock(Map.class);
 
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(requestParameters.getPathParams()).thenReturn(params);
             when(params.get("recordingName")).thenReturn(recordingName);
-            when(params.get("subdirectoryName")).thenReturn(subdirectoryName);
+            when(params.get("jvmId")).thenReturn(jvmId);
             when(requestParameters.getBody()).thenReturn(requestLabels);
 
             when(recordingArchiveHelper.getRecordingPathFromPath(subdirectoryName, recordingName))
@@ -169,7 +174,7 @@ public class RecordingMetadataLabelsPostFromPathHandlerTest {
             Map<String, String> params = Mockito.mock(Map.class);
             when(requestParameters.getPathParams()).thenReturn(params);
             when(params.get("recordingName")).thenReturn("someRecording");
-            when(params.get("subdirectoryName")).thenReturn("subdirectoryName");
+            when(params.get("jvmId")).thenReturn("id");
             when(requestParameters.getBody()).thenReturn("invalid");
             Mockito.doThrow(new IllegalArgumentException())
                     .when(recordingMetadataManager)
@@ -182,14 +187,16 @@ public class RecordingMetadataLabelsPostFromPathHandlerTest {
 
         @Test
         void shouldThrowWhenRecordingNotFound() throws Exception {
-            String subdirectoryName = "someSubdirectory";
+            String jvmId = "id";
             String recordingName = "someNonExistentRecording";
+            String subdirectoryName = "someSubdirectory";
             String labels = Map.of("key", "value").toString();
             Map<String, String> params = Mockito.mock(Map.class);
 
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(requestParameters.getPathParams()).thenReturn(params);
             when(params.get("recordingName")).thenReturn(recordingName);
-            when(params.get("subdirectoryName")).thenReturn(subdirectoryName);
+            when(params.get("jvmId")).thenReturn(jvmId);
             when(requestParameters.getBody()).thenReturn(labels);
 
             when(recordingArchiveHelper.getRecordingPathFromPath(subdirectoryName, recordingName))

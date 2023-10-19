@@ -38,6 +38,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractAssetJwtConsumingHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.rules.ArchivePathException;
@@ -51,10 +52,11 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class ReportGetFromPathWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
-    static final String PATH = "fs/reports/:subdirectoryName/:recordingName/jwt";
+    static final String PATH = "fs/reports/:jvmId/:recordingName/jwt";
 
     private final ReportService reportService;
     private final long generationTimeoutSeconds;
+    private final JvmIdHelper jvmIdHelper;
 
     @Inject
     ReportGetFromPathWithJwtHandler(
@@ -62,11 +64,13 @@ class ReportGetFromPathWithJwtHandler extends AbstractAssetJwtConsumingHandler {
             CredentialsManager credentialsManager,
             AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
+            JvmIdHelper jvmIdHelper,
             ReportService reportService,
             RecordingArchiveHelper recordingArchiveHelper,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         super(auth, credentialsManager, jwtFactory, webServer, logger);
+        this.jvmIdHelper = jvmIdHelper;
         this.reportService = reportService;
         this.generationTimeoutSeconds = generationTimeoutSeconds;
     }
@@ -111,9 +115,10 @@ class ReportGetFromPathWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
     @Override
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
-        String subdirectoryName = ctx.pathParam("subdirectoryName");
+        String jvmId = ctx.pathParam("jvmId");
         String recordingName = ctx.pathParam("recordingName");
         try {
+            String subdirectoryName = jvmIdHelper.jvmIdToSubdirectoryName(jvmId);
             List<String> queriedFilter = ctx.queryParam("filter");
             String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
             Path report =
