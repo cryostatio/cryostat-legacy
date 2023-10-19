@@ -38,6 +38,7 @@ import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.rules.ArchivePathException;
 
@@ -47,8 +48,9 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class ReportGetFromPathHandler extends AbstractV2RequestHandler<Path> {
 
-    static final String PATH = "fs/reports/:subdirectoryName/:recordingName";
+    static final String PATH = "fs/reports/:jvmId/:recordingName";
 
+    private final JvmIdHelper jvmIdHelper;
     private final ReportService reportService;
     private final long reportGenerationTimeoutSeconds;
 
@@ -57,10 +59,12 @@ public class ReportGetFromPathHandler extends AbstractV2RequestHandler<Path> {
             AuthManager auth,
             CredentialsManager credentialsManager,
             Gson gson,
+            JvmIdHelper jvmIdHelper,
             ReportService reportService,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
                     long reportGenerationTimeoutSeconds) {
         super(auth, credentialsManager, gson);
+        this.jvmIdHelper = jvmIdHelper;
         this.reportService = reportService;
         this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
     }
@@ -105,9 +109,10 @@ public class ReportGetFromPathHandler extends AbstractV2RequestHandler<Path> {
 
     @Override
     public IntermediateResponse<Path> handle(RequestParameters params) throws Exception {
-        String subdirectoryName = params.getPathParams().get("subdirectoryName");
+        String jvmId = params.getPathParams().get("jvmId");
         String recordingName = params.getPathParams().get("recordingName");
         try {
+            String subdirectoryName = jvmIdHelper.jvmIdToSubdirectoryName(jvmId);
             List<String> queriedFilter = params.getQueryParams().getAll("filter");
             String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
             Path report =

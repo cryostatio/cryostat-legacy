@@ -34,6 +34,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
@@ -70,11 +71,13 @@ class RecordingUploadPostFromPathHandlerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock Environment env;
     @Mock WebClient webClient;
+    @Mock JvmIdHelper jvmIdHelper;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock Gson gson;
 
     static final String DATASOURCE_URL = "http://localhost:8080";
 
+    static final String jvmId = "id";
     static final String subdirectoryName = "foo";
     static final String recordingName = "bar";
 
@@ -82,7 +85,14 @@ class RecordingUploadPostFromPathHandlerTest {
     void setup() {
         this.handler =
                 new RecordingUploadPostFromPathHandler(
-                        auth, credentialsManager, env, 30, webClient, recordingArchiveHelper, gson);
+                        auth,
+                        credentialsManager,
+                        env,
+                        30,
+                        webClient,
+                        jvmIdHelper,
+                        recordingArchiveHelper,
+                        gson);
     }
 
     @Nested
@@ -114,8 +124,7 @@ class RecordingUploadPostFromPathHandlerTest {
         void shouldHandleCorrectPath() {
             MatcherAssert.assertThat(
                     handler.path(),
-                    Matchers.equalTo(
-                            "/api/beta/fs/recordings/:subdirectoryName/:recordingName/upload"));
+                    Matchers.equalTo("/api/beta/fs/recordings/:jvmId/:recordingName/upload"));
         }
 
         @Test
@@ -155,13 +164,9 @@ class RecordingUploadPostFromPathHandlerTest {
 
         @Test
         void shouldThrowExceptionIfRecordingNotFound() throws Exception {
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "subdirectoryName",
-                                    subdirectoryName,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
             CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
@@ -170,8 +175,7 @@ class RecordingUploadPostFromPathHandlerTest {
                     .thenReturn(future);
             ExecutionException e = Mockito.mock(ExecutionException.class);
             when(future.get()).thenThrow(e);
-            when(e.getCause())
-                    .thenReturn(new RecordingNotFoundException(subdirectoryName, recordingName));
+            when(e.getCause()).thenReturn(new RecordingNotFoundException("foo", recordingName));
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
@@ -180,13 +184,9 @@ class RecordingUploadPostFromPathHandlerTest {
 
         @Test
         void shouldDoUpload() throws Exception {
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn("foo");
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "subdirectoryName",
-                                    subdirectoryName,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
             CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
@@ -234,13 +234,9 @@ class RecordingUploadPostFromPathHandlerTest {
 
         @Test
         void shouldHandleInvalidResponseStatusCode() throws Exception {
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn("someSubdirectory");
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "subdirectoryName",
-                                    subdirectoryName,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
             CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
@@ -295,13 +291,9 @@ class RecordingUploadPostFromPathHandlerTest {
 
         @Test
         void shouldHandleNullStatusMessage() throws Exception {
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn("someSubdirectory");
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "subdirectoryName",
-                                    subdirectoryName,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
             CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
@@ -356,13 +348,9 @@ class RecordingUploadPostFromPathHandlerTest {
 
         @Test
         void shouldHandleNullResponseBody() throws Exception {
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn("someSubdirectory");
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "subdirectoryName",
-                                    subdirectoryName,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
             when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
             CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);

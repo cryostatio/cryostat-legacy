@@ -32,6 +32,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.rules.ArchivedRecordingInfo;
@@ -56,13 +57,14 @@ class RecordingDeleteFromPathHandlerTest {
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock Gson gson;
+    @Mock JvmIdHelper jvmIdHelper;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
 
     @BeforeEach
     void setup() {
         this.handler =
                 new RecordingDeleteFromPathHandler(
-                        auth, credentialsManager, gson, recordingArchiveHelper);
+                        auth, credentialsManager, gson, jvmIdHelper, recordingArchiveHelper);
     }
 
     @Nested
@@ -94,7 +96,7 @@ class RecordingDeleteFromPathHandlerTest {
         void shouldHandleCorrectPath() {
             MatcherAssert.assertThat(
                     handler.path(),
-                    Matchers.equalTo("/api/beta/fs/recordings/:subdirectoryName/:recordingName"));
+                    Matchers.equalTo("/api/beta/fs/recordings/:jvmId/:recordingName"));
         }
 
         @Test
@@ -117,14 +119,12 @@ class RecordingDeleteFromPathHandlerTest {
         @Test
         void shouldThrow404IfNoMatchingRecordingFound() throws Exception {
             String recordingName = "someRecording";
+            String jvmId = "id";
             String subdirectoryName = "someSubdirectory";
+
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "subdirectoryName",
-                                    subdirectoryName,
-                                    "recordingName",
-                                    recordingName));
+                    .thenReturn(Map.of("jvmId", jvmId, "recordingName", recordingName));
 
             Future<ArchivedRecordingInfo> future =
                     CompletableFuture.failedFuture(
@@ -141,14 +141,12 @@ class RecordingDeleteFromPathHandlerTest {
         @Test
         void shouldHandleSuccessfulDELETERequest() throws Exception {
             String recordingName = "someRecording";
+            String jvmId = "id";
             String subdirectoryName = "someSubdirectory";
+
+            when(jvmIdHelper.jvmIdToSubdirectoryName(jvmId)).thenReturn(subdirectoryName);
             when(params.getPathParams())
-                    .thenReturn(
-                            Map.of(
-                                    "recordingName",
-                                    recordingName,
-                                    "subdirectoryName",
-                                    subdirectoryName));
+                    .thenReturn(Map.of("recordingName", recordingName, "jvmId", jvmId));
 
             CompletableFuture<ArchivedRecordingInfo> future = Mockito.mock(CompletableFuture.class);
             when(recordingArchiveHelper.deleteRecordingFromPath(

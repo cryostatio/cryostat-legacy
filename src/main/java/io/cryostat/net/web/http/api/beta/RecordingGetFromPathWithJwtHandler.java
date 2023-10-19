@@ -32,6 +32,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractAssetJwtConsumingHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.rules.ArchivePathException;
@@ -44,8 +45,9 @@ import io.vertx.ext.web.RoutingContext;
 
 public class RecordingGetFromPathWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
-    static final String PATH = "fs/recordings/:subdirectoryName/:recordingName/jwt";
+    static final String PATH = "fs/recordings/:jvmId/:recordingName/jwt";
 
+    private final JvmIdHelper jvmIdHelper;
     private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
@@ -54,9 +56,11 @@ public class RecordingGetFromPathWithJwtHandler extends AbstractAssetJwtConsumin
             CredentialsManager credentialsManager,
             AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
+            JvmIdHelper jvmIdHelper,
             RecordingArchiveHelper recordingArchiveHelper,
             Logger logger) {
         super(auth, credentialsManager, jwtFactory, webServer, logger);
+        this.jvmIdHelper = jvmIdHelper;
         this.recordingArchiveHelper = recordingArchiveHelper;
     }
 
@@ -87,9 +91,10 @@ public class RecordingGetFromPathWithJwtHandler extends AbstractAssetJwtConsumin
 
     @Override
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
-        String subdirectoryName = ctx.pathParam("subdirectoryName");
+        String jvmId = ctx.pathParam("jvmId");
         String recordingName = ctx.pathParam("recordingName");
         try {
+            String subdirectoryName = jvmIdHelper.jvmIdToSubdirectoryName(jvmId);
             Path archivedRecording =
                     recordingArchiveHelper
                             .getRecordingPathFromPath(subdirectoryName, recordingName)
