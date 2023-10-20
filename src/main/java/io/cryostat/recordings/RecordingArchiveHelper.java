@@ -392,21 +392,14 @@ public class RecordingArchiveHelper {
                     new ArchivedRecordingInfo(
                             targetId,
                             filename,
-                            webServerProvider
-                                    .get()
-                                    .getArchivedDownloadURL(
-                                            targetId, filename),
-                            webServerProvider
-                                    .get()
-                                    .getArchivedReportURL(
-                                            targetId, filename),
+                            webServerProvider.get().getArchivedDownloadURL(targetId, filename),
+                            webServerProvider.get().getArchivedReportURL(targetId, filename),
                             metadata,
                             getFileSize(filename),
                             getArchivedTime(filename));
             future.complete(archivedRecordingInfo);
             notificationFactory
-                    .createOwnedResourceBuilder(
-                            targetId, SAVE_NOTIFICATION_CATEGORY)
+                    .createOwnedResourceBuilder(targetId, SAVE_NOTIFICATION_CATEGORY)
                     .messageEntry("recording", archivedRecordingInfo)
                     .build()
                     .send();

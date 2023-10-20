@@ -85,7 +85,8 @@ abstract class AbstractReportGeneratorService implements ReportGeneratorService 
                 continue;
             }
             try (conn;
-                    OutputStream out = new BufferedOutputStream(new FileOutputStream(path.toFile()));
+                    OutputStream out =
+                            new BufferedOutputStream(new FileOutputStream(path.toFile()));
                     InputStream in = conn.getService().openStream(rec, false)) {
                 byte[] buff = new byte[READ_BUFFER_SIZE];
                 int n = 0;
