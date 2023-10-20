@@ -1,6 +1,6 @@
 # Contributing to Cryostat
 
-Welcome to Cryostat 👋! First off, thanks for taking the time to contribute! 
+Welcome to Cryostat 👋! First off, thanks for taking the time to contribute!
 
 All types of contributions are encouraged and valued. See the [Table of Contents](#table-of-contents) for different ways to contribute. Please make sure to read the relevant section before making your contribution. It will make it a lot easier for us maintainers and smooth out the experience for all involved. The community looks forward to your contributions. 🎉
 
@@ -94,7 +94,7 @@ Compare changes across forks (your branch in fork to the upstream main).
 ![select-compare-across-forks](https://user-images.githubusercontent.com/68053619/193328282-79d45b5e-097f-4995-ae21-51592dcf0bd4.jpg)
 
 
-Add: 
+Add:
 - A title following [guidelines](https://www.conventionalcommits.org/en/v1.0.0/).
 - A description with a referenced issue that the PR is for.
 - A label (depending on your PR scope).
@@ -108,9 +108,14 @@ Once its done, you can click `Create Pull Request` and wait for approval.
 
 ![pull-requests-approved](https://user-images.githubusercontent.com/68053619/193328530-3cde0298-0254-4587-947a-43d51d02878f.png)
 
+#### Some useful PR commands
+
+Once a PR is created you can:
+- comment `/request_review` to request review from the **cryostatio/reviewers** team. This will add a label `review-requested` which will be removed if changes are requested.
+
 #### Result
 
-Your changes will be get squashed into a single commit on `main` with the message including your PR title, and branch commit messages. From there, you can safely delete your branch.
+Your changes will be squashed into a single commit on `main` with the message including your PR title, and branch commit messages. From there, you can safely delete your branch.
 
 To delete:
 ```bash

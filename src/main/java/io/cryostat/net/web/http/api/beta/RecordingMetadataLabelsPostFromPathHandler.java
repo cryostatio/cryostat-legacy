@@ -30,6 +30,7 @@ import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
@@ -41,21 +42,24 @@ import io.vertx.core.http.HttpMethod;
 
 public class RecordingMetadataLabelsPostFromPathHandler extends AbstractV2RequestHandler<Metadata> {
 
-    static final String PATH = "fs/recordings/:subdirectoryName/:recordingName/metadata/labels";
+    static final String PATH = "fs/recordings/:jvmId/:recordingName/metadata/labels";
 
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final RecordingMetadataManager recordingMetadataManager;
+    private final JvmIdHelper jvmIdHelper;
 
     @Inject
     RecordingMetadataLabelsPostFromPathHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
             Gson gson,
+            JvmIdHelper jvmIdHelper,
             RecordingArchiveHelper recordingArchiveHelper,
             RecordingMetadataManager recordingMetadataManager) {
         super(auth, credentialsManager, gson);
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.recordingMetadataManager = recordingMetadataManager;
+        this.jvmIdHelper = jvmIdHelper;
     }
 
     @Override
@@ -96,9 +100,9 @@ public class RecordingMetadataLabelsPostFromPathHandler extends AbstractV2Reques
     @Override
     public IntermediateResponse<Metadata> handle(RequestParameters params) throws Exception {
         String recordingName = params.getPathParams().get("recordingName");
-        String subdirectoryName = params.getPathParams().get("subdirectoryName");
-
+        String jvmId = params.getPathParams().get("jvmId");
         try {
+            String subdirectoryName = jvmIdHelper.jvmIdToSubdirectoryName(jvmId);
             Metadata metadata =
                     new Metadata(recordingMetadataManager.parseRecordingLabels(params.getBody()));
 
