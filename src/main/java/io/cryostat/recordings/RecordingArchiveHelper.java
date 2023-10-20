@@ -384,30 +384,29 @@ public class RecordingArchiveHelper {
             Path filenamePath = savePath.getFileName();
             String filename = filenamePath.toString();
             String targetId = connectionDescriptor.getTargetId();
-            String jvmId = jvmIdHelper.getJvmId(targetId);
             Metadata metadata =
                     recordingMetadataManager
                             .copyMetadataToArchives(connectionDescriptor, recordingName, filename)
                             .get();
             ArchivedRecordingInfo archivedRecordingInfo =
                     new ArchivedRecordingInfo(
-                            connectionDescriptor.getTargetId(),
+                            targetId,
                             filename,
                             webServerProvider
                                     .get()
                                     .getArchivedDownloadURL(
-                                            connectionDescriptor.getTargetId(), filename),
+                                            targetId, filename),
                             webServerProvider
                                     .get()
                                     .getArchivedReportURL(
-                                            connectionDescriptor.getTargetId(), filename),
+                                            targetId, filename),
                             metadata,
                             getFileSize(filename),
                             getArchivedTime(filename));
             future.complete(archivedRecordingInfo);
             notificationFactory
                     .createOwnedResourceBuilder(
-                            connectionDescriptor.getTargetId(), SAVE_NOTIFICATION_CATEGORY)
+                            targetId, SAVE_NOTIFICATION_CATEGORY)
                     .messageEntry("recording", archivedRecordingInfo)
                     .build()
                     .send();
