@@ -16,7 +16,6 @@
 package io.cryostat.net.web.http.api.v2;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.lenient;
 
 import java.util.List;
@@ -202,13 +201,13 @@ public class TargetProbePostHandlerTest {
 
             Mockito.verify(notificationFactory)
                     .createOwnedResourceBuilder("foo", "ProbeTemplateApplied");
-            Mockito.verify(notificationOwnedResourceBuilder)
-                    .messageEntry("probeTemplate", "bar");
+            Mockito.verify(notificationOwnedResourceBuilder).messageEntry("probeTemplate", "bar");
             Mockito.verify(notificationOwnedResourceBuilder).build();
             Mockito.verify(notification).send();
-            
+
             ArgumentCaptor<Object> argumentCaptor = ArgumentCaptor.forClass(Object.class);
-            Mockito.verify(notificationOwnedResourceBuilder).messageEntry(Mockito.matches("events"), argumentCaptor.capture());
+            Mockito.verify(notificationOwnedResourceBuilder)
+                    .messageEntry(Mockito.matches("events"), argumentCaptor.capture());
             Object s = argumentCaptor.getValue();
             MatcherAssert.assertThat(s, Matchers.instanceOf(List.class));
 
