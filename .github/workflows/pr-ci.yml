@@ -104,7 +104,6 @@ jobs:
   start-comment:
     runs-on: ubuntu-latest
     needs: [check-before-build]
-    if: ${{ needs.check-before-build.result == 'success' }}
     steps:
     - name: Leave Actions Run Comment
       uses: actions/github-script@v6
@@ -123,7 +122,6 @@ jobs:
   build-and-test-pass:
     runs-on: ubuntu-latest
     needs: [build-and-test]
-    if: ${{ needs.build-and-test.result == 'success' }}
     steps:
     - name: Leave Actions Run Comment
       uses: actions/github-script@v6
@@ -141,7 +139,6 @@ jobs:
   retest-integration-pass:
     runs-on: ubuntu-latest
     needs: [retest-integration]
-    if: ${{ needs.retest-integration.result == 'success' }}
     steps:
     - name: Leave Actions Run Comment
       uses: actions/github-script@v6
