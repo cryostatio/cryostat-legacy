@@ -69,42 +69,15 @@ jobs:
 
   code-analysis:
     needs: [checkout-branch]
+    if: startsWith(github.event.comment.body, '/build_test')
     uses: ./.github/workflows/ci-code-analysis.yml
     with:
       checkout-repo: ${{ needs.checkout-branch.outputs.PR_repo }}
       checkout-ref: ${{ needs.checkout-branch.outputs.PR_head_ref }}
-      
-  build-and-test:
-    needs: [code-analysis, checkout-branch]
-    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
-    strategy:
-      matrix:
-        arch: [amd64, arm64]
-    uses: ./.github/workflows/ci-build-image.yml
-    with:
-      build-arch: ${{ matrix.arch }}
-      checkout-repo: ${{ needs.checkout-branch.outputs.PR_repo }}
-      checkout-ref: ${{ needs.checkout-branch.outputs.PR_head_ref  }}
-      skip-itests: ${{ matrix.arch != 'amd64' }}
-
-# Add a new step to use /retest
-  retest-integration:
-    needs: [code-analysis, checkout-branch]
-    if: contains(github.event.comment.body, '/retest')
-    strategy:
-      matrix:
-        arch: [amd64, arm64]
-    uses: ./.github/workflows/ci-build-image.yml
-    with:
-      build-arch: ${{ matrix.arch }}
-      run-tests-only: true
-      pr-number: ${{ github.event.issue.number }}
-      sha-value: ${{ needs.checkout-branch.outputs.PR_head_sha }}
 
   start-comment:
     runs-on: ubuntu-latest
     needs: [check-before-build]
-    if: ${{ needs.check-before-build.result == 'success' }}
     steps:
     - name: Leave Actions Run Comment
       uses: actions/github-script@v6
@@ -120,46 +93,21 @@ jobs:
             body: commentBody
           });
 
-  build-and-test-pass:
-    runs-on: ubuntu-latest
-    needs: [build-and-test]
-    if: ${{ needs.build-and-test.result == 'success' }}
-    steps:
-    - name: Leave Actions Run Comment
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const runURL = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }}`;
-          const commentBody = `build-and-test: All tests pass ✅. \n[View Actions Run](${runURL}).`;
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: commentBody
-            });
-          
-  retest-integration-pass:
-    runs-on: ubuntu-latest
-    needs: [retest-integration]
-    if: ${{ needs.retest-integration.result == 'success' }}
-    steps:
-    - name: Leave Actions Run Comment
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const runURL = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }}`;
-          const commentBody = `retest Integration: All tests pass ✅. \n[View Actions Run](${runURL}).`;
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: commentBody
-            });
+  build-image:
+    needs: [checkout-branch]
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    uses: ./.github/workflows/ci-build-image.yml
+    with:
+      build-arch: ${{ matrix.arch }}
+      checkout-repo: ${{ needs.checkout-branch.outputs.PR_repo }}
+      checkout-ref: ${{ needs.checkout-branch.outputs.PR_head_ref  }}
 
   push-to-ghcr:
     runs-on: ubuntu-latest
-    if: startsWith(github.event.comment.body, '/build_test')
-    needs: [build-and-test, checkout-branch]
+    needs: [checkout-branch, build-image]
     strategy:
       matrix:
         arch: [amd64, arm64]
@@ -199,7 +147,6 @@ jobs:
 
   comment-image:
     runs-on: ubuntu-latest
-    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
     needs: [push-to-ghcr]
     env:
       amd64_image: ${{ needs.push-to-ghcr.outputs.amd64_image }}
@@ -228,3 +175,60 @@ jobs:
           # or arm64
           CRYOSTAT_IMAGE=${{ env.arm64_image }} sh smoketest.sh
           ```
+
+  integration-test:
+    needs: [checkout-branch, push-to-ghcr]
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    uses: ./.github/workflows/integrated-test.yml
+    with:
+      build-arch: ${{ matrix.arch }}
+      pr-number: ${{ github.event.issue.number }}
+      sha-value: ${{ needs.checkout-branch.outputs.PR_head_sha }}
+  
+  retest-integration:
+    needs: [checkout-branch]
+    if: contains(github.event.comment.body, '/retest')
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    uses: ./.github/workflows/integrated-test.yml
+    with:
+      build-arch: ${{ matrix.arch }}
+      pr-number: ${{ github.event.issue.number }}
+      sha-value: ${{ needs.checkout-branch.outputs.PR_head_sha }}
+      
+  integration-test-pass:
+    runs-on: ubuntu-latest
+    needs: [integration-test]
+    steps:
+    - name: Leave Actions Run Comment
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const runURL = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }}`;
+          const commentBody = both build and itest completed successfully ✅. \n[View Actions Run](${runURL}).`;
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: commentBody
+            });
+          
+  retest-integration-pass:
+    runs-on: ubuntu-latest
+    needs: [retest-integration]
+    steps:
+    - name: Leave Actions Run Comment
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const runURL = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }}`;
+          const commentBody = `retest Integration: All tests pass ✅. \n[View Actions Run](${runURL}).`;
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: commentBody
+            });
