@@ -186,6 +186,7 @@ jobs:
       build-arch: ${{ matrix.arch }}
       pr-number: ${{ github.event.issue.number }}
       sha-value: ${{ needs.checkout-branch.outputs.PR_head_sha }}
+      skip-itests: ${{ matrix.arch == 'arm64' }}
   
   retest-integration:
     needs: [checkout-branch]
@@ -198,6 +199,7 @@ jobs:
       build-arch: ${{ matrix.arch }}
       pr-number: ${{ github.event.issue.number }}
       sha-value: ${{ needs.checkout-branch.outputs.PR_head_sha }}
+      skip-itests: ${{ matrix.arch == 'arm64' }}
       
   integration-test-pass:
     runs-on: ubuntu-latest

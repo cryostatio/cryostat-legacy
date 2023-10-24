@@ -45,7 +45,7 @@ jobs:
         sudo apt-get install -y qemu-user-static
     - uses: actions/checkout@v4
       with:
-          repository: ${{ github.repository_owner }}/cryostat
+          repository: ${{ inputs.checkout-repo }}
           ref: ${{ inputs.checkout-ref }}
           submodules: true
           fetch-depth: 0

@@ -12,10 +12,6 @@ on:
       build-arch:
         required: true
         type: string
-      run-tests-only:
-        required: false
-        type: boolean
-        default: false
     outputs:
       image-version:
         description: the Cryostat application version that will be built
@@ -44,11 +40,8 @@ jobs:
 
   build-image:
     runs-on: ubuntu-latest
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:
       pull-requests: write
-    if: ${{ !inputs.run-tests-only }}
     needs: [get-pom-properties]
     steps:
     - name: Install qemu
@@ -58,7 +51,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y qemu-user-static
     - uses: actions/checkout@v4
-      if: always()
       with:
         repository: ${{ inputs.checkout-repo }}
         ref: ${{ inputs.checkout-ref }}
@@ -71,8 +63,13 @@ jobs:
     - name: maven-settings
       uses: s4u/maven-settings-action@v2
       with:
-        servers: '[{"id": "github", "username": "dummy", "password": "${env.GITHUB_TOKEN}"}]'
         githubServer: true
+    - name: ghcr login
+      uses: redhat-actions/podman-login@v1
+      with:
+        registry: ghcr.io/${{ github.repository_owner }}
+        username: ${{ github.event.comment.user.login }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: restore
