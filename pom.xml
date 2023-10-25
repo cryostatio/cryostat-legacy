@@ -93,7 +93,7 @@
   <org.apache.commons.validator.version>1.7</org.apache.commons.validator.version>
   <org.apache.commons.io.version>2.13.0</org.apache.commons.io.version>
   <org.apache.httpcomponents.version>4.5.14</org.apache.httpcomponents.version>
-  <io.fabric8.client.version>6.7.2</io.fabric8.client.version>
+  <io.fabric8.client.version>6.9.0</io.fabric8.client.version>
   <io.netty.version>4.1.100.Final</io.netty.version>
   <io.vertx.version>4.4.4</io.vertx.version>
   <!--
