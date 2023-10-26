@@ -180,26 +180,24 @@ jobs:
     needs: [checkout-branch, push-to-ghcr]
     strategy:
       matrix:
-        arch: [amd64, arm64]
+        arch: [amd64]
     uses: ./.github/workflows/integrated-test.yml
     with:
       build-arch: ${{ matrix.arch }}
       pr-number: ${{ github.event.issue.number }}
       sha-value: ${{ needs.checkout-branch.outputs.PR_head_sha }}
-      skip-itests: ${{ matrix.arch == 'arm64' }}
-  
+    
   retest-integration:
     needs: [checkout-branch]
     if: contains(github.event.comment.body, '/retest')
     strategy:
       matrix:
-        arch: [amd64, arm64]
+        arch: [md64]
     uses: ./.github/workflows/integrated-test.yml
     with:
       build-arch: ${{ matrix.arch }}
       pr-number: ${{ github.event.issue.number }}
       sha-value: ${{ needs.checkout-branch.outputs.PR_head_sha }}
-      skip-itests: ${{ matrix.arch == 'arm64' }}
       
   integration-test-pass:
     runs-on: ubuntu-latest
@@ -210,7 +208,7 @@ jobs:
       with:
         script: |
           const runURL = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }}`;
-          const commentBody = `both build and itest completed successfully ✅. \n[View Actions Run](${runURL}).`;
+          const commentBody = `\`/build_test\` completed successfully ✅. \n[View Actions Run](${runURL}).`;
           github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
@@ -227,7 +225,41 @@ jobs:
       with:
         script: |
           const runURL = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }}`;
-          const commentBody = `retest Integration: All tests pass ✅. \n[View Actions Run](${runURL}).`;
+          const commentBody = `\`/retest\` Integration: All tests pass ✅. \n[View Actions Run](${runURL}).`;
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: commentBody
+            });
+  
+  comment-integration-test-fail:
+    if: (always() && contains(needs.*.result, 'failure'))
+    needs: [integration-test]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/github-script@v6
+      with:
+        script: |
+          const runURL = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }}`;
+          const commentBody = `\`/build_test\` : At least one test failed ❌. \n[View Actions Run](${runURL}).`;
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: commentBody
+            });
+
+  comment-retest-integration-fail:
+    if: (always() && contains(needs.*.result, 'failure'))
+    needs: [retest-integration]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/github-script@v6
+      with:
+        script: |
+          const runURL = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }}`;
+          const commentBody = `\`/retest\` Integration: At least one test failed ❌. \n[View Actions Run](${runURL}).`;
           github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
