@@ -1,4 +1,4 @@
-name: Retest Integrated Tests
+name: Retest Integration Tests
 
 on:
   workflow_call:
@@ -30,7 +30,6 @@ permissions:
 jobs:
   integration-tests:
     runs-on: ubuntu-latest
-    if: ${{ !inputs.skip-itests }}
     steps:
     - name: Install xpath
       run: |
@@ -55,7 +54,7 @@ jobs:
     - name: maven-settings
       uses: s4u/maven-settings-action@v2
       with:
-        githubServer: true
+        githubServer: false
     - name: ghcr login
       uses: redhat-actions/podman-login@v1
       with:

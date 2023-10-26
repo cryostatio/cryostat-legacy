@@ -63,7 +63,7 @@ jobs:
     - name: maven-settings
       uses: s4u/maven-settings-action@v2
       with:
-        githubServer: true
+        githubServer: false
     - name: ghcr login
       uses: redhat-actions/podman-login@v1
       with:
