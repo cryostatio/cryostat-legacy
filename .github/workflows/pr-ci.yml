@@ -192,7 +192,7 @@ jobs:
     if: contains(github.event.comment.body, '/retest')
     strategy:
       matrix:
-        arch: [md64]
+        arch: [amd64]
     uses: ./.github/workflows/integrated-test.yml
     with:
       build-arch: ${{ matrix.arch }}
