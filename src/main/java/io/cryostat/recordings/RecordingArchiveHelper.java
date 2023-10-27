@@ -704,7 +704,7 @@ public class RecordingArchiveHelper {
                                                         file,
                                                         webServer
                                                                 .getArchivedDownloadURL(
-                                                                        subdirectoryName, file)
+                                                                        jvmId, file)
                                                                 .replace(
                                                                         "beta/recordings",
                                                                         "beta/fs/recordings"),
