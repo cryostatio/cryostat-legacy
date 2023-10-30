@@ -71,10 +71,10 @@
   <org.apache.maven.plugins.failsafe.version>${org.apache.maven.plugins.surefire.version}</org.apache.maven.plugins.failsafe.version>
   <org.apache.maven.plugins.site.version>3.12.1</org.apache.maven.plugins.site.version>
   <org.apache.maven.plugins.info.reports.version>3.4.5</org.apache.maven.plugins.info.reports.version>
-  <org.apache.maven.plugins.clean.version>3.3.1</org.apache.maven.plugins.clean.version>
+  <org.apache.maven.plugins.clean.version>3.3.2</org.apache.maven.plugins.clean.version>
   <org.apache.maven.plugins.resources.version>3.3.1</org.apache.maven.plugins.resources.version>
   <org.apache.maven.plugins.assembly.version>3.6.0</org.apache.maven.plugins.assembly.version>
-  <com.github.eirslett.frontend.plugin.version>1.14.0</com.github.eirslett.frontend.plugin.version>
+  <com.github.eirslett.frontend.plugin.version>1.14.2</com.github.eirslett.frontend.plugin.version>
   <org.codehaus.mojo.exec.plugin.version>3.1.0</org.codehaus.mojo.exec.plugin.version>
   <org.codehaus.mojo.build.helper.plugin.version>3.4.0</org.codehaus.mojo.build.helper.plugin.version>
   <com.mycila.license.maven.plugin.version>4.3</com.mycila.license.maven.plugin.version>
@@ -140,6 +140,16 @@
       <version>${io.vertx.version}</version>
       <type>pom</type>
       <scope>import</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-jdk14</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 </dependencyManagement>
@@ -234,8 +244,15 @@
   </dependency>
   <dependency>
     <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-api</artifactId>
+    <version>${org.slf4j.version}</version>
+    <scope>compile</scope>
+  </dependency>
+  <dependency>
+    <groupId>org.slf4j</groupId>
     <artifactId>slf4j-jdk14</artifactId>
     <version>${org.slf4j.version}</version>
+    <scope>runtime</scope>
   </dependency>
   <dependency>
     <groupId>com.google.code.gson</groupId>

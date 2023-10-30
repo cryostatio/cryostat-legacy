@@ -12,11 +12,11 @@ on:
 jobs:
   check-before-build:
     runs-on: ubuntu-latest
-    if: github.repository_owner == 'cryostatio' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
+    if: github.repository_owner == 'cryostatio' && github.event.issue.pull_request && (startsWith(github.event.comment.body, '/build_test') || startsWith(github.event.comment.body, '/retest'))
     permissions:
       pull-requests: write
     steps:
-    - name: Fail if needs-triage label applied 
+    - name: Fail if needs-triage label applied
       if: ${{ contains(github.event.issue.labels.*.name, 'needs-triage') }}
       run: exit 1
     - name: Show warning if permission is denied
@@ -43,12 +43,12 @@ jobs:
               repo,
               comment_id: context.payload.comment.id,
               content: "+1",
-            });  
+            });
 
-  checkout-branch: 
+  checkout-branch:
     runs-on: ubuntu-latest
     needs: [check-before-build]
-    outputs: 
+    outputs:
       PR_head_ref: ${{ fromJSON(steps.comment-branch.outputs.result).ref }}
       PR_head_sha: ${{ fromJSON(steps.comment-branch.outputs.result).sha }}
       PR_num: ${{ fromJSON(steps.comment-branch.outputs.result).num }}
@@ -69,13 +69,33 @@ jobs:
 
   code-analysis:
     needs: [checkout-branch]
+    if: startsWith(github.event.comment.body, '/build_test')
     uses: ./.github/workflows/ci-code-analysis.yml
     with:
       checkout-repo: ${{ needs.checkout-branch.outputs.PR_repo }}
       checkout-ref: ${{ needs.checkout-branch.outputs.PR_head_ref }}
-      
-  build-and-test:
-    needs: [code-analysis, checkout-branch]
+
+  start-comment:
+    runs-on: ubuntu-latest
+    needs: [check-before-build]
+    steps:
+    - name: Leave Actions Run Comment
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const runURL = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }}`;
+          const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Toronto' });
+          const commentBody = `Workflow started at ${currentTime}. [View Actions Run](${runURL}).`;
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: commentBody
+          });
+
+  build-image:
+    needs: [checkout-branch]
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
     strategy:
       matrix:
         arch: [amd64, arm64]
@@ -84,15 +104,14 @@ jobs:
       build-arch: ${{ matrix.arch }}
       checkout-repo: ${{ needs.checkout-branch.outputs.PR_repo }}
       checkout-ref: ${{ needs.checkout-branch.outputs.PR_head_ref  }}
-      skip-itests: ${{ matrix.arch != 'amd64' }}
 
   push-to-ghcr:
     runs-on: ubuntu-latest
-    needs: [build-and-test, checkout-branch]
+    needs: [checkout-branch, build-image]
     strategy:
       matrix:
         arch: [amd64, arm64]
-    outputs: 
+    outputs:
       amd64_image: ${{ steps.amd64_image.outputs.image }}
       arm64_image: ${{ steps.arm64_image.outputs.image }}
     env:
@@ -138,7 +157,7 @@ jobs:
     - name: Create markdown table
       id: md-table
       uses: petems/csv-to-md-table-action@v3.0.0
-      with: 
+      with:
         csvinput: |
           ARCH, IMAGE
           amd64, ${{ env.amd64_image }}
@@ -150,9 +169,100 @@ jobs:
 
           To run smoketest:
           ```
-          # amd64          
+          # amd64
           CRYOSTAT_IMAGE=${{ env.amd64_image }} sh smoketest.sh
 
           # or arm64
           CRYOSTAT_IMAGE=${{ env.arm64_image }} sh smoketest.sh
           ```
+
+  integration-test:
+    needs: [checkout-branch, push-to-ghcr]
+    strategy:
+      matrix:
+        arch: [amd64]
+    uses: ./.github/workflows/integrated-test.yml
+    with:
+      build-arch: ${{ matrix.arch }}
+      pr-number: ${{ github.event.issue.number }}
+      sha-value: ${{ needs.checkout-branch.outputs.PR_head_sha }}
+    
+  retest-integration:
+    needs: [checkout-branch]
+    if: contains(github.event.comment.body, '/retest')
+    strategy:
+      matrix:
+        arch: [amd64]
+    uses: ./.github/workflows/integrated-test.yml
+    with:
+      build-arch: ${{ matrix.arch }}
+      pr-number: ${{ github.event.issue.number }}
+      sha-value: ${{ needs.checkout-branch.outputs.PR_head_sha }}
+      
+  integration-test-pass:
+    runs-on: ubuntu-latest
+    needs: [integration-test]
+    steps:
+    - name: Leave Actions Run Comment
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const runURL = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }}`;
+          const commentBody = `\`/build_test\` completed successfully ✅. \n[View Actions Run](${runURL}).`;
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: commentBody
+            });
+          
+  retest-integration-pass:
+    runs-on: ubuntu-latest
+    needs: [retest-integration]
+    steps:
+    - name: Leave Actions Run Comment
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const runURL = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }}`;
+          const commentBody = `\`/retest\` Integration: All tests pass ✅. \n[View Actions Run](${runURL}).`;
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: commentBody
+            });
+  
+  comment-integration-test-fail:
+    if: (always() && contains(needs.*.result, 'failure'))
+    needs: [integration-test]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/github-script@v6
+      with:
+        script: |
+          const runURL = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }}`;
+          const commentBody = `\`/build_test\` : At least one test failed ❌. \n[View Actions Run](${runURL}).`;
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: commentBody
+            });
+
+  comment-retest-integration-fail:
+    if: (always() && contains(needs.*.result, 'failure'))
+    needs: [retest-integration]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/github-script@v6
+      with:
+        script: |
+          const runURL = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }}`;
+          const commentBody = `\`/retest\` Integration: At least one test failed ❌. \n[View Actions Run](${runURL}).`;
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: commentBody
+            });

@@ -22,8 +22,6 @@ updates:
     directory: "/src/container"
     schedule:
       interval: "weekly"
-    reviewers:
-      - "cryostatio/reviewers"
     labels:
       - "dependencies"
       - "chore"
