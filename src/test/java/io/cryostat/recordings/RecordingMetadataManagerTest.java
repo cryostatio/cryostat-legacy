@@ -41,6 +41,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingMetadataManager.StoredRecordingMetadata;
 
@@ -79,30 +80,49 @@ public class RecordingMetadataManagerTest {
     @Mock NotificationFactory notificationFactory;
     @Mock JvmIdHelper jvmIdHelper;
     @Mock Notification notification;
-    @Mock Notification.Builder notificationBuilder;
+    @Mock Notification.OwnedResourceBuilder notificationOwnedResourceBuilder;
     @Mock JFRConnection connection;
     @Mock ConnectionDescriptor connectionDescriptor;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
-    void setup() {
+    void setup() throws JvmIdGetException {
         Gson gson = new Gson();
         Base32 base32 = new Base32();
 
-        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
         lenient()
-                .when(notificationBuilder.metaCategory(Mockito.any()))
-                .thenReturn(notificationBuilder);
+                .when(
+                        notificationFactory.createOwnedResourceBuilder(
+                                Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(notificationOwnedResourceBuilder);
         lenient()
-                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
-                .thenReturn(notificationBuilder);
+                .when(notificationOwnedResourceBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationOwnedResourceBuilder);
         lenient()
-                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
-                .thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.build()).thenReturn(notification);
+                .when(
+                        notificationOwnedResourceBuilder.metaType(
+                                Mockito.any(Notification.MetaType.class)))
+                .thenReturn(notificationOwnedResourceBuilder);
+        lenient()
+                .when(notificationOwnedResourceBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationOwnedResourceBuilder);
+        lenient()
+                .when(
+                        notificationOwnedResourceBuilder.messageEntry(
+                                Mockito.anyString(), Mockito.any()))
+                .thenReturn(notificationOwnedResourceBuilder);
+        lenient().when(notificationOwnedResourceBuilder.build()).thenReturn(notification);
         lenient()
                 .when(jvmIdHelper.jvmIdToSubdirectoryName(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                return invocation.getArgument(0);
+                            }
+                        });
+        lenient()
+                .when(jvmIdHelper.subdirectoryNameToJvmId(Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {
                             @Override

@@ -47,7 +47,6 @@ import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
@@ -514,17 +513,9 @@ public class RecordingMetadataManager extends AbstractVerticle
                 StandardOpenOption.TRUNCATE_EXISTING);
 
         notificationFactory
-                .createBuilder()
-                .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
-                .metaType(HttpMimeType.JSON)
-                .message(
-                        Map.of(
-                                "recordingName",
-                                recordingName,
-                                "target",
-                                connectUrl,
-                                "metadata",
-                                metadata))
+                .createOwnedResourceBuilder(connectUrl, NOTIFICATION_CATEGORY)
+                .messageEntry("recordingName", recordingName)
+                .messageEntry("metadata", metadata)
                 .build()
                 .send();
 
@@ -557,17 +548,10 @@ public class RecordingMetadataManager extends AbstractVerticle
 
         if (issueNotification) {
             notificationFactory
-                    .createBuilder()
-                    .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
-                    .metaType(HttpMimeType.JSON)
-                    .message(
-                            Map.of(
-                                    "recordingName",
-                                    recordingName,
-                                    "target",
-                                    connectionDescriptor.getTargetId(),
-                                    "metadata",
-                                    metadata))
+                    .createOwnedResourceBuilder(
+                            connectionDescriptor.getTargetId(), NOTIFICATION_CATEGORY)
+                    .messageEntry("recordingName", recordingName)
+                    .messageEntry("metadata", metadata)
                     .build()
                     .send();
         }
