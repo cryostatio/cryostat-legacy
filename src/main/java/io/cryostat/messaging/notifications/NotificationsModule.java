@@ -19,6 +19,8 @@ import java.util.Set;
 
 import javax.inject.Singleton;
 
+import io.cryostat.recordings.JvmIdHelper;
+
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
@@ -34,7 +36,8 @@ public abstract class NotificationsModule {
 
     @Provides
     @Singleton
-    static NotificationFactory provideNotificationFactory(NotificationSource source) {
-        return new NotificationFactory(source);
+    static NotificationFactory provideNotificationFactory(
+            NotificationSource source, JvmIdHelper idHelper) {
+        return new NotificationFactory(source, idHelper);
     }
 }
