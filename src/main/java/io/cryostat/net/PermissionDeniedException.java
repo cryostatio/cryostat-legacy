@@ -24,7 +24,7 @@ public class PermissionDeniedException extends Exception {
             String namespace, String resource, String verb, String reason) {
         super(
                 String.format(
-                        "Requesting client in namespace \"%s\" cannot %s %s: %s",
+                        "Requested client in namespace \"%s\" cannot %s %s: %s",
                         namespace, verb, resource, reason));
         this.namespace = namespace;
         this.resource = resource;
