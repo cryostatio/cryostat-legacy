@@ -15,15 +15,32 @@
  */
 package io.cryostat.messaging.notifications;
 
+import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
+
 public class NotificationFactory {
 
     private final NotificationSource source;
+    private final JvmIdHelper jvmIdHelper;
 
-    NotificationFactory(NotificationSource source) {
+    NotificationFactory(NotificationSource source, JvmIdHelper jvmIdHelper) {
         this.source = source;
+        this.jvmIdHelper = jvmIdHelper;
     }
 
     public <T> Notification.Builder<T> createBuilder() {
         return new Notification.Builder<T>(source);
+    }
+
+    public Notification.OwnedResourceBuilder createOwnedResourceBuilder(
+            String notificationCategory) {
+        return new Notification.OwnedResourceBuilder(source, notificationCategory);
+    }
+
+    public Notification.OwnedResourceBuilder createOwnedResourceBuilder(
+            String targetId, String notificationCategory) throws JvmIdGetException {
+        return new Notification.OwnedResourceBuilder(source, notificationCategory)
+                .messageEntry("target", targetId)
+                .messageEntry("jvmId", jvmIdHelper.getJvmId(targetId));
     }
 }
