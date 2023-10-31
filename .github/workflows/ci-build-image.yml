@@ -64,12 +64,6 @@ jobs:
       uses: s4u/maven-settings-action@v2
       with:
         githubServer: false
-    - name: ghcr login
-      uses: redhat-actions/podman-login@v1
-      with:
-        registry: ghcr.io/${{ github.repository_owner }}
-        username: ${{ github.event.comment.user.login }}
-        password: ${{ secrets.GITHUB_TOKEN }}
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: restore
