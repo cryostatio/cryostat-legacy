@@ -15,7 +15,8 @@
  */
 package io.cryostat.messaging.notifications;
 
-import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 import io.cryostat.net.web.http.HttpMimeType;
 
@@ -84,10 +85,30 @@ public class Notification<T> {
         }
     }
 
+    public static class OwnedResourceBuilder extends Builder<Map<String, Object>> {
+
+        private final Map<String, Object> map = new HashMap<>();
+
+        OwnedResourceBuilder(NotificationSource source, String category) {
+            super(source);
+            metaType(HttpMimeType.JSON);
+            metaCategory(category);
+            message(map);
+        }
+
+        public OwnedResourceBuilder messageEntry(String key, Object value) {
+            if (value == null) {
+                this.map.remove(key);
+            } else {
+                this.map.put(key, value);
+            }
+            return this;
+        }
+    }
+
     public static class Meta {
         private final String category;
         private final MetaType type;
-        private final long serverTime = Instant.now().getEpochSecond();
 
         public Meta(String category, MetaType type) {
             this.category = category;
