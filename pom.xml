@@ -67,8 +67,8 @@
 
   <io.reactiverse.plugin.version>1.0.27</io.reactiverse.plugin.version>
   <org.apache.maven.plugins.compiler.version>3.11.0</org.apache.maven.plugins.compiler.version>
-  <org.apache.maven.plugins.surefire.version>3.2.1</org.apache.maven.plugins.surefire.version>
-  <org.apache.maven.plugins.failsafe.version>${org.apache.maven.plugins.surefire.version}</org.apache.maven.plugins.failsafe.version>
+  <org.apache.maven.plugins.surefire.version>3.2.2</org.apache.maven.plugins.surefire.version>
+  <org.apache.maven.plugins.failsafe.version>3.2.2</org.apache.maven.plugins.failsafe.version>
   <org.apache.maven.plugins.site.version>3.12.1</org.apache.maven.plugins.site.version>
   <org.apache.maven.plugins.info.reports.version>3.4.5</org.apache.maven.plugins.info.reports.version>
   <org.apache.maven.plugins.clean.version>3.3.2</org.apache.maven.plugins.clean.version>
