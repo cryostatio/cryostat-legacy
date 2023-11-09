@@ -15,6 +15,10 @@
  */
 package io.cryostat.platform.internal;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.platform.PlatformClient;
 
@@ -24,4 +28,12 @@ public interface PlatformDetectionStrategy<T extends PlatformClient> {
     T getPlatformClient();
 
     AuthManager getAuthManager();
+
+    default Map<String, String> environment(Environment env) {
+        Map<String, String> map = new HashMap<>();
+        if (env.hasEnv("INSIGHTS_PROXY")) {
+            map.put("INSIGHTS_SVC", env.getEnv("INSIGHTS_PROXY"));
+        }
+        return map;
+    }
 }

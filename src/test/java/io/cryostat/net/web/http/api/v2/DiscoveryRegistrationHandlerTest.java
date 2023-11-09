@@ -27,6 +27,7 @@ import java.util.UUID;
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -34,6 +35,8 @@ import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.platform.PlatformClient;
+import io.cryostat.platform.internal.PlatformDetectionStrategy;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -55,9 +58,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class DiscoveryRegistrationHandlerTest {
-    AbstractV2RequestHandler<Map<String, String>> handler;
+    AbstractV2RequestHandler<Map<String, Object>> handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
+    @Mock Environment env;
     @Mock DiscoveryStorage storage;
     @Mock WebServer webServer;
     @Mock DiscoveryJwtHelper jwt;
@@ -70,8 +74,10 @@ class DiscoveryRegistrationHandlerTest {
                 new DiscoveryRegistrationHandler(
                         auth,
                         credentialsManager,
+                        env,
                         storage,
                         () -> webServer,
+                        Set.of(new AllEnvPlatformStrategy(), new FakePlatformStrategy()),
                         jwt,
                         UUID::fromString,
                         gson,
@@ -161,6 +167,8 @@ class DiscoveryRegistrationHandlerTest {
             Mockito.when(storage.register(Mockito.anyString(), Mockito.any(URI.class)))
                     .thenReturn(id);
 
+            Mockito.when(env.getEnv()).thenReturn(Map.of("CRYOSTAT", "hello", "TEST", "true"));
+
             Mockito.when(requestParams.getBody())
                     .thenReturn(
                             gson.toJson(
@@ -185,19 +193,77 @@ class DiscoveryRegistrationHandlerTest {
                                     Mockito.any(URI.class)))
                     .thenReturn(token);
 
-            IntermediateResponse<Map<String, String>> resp = handler.handle(requestParams);
+            IntermediateResponse<Map<String, Object>> resp = handler.handle(requestParams);
 
             MatcherAssert.assertThat(resp.getStatusCode(), Matchers.equalTo(201));
             MatcherAssert.assertThat(
                     resp.getHeaders(),
                     Matchers.equalTo(Map.of(HttpHeaders.LOCATION, "/api/v2.2/discovery/" + id)));
             MatcherAssert.assertThat(
-                    resp.getBody(), Matchers.equalTo(Map.of("token", token, "id", id.toString())));
+                    resp.getBody(),
+                    Matchers.equalTo(
+                            Map.of(
+                                    "token",
+                                    token,
+                                    "id",
+                                    id.toString(),
+                                    "env",
+                                    Map.of(
+                                            "CRYOSTAT",
+                                            "hello",
+                                            "TEST",
+                                            "true",
+                                            "HELLO",
+                                            "WORLD"))));
 
             Mockito.verify(storage)
                     .register(
                             Mockito.eq("test-realm"),
                             Mockito.eq(URI.create("http://example.com/callback")));
+        }
+    }
+
+    static class AllEnvPlatformStrategy implements PlatformDetectionStrategy {
+        @Override
+        public Map<String, String> environment(Environment env) {
+            return env.getEnv();
+        }
+
+        @Override
+        public boolean isAvailable() {
+            return true;
+        }
+
+        @Override
+        public PlatformClient getPlatformClient() {
+            throw new UnsupportedOperationException("Unimplemented method 'getPlatformClient'");
+        }
+
+        @Override
+        public AuthManager getAuthManager() {
+            throw new UnsupportedOperationException("Unimplemented method 'getAuthManager'");
+        }
+    }
+
+    static class FakePlatformStrategy implements PlatformDetectionStrategy {
+        @Override
+        public Map<String, String> environment(Environment env) {
+            return Map.of("HELLO", "WORLD");
+        }
+
+        @Override
+        public boolean isAvailable() {
+            return true;
+        }
+
+        @Override
+        public PlatformClient getPlatformClient() {
+            throw new UnsupportedOperationException("Unimplemented method 'getPlatformClient'");
+        }
+
+        @Override
+        public AuthManager getAuthManager() {
+            throw new UnsupportedOperationException("Unimplemented method 'getAuthManager'");
         }
     }
 }
