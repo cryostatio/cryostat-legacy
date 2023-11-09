@@ -27,6 +27,7 @@ import java.util.UUID;
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -58,6 +59,7 @@ class DiscoveryRegistrationHandlerTest {
     AbstractV2RequestHandler<Map<String, Object>> handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
+    @Mock Environment env;
     @Mock DiscoveryStorage storage;
     @Mock WebServer webServer;
     @Mock DiscoveryJwtHelper jwt;
@@ -70,6 +72,7 @@ class DiscoveryRegistrationHandlerTest {
                 new DiscoveryRegistrationHandler(
                         auth,
                         credentialsManager,
+                        env,
                         storage,
                         () -> webServer,
                         // TODO inject some selectedStrategies and test the env map

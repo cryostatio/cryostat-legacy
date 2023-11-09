@@ -35,6 +35,7 @@ import javax.inject.Named;
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.discovery.PluginInfo;
 import io.cryostat.discovery.RegistrationException;
@@ -61,6 +62,7 @@ import org.apache.commons.lang3.StringUtils;
 class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, Object>> {
 
     static final String PATH = "discovery";
+    private final Environment env;
     private final DiscoveryStorage storage;
     private final Lazy<WebServer> webServer;
     private final Set<PlatformDetectionStrategy<?>> selectedStrategies;
@@ -72,6 +74,7 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
     DiscoveryRegistrationHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
+            Environment env,
             DiscoveryStorage storage,
             Lazy<WebServer> webServer,
             @Named(PlatformModule.SELECTED_PLATFORMS)
@@ -81,6 +84,7 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
             Gson gson,
             Logger logger) {
         super(auth, credentialsManager, gson);
+        this.env = env;
         this.storage = storage;
         this.webServer = webServer;
         this.selectedStrategies = selectedStrategies;
@@ -187,7 +191,7 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
         // but in the future if any more strategies also provide entries then the order here may be
         // undefined and the map entries may collide and be overwritten. There should be some
         // prefixing scheme to prevent collisions.
-        selectedStrategies.forEach(s -> mergedEnv.putAll(s.environment()));
+        selectedStrategies.forEach(s -> mergedEnv.putAll(s.environment(env)));
         return new IntermediateResponse<Map<String, Object>>()
                 .statusCode(201)
                 .addHeader(HttpHeaders.LOCATION, String.format("%s/%s", path(), pluginId))

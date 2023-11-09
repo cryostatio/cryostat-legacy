@@ -15,9 +15,6 @@
  */
 package io.cryostat.platform.internal;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
@@ -47,14 +44,5 @@ class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
     @Override
     protected OpenShiftClient createClient() {
         return super.createClient().adapt(OpenShiftClient.class);
-    }
-
-    @Override
-    public Map<String, String> environment() {
-        Map<String, String> map = new HashMap<>(super.environment());
-        if (env.hasEnv("INSIGHTS_PROXY")) {
-            map.put("INSIGHTS_SVC", env.getEnv("INSIGHTS_PROXY"));
-        }
-        return map;
     }
 }

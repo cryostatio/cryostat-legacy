@@ -16,8 +16,6 @@
 package io.cryostat.platform.internal;
 
 import java.net.URI;
-import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -144,12 +142,6 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
     @Override
     public AuthManager getAuthManager() {
         return authMgr.get();
-    }
-
-    // FIXME remove this, just for testing purposes
-    @Override
-    public Map<String, String> environment() {
-        return Map.of("TEST", UUID.randomUUID().toString());
     }
 
     private static String getSocketPath() {
