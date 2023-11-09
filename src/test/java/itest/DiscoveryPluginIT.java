@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
@@ -40,6 +41,7 @@ class DiscoveryPluginIT extends StandardSelfTest {
     final URI callback = URI.create("http://localhost:8181/");
     private static volatile String id;
     private static volatile String token;
+    private static volatile Map<String, String> env;
 
     @Test
     @Order(1)
@@ -60,8 +62,12 @@ class DiscoveryPluginIT extends StandardSelfTest {
         JsonObject info = resp.getJsonObject("data").getJsonObject("result");
         DiscoveryPluginIT.id = info.getString("id");
         DiscoveryPluginIT.token = info.getString("token");
+        DiscoveryPluginIT.env =
+                info.getJsonObject("env").getMap().entrySet().stream()
+                        .collect(Collectors.toMap(k -> k.toString(), v -> v.toString()));
         MatcherAssert.assertThat(id, Matchers.not(Matchers.emptyOrNullString()));
         MatcherAssert.assertThat(token, Matchers.not(Matchers.emptyOrNullString()));
+        MatcherAssert.assertThat(env, Matchers.is(Matchers.equalTo(Map.of())));
     }
 
     @Test
