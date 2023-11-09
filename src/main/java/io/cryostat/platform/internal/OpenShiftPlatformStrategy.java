@@ -15,8 +15,6 @@
  */
 package io.cryostat.platform.internal;
 
-import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,15 +25,10 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 
 import dagger.Lazy;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.openshift.client.OpenShiftClient;
-import org.apache.commons.lang3.StringUtils;
 
 class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
-
-    static final String INSIGHTS_TOKEN_PATH =
-            "/var/run/secrets/operator.cryostat.io/insights-token/token";
 
     OpenShiftPlatformStrategy(
             Logger logger,
@@ -58,24 +51,10 @@ class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
 
     @Override
     public Map<String, String> environment() {
-        Map<String, String> env = new HashMap<>(super.environment());
-        String token = getInsightsToken();
-        if (StringUtils.isNotBlank(token)) {
-            env.put("INSIGHTS_TOKEN", token);
+        Map<String, String> map = new HashMap<>(super.environment());
+        if (env.hasEnv("INSIGHTS_PROXY")) {
+            map.put("INSIGHTS_SVC", env.getEnv("INSIGHTS_PROXY"));
         }
-        return env;
-    }
-
-    @SuppressFBWarnings(
-            value = "DMI_HARDCODED_ABSOLUTE_FILENAME",
-            justification =
-                    "file path is well-known and absolute, injected by the Cryostat Operator")
-    private String getInsightsToken() {
-        try {
-            return fs.readString(Paths.get(INSIGHTS_TOKEN_PATH));
-        } catch (IOException e) {
-            logger.warn(e);
-            return null;
-        }
+        return map;
     }
 }
