@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 import io.cryostat.MainModule;
 import io.cryostat.MockVertx;
@@ -220,7 +221,7 @@ class RulePatchHandlerTest {
             Mockito.verify(notificationBuilder).build();
             Mockito.verify(notification).send();
 
-            Mockito.verify(vertx, Mockito.times(2)).executeBlocking(Mockito.any());
+            Mockito.verify(vertx, Mockito.times(2)).executeBlocking(Mockito.any(Callable.class));
             Mockito.verify(registry)
                     .applies(Mockito.any(Rule.class), Mockito.any(ServiceRef.class));
             Mockito.verify(recordingTargetHelper)

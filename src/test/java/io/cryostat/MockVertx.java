@@ -15,6 +15,8 @@
  */
 package io.cryostat;
 
+import java.util.concurrent.Callable;
+
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
@@ -114,7 +116,7 @@ public class MockVertx {
                 .executeBlocking(Mockito.any(), Mockito.any());
 
         Mockito.lenient()
-                .when(vertx.executeBlocking(Mockito.any()))
+                .when(vertx.executeBlocking(Mockito.any(Handler.class)))
                 .thenAnswer(
                         new Answer() {
                             @Override
@@ -125,6 +127,17 @@ public class MockVertx {
                                 promiseHandler.handle(promise);
 
                                 return promise.future();
+                            }
+                        });
+
+        Mockito.lenient()
+                .when(vertx.executeBlocking(Mockito.any(Callable.class)))
+                .thenAnswer(
+                        new Answer() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                Callable callable = invocation.getArgument(0);
+                                return callable.call();
                             }
                         });
 

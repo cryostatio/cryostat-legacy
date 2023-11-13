@@ -140,13 +140,13 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
 
         if (!enabled && Boolean.valueOf(params.getQueryParams().get(CLEAN_PARAM))) {
             vertx.executeBlocking(
-                    promise -> {
+                    () -> {
                         try {
                             cleanup(params, rule);
-                            promise.complete();
                         } catch (Exception e) {
-                            promise.fail(e);
+                            logger.error(e);
                         }
+                        return null;
                     });
         }
 
@@ -158,7 +158,7 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
                 .forEach(
                         (ServiceRef ref) -> {
                             vertx.executeBlocking(
-                                    promise -> {
+                                    () -> {
                                         try {
                                             if (ruleRegistry.applies(rule, ref)) {
                                                 String targetId = ref.getServiceUri().toString();
@@ -171,11 +171,10 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
                                                 recordings.stopRecording(
                                                         cd, rule.getRecordingName(), true);
                                             }
-                                            promise.complete();
                                         } catch (Exception e) {
                                             logger.error(e);
-                                            promise.fail(e);
                                         }
+                                        return null;
                                     });
                         });
     }
