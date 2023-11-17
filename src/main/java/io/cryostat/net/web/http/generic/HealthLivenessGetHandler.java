@@ -32,11 +32,6 @@ class HealthLivenessGetHandler implements RequestHandler {
     HealthLivenessGetHandler() {}
 
     @Override
-    public void handle(RoutingContext ctx) {
-        ctx.response().setStatusCode(204).end();
-    }
-
-    @Override
     public ApiVersion apiVersion() {
         return ApiVersion.GENERIC;
     }
@@ -54,5 +49,26 @@ class HealthLivenessGetHandler implements RequestHandler {
     @Override
     public Set<ResourceAction> resourceActions() {
         return ResourceAction.NONE;
+    }
+
+    @Override
+    public boolean isAsync() {
+        // This response handler does not actually block, but we force it to execute on the worker
+        // pool so that the status check reports not only that the event loop dispatch thread is
+        // alive and responsive, but that the worker pool is also actively servicing requests. If we
+        // don't force this then this handler only checks if the event loop is alive, but the worker
+        // pool may be blocked or otherwise unresponsive and the application as a whole will not be
+        // usable.
+        return false;
+    }
+
+    @Override
+    public boolean isOrdered() {
+        return true;
+    }
+
+    @Override
+    public void handle(RoutingContext ctx) {
+        ctx.response().setStatusCode(204).end();
     }
 }
