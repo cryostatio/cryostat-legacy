@@ -23,10 +23,6 @@ on:
         type: boolean
         default: false
 
-permissions:
-  contents: read
-  packages: read
-
 jobs:
   integration-tests:
     runs-on: ubuntu-latest
@@ -68,7 +64,7 @@ jobs:
     - name: Run integration tests
       run: POD_NAME=cryostat-itests CONTAINER_NAME=cryostat-itest ITEST_IMG_VERSION=latest bash repeated-integration-tests.bash
       env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Print itest logs
       if: failure()
       run: ls -1dt target/cryostat-itest-*.log | head -n1 | xargs cat
