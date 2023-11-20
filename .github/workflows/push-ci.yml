@@ -15,52 +15,53 @@ on:
 jobs:
   code-analysis:
     uses: ./.github/workflows/ci-code-analysis.yml
+    if: github.repository_owner == 'cryostatio'
     with:
       checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
       checkout-ref: ${{ github.event.pull_request.head.ref }}
-    secrets: inherit
-    if: github.repository_owner == 'cryostatio'
+
   build-and-test-amd64:
     uses: ./.github/workflows/ci-build-image.yml
-    secrets: inherit
+    permissions:
+      pull-requests: write
+    if: github.repository_owner == 'cryostatio'
     with:
       build-arch: amd64
-    if: github.repository_owner == 'cryostatio'
+
   build-and-test-arm64:
     uses: ./.github/workflows/ci-build-image.yml
-    secrets: inherit
+    permissions:
+      pull-requests: write
+    if: github.repository_owner == 'cryostatio'
     with:
       build-arch: arm64
-    if: github.repository_owner == 'cryostatio'
+
   push-to-quay:
     runs-on: ubuntu-latest
     needs: [code-analysis, build-and-test-amd64, build-and-test-arm64]
     env:
       CRYOSTAT_IMG: quay.io/cryostat/cryostat
-    if: always() && github.repository_owner == 'cryostatio'
+    permissions:
+      packages: write
     steps:
     - uses: actions/download-artifact@v3
       with:
         name: cryostat-amd64
-      if: github.repository_owner == 'cryostatio'
     - name: Load cryostat-amd64 image
       env:
         IMAGE_VERSION: ${{ needs.build-and-test-amd64.outputs.image-version }}
       run: |
           podman load -i cryostat-amd64.tar
           podman tag quay.io/cryostat/cryostat:latest $CRYOSTAT_IMG:$IMAGE_VERSION-linux-amd64
-      if: github.repository_owner == 'cryostatio'
     - uses: actions/download-artifact@v3
       with:
         name: cryostat-arm64
-      if: github.repository_owner == 'cryostatio'
     - name: Load cryostat-arm64 image
       env:
         IMAGE_VERSION: ${{ needs.build-and-test-arm64.outputs.image-version }}
       run: |
           podman load -i cryostat-arm64.tar
           podman tag quay.io/cryostat/cryostat:latest $CRYOSTAT_IMG:$IMAGE_VERSION-linux-arm64
-      if: github.repository_owner == 'cryostatio'
     - name: Create OCI Manifest
       id: create-manifest
       env:
@@ -75,7 +76,6 @@ jobs:
         else
           echo "tags=$IMAGE_VERSION" >> "$GITHUB_OUTPUT"
         fi
-      if: github.repository_owner == 'cryostatio'
     - name: Push to quay.io
       id: push-to-quay
       uses: redhat-actions/push-to-registry@v2
@@ -85,7 +85,5 @@ jobs:
         registry: quay.io/cryostat
         username: cryostat+bot
         password: ${{ secrets.REGISTRY_PASSWORD }}
-      if: github.repository_owner == 'cryostatio'
     - name: Print image URL
       run: echo "Image pushed to ${{ steps.push-to-quay.outputs.registry-paths }}"
-      if: github.repository_owner == 'cryostatio'
