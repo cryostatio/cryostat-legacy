@@ -121,7 +121,7 @@
   <org.jacoco.maven.plugin.version>0.8.11</org.jacoco.maven.plugin.version>
   <com.diffplug.spotless.maven.plugin.version>2.40.0</com.diffplug.spotless.maven.plugin.version>
   <com.google.googlejavaformat.version>1.17.0</com.google.googlejavaformat.version>
-  <org.jsoup.version>1.16.1</org.jsoup.version>
+  <org.jsoup.version>1.16.2</org.jsoup.version>
   <shellcheck-maven-plugin.version>0.5.1</shellcheck-maven-plugin.version>
 </properties>
 
