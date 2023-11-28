@@ -36,8 +36,6 @@ jobs:
 
   build-image:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
     needs: [get-pom-properties]
     steps:
     - name: Install qemu
