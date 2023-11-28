@@ -38,7 +38,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
-      packages: read
     needs: [get-pom-properties]
     steps:
     - name: Install qemu
@@ -68,7 +67,7 @@ jobs:
     - run: git submodule update
     - run: mvn -B -U -Dbuild.arch=${{ inputs.build-arch }} clean package
       env:
-        GITHUB_TOKEN_REF: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Save cryostat image
       run: podman save -o cryostat-${{ inputs.build-arch }}.tar --format oci-archive quay.io/cryostat/cryostat
     - uses: actions/upload-artifact@v3

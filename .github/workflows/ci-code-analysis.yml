@@ -38,12 +38,12 @@ jobs:
     - name: maven-settings
       uses: s4u/maven-settings-action@v2
       with:
-        servers: '[{"id": "github", "username": "dummy", "password": "${env.GITHUB_TOKEN_REF}"}]'
+        servers: '[{"id": "github", "username": "dummy", "password": "${env.GITHUB_TOKEN}"}]'
         githubServer: false
     - name: Run spotbugs
       run: mvn -B -U -Dheadless=true compile spotbugs:check
       env:
-        GITHUB_TOKEN_REF: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   shellcheck:
     runs-on: ubuntu-latest
