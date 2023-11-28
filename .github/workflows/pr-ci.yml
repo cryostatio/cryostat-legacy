@@ -101,8 +101,6 @@ jobs:
     strategy:
       matrix:
         arch: [amd64, arm64]
-    permissions:
-      pull-requests: write
     uses: ./.github/workflows/ci-build-image.yml
     with:
       build-arch: ${{ matrix.arch }}

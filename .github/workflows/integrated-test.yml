@@ -47,6 +47,13 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
+    - uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-build-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-build-
+          ${{ runner.os }}-
     - name: maven-settings
       uses: s4u/maven-settings-action@v2
       with:

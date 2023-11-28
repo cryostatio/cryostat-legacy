@@ -36,8 +36,6 @@ jobs:
 
   build-image:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
     needs: [get-pom-properties]
     steps:
     - name: Install qemu
@@ -56,24 +54,25 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
+    - uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-build-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-build-
+          ${{ runner.os }}-
     - name: maven-settings
       uses: s4u/maven-settings-action@v2
       with:
-        githubServer: false
-    - uses: skjolber/maven-cache-github-action@v1
-      with:
-        step: restore
+        githubServer: true
     - run: git submodule init
     - run: git submodule update
     - run: mvn -B -U -Dbuild.arch=${{ inputs.build-arch }} clean package
       env:
-        GITHUB_TOKEN_REF: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Save cryostat image
       run: podman save -o cryostat-${{ inputs.build-arch }}.tar --format oci-archive quay.io/cryostat/cryostat
     - uses: actions/upload-artifact@v3
       with:
         name: cryostat-${{ inputs.build-arch }}
         path: /home/runner/work/cryostat/cryostat/cryostat-${{ inputs.build-arch }}.tar
-    - uses: skjolber/maven-cache-github-action@v1
-      with:
-        step: save
