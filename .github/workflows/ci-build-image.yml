@@ -38,6 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+      packages: read
     needs: [get-pom-properties]
     steps:
     - name: Install qemu
