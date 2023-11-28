@@ -56,13 +56,17 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
+    - uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-build-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-build-
+          ${{ runner.os }}-
     - name: maven-settings
       uses: s4u/maven-settings-action@v2
       with:
-        githubServer: false
-    - uses: skjolber/maven-cache-github-action@v1
-      with:
-        step: restore
+        githubServer: true
     - run: git submodule init
     - run: git submodule update
     - run: mvn -B -U -Dbuild.arch=${{ inputs.build-arch }} clean package
@@ -74,6 +78,3 @@ jobs:
       with:
         name: cryostat-${{ inputs.build-arch }}
         path: /home/runner/work/cryostat/cryostat/cryostat-${{ inputs.build-arch }}.tar
-    - uses: skjolber/maven-cache-github-action@v1
-      with:
-        step: save
