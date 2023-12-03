@@ -203,7 +203,7 @@ jobs:
       
   integration-test-pass:
     runs-on: ubuntu-latest
-    needs: [integration-test]
+    needs: [integration-test, code-analysis]
     permissions:
       pull-requests: write
     steps:
@@ -241,7 +241,7 @@ jobs:
   
   comment-integration-test-fail:
     if: (always() && contains(needs.*.result, 'failure'))
-    needs: [integration-test]
+    needs: [integration-test, code-analysis]
     permissions:
       pull-requests: write
     runs-on: ubuntu-latest
