@@ -38,7 +38,6 @@ import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.SecurityModule;
 import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.http.HttpModule;
-import io.cryostat.recordings.JvmIdHelper;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.gson.Gson;
@@ -97,12 +96,8 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static AgentConnection.Factory provideAgentConnectionFactory(
-            AgentClient.Factory clientFactory,
-            JvmIdHelper idHelper,
-            FileSystem fs,
-            Environment env,
-            Logger logger) {
-        return new AgentConnection.Factory(clientFactory, idHelper, fs, env, logger);
+            AgentClient.Factory clientFactory, FileSystem fs, Environment env, Logger logger) {
+        return new AgentConnection.Factory(clientFactory, fs, env, logger);
     }
 
     @Provides

@@ -40,26 +40,18 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.templates.MergedTemplateService;
 import io.cryostat.core.templates.TemplateService;
-import io.cryostat.recordings.JvmIdHelper;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class AgentConnection implements JFRConnection {
 
     private final AgentClient client;
-    private final JvmIdHelper idHelper;
     private final FileSystem fs;
     private final Environment env;
     private final Logger logger;
 
-    AgentConnection(
-            AgentClient client,
-            JvmIdHelper idHelper,
-            FileSystem fs,
-            Environment env,
-            Logger logger) {
+    AgentConnection(AgentClient client, FileSystem fs, Environment env, Logger logger) {
         this.client = client;
-        this.idHelper = idHelper;
         this.fs = fs;
         this.env = env;
         this.logger = logger;
@@ -112,13 +104,6 @@ public class AgentConnection implements JFRConnection {
     }
 
     @Override
-    public String getJvmId() throws IDException, IOException {
-        // this should have already been populated when the agent published itself to the Discovery
-        // API. If not, then this will fail, but we were in a bad state to begin with.
-        return idHelper.getJvmId(getUri().toString());
-    }
-
-    @Override
     public JvmIdentifier getJvmIdentifier() throws IDException, IOException {
         try {
             return JvmIdentifier.from(getMBeanMetrics().getRuntime());
@@ -164,26 +149,19 @@ public class AgentConnection implements JFRConnection {
 
     public static class Factory {
         private final AgentClient.Factory clientFactory;
-        private final JvmIdHelper idHelper;
         private final FileSystem fs;
         private final Environment env;
         private final Logger logger;
 
-        Factory(
-                AgentClient.Factory clientFactory,
-                JvmIdHelper idHelper,
-                FileSystem fs,
-                Environment env,
-                Logger logger) {
+        Factory(AgentClient.Factory clientFactory, FileSystem fs, Environment env, Logger logger) {
             this.clientFactory = clientFactory;
-            this.idHelper = idHelper;
             this.fs = fs;
             this.env = env;
             this.logger = logger;
         }
 
         AgentConnection createConnection(URI agentUri) {
-            return new AgentConnection(clientFactory.create(agentUri), idHelper, fs, env, logger);
+            return new AgentConnection(clientFactory.create(agentUri), fs, env, logger);
         }
     }
 }
