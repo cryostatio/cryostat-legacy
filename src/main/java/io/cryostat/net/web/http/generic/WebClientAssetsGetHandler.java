@@ -15,6 +15,7 @@
  */
 package io.cryostat.net.web.http.generic;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Set;
 
@@ -27,10 +28,16 @@ import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
+import org.apache.commons.lang3.concurrent.ConcurrentException;
+import org.apache.commons.lang3.concurrent.ConcurrentInitializer;
+import org.apache.commons.lang3.concurrent.LazyInitializer;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 
 class WebClientAssetsGetHandler implements RequestHandler {
 
@@ -39,11 +46,35 @@ class WebClientAssetsGetHandler implements RequestHandler {
     private static final Path INDEX_HTML =
             Path.of(WEB_CLIENT_ASSETS_BASE, "index.html").normalize();
 
-    private final boolean hasIndexHtml;
+    private final ConcurrentInitializer<Boolean> hasIndexHtml;
+    private final ConcurrentInitializer<String> rewrittenHtmlDocPath;
 
     @Inject
     WebClientAssetsGetHandler(Vertx vertx) {
-        this.hasIndexHtml = vertx.fileSystem().existsBlocking(INDEX_HTML.toString());
+        this.hasIndexHtml =
+                new LazyInitializer<Boolean>() {
+                    @Override
+                    protected Boolean initialize() {
+                        return vertx.fileSystem().existsBlocking(INDEX_HTML.toString());
+                    }
+                };
+
+        this.rewrittenHtmlDocPath =
+                new LazyInitializer<String>() {
+                    @Override
+                    protected String initialize() {
+                        String webRoot = "./";
+                        Document doc =
+                                Jsoup.parse(
+                                        vertx.fileSystem()
+                                                .readFileBlocking(INDEX_HTML.toString())
+                                                .toString(StandardCharsets.UTF_8));
+                        doc.selectXpath("//head/base").attr("href", webRoot);
+                        String out = vertx.fileSystem().createTempFileBlocking("index", "html");
+                        vertx.fileSystem().writeFileBlocking(out, Buffer.buffer(doc.outerHtml()));
+                        return out;
+                    }
+                };
     }
 
     @Override
@@ -78,10 +109,14 @@ class WebClientAssetsGetHandler implements RequestHandler {
 
     @Override
     public void handle(RoutingContext ctx) {
-        if (!hasIndexHtml) {
-            throw new HttpException(404);
+        try {
+            if (!hasIndexHtml.get()) {
+                throw new HttpException(404);
+            }
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+            ctx.response().sendFile(rewrittenHtmlDocPath.get());
+        } catch (ConcurrentException e) {
+            throw new HttpException(500, e);
         }
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-        ctx.response().sendFile(INDEX_HTML.toString());
     }
 }
