@@ -15,7 +15,6 @@
  */
 package io.cryostat.net.web.http.generic;
 
-import java.nio.file.Path;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -27,7 +26,6 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.StaticHandler;
-import org.apache.commons.lang3.StringUtils;
 
 class StaticAssetsGetHandler implements RequestHandler {
 
@@ -35,10 +33,7 @@ class StaticAssetsGetHandler implements RequestHandler {
 
     @Inject
     StaticAssetsGetHandler() {
-        this.staticHandler =
-                StaticHandler.create(WebClientAssetsGetHandler.WEB_CLIENT_ASSETS_BASE)
-                        .setCachingEnabled(true)
-                        .setEnableFSTuning(true);
+        this.staticHandler = StaticHandler.create(WebClientAssetsGetHandler.WEB_CLIENT_ASSETS_BASE);
     }
 
     @Override
@@ -68,12 +63,6 @@ class StaticAssetsGetHandler implements RequestHandler {
 
     @Override
     public void handle(RoutingContext ctx) {
-        String path = Path.of(ctx.request().path()).normalize().toString();
-        if (StringUtils.isNotBlank(path)
-                && (Set.of("/", "index.html", "/index.html").contains(path))) {
-            ctx.next();
-        } else {
-            staticHandler.handle(ctx);
-        }
+        staticHandler.handle(ctx);
     }
 }

@@ -84,7 +84,7 @@ class WebClientAssetsGetHandler implements RequestHandler {
 
     @Override
     public int getPriority() {
-        return DEFAULT_PRIORITY + 10;
+        return DEFAULT_PRIORITY - 10;
     }
 
     @Override
@@ -112,6 +112,12 @@ class WebClientAssetsGetHandler implements RequestHandler {
         try {
             if (!hasIndexHtml.get()) {
                 throw new HttpException(404);
+            }
+
+            String path = Path.of(ctx.request().path()).normalize().toString();
+            if (!Set.of("/", "index.html", "/index.html").contains(path)) {
+                ctx.next();
+                return;
             }
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
             ctx.response().sendFile(rewrittenHtmlDocPath.get());

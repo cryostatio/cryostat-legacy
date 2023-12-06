@@ -31,8 +31,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.inject.Named;
+
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 
+import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
@@ -83,7 +86,7 @@ public class WebServer extends AbstractVerticle {
             Gson gson,
             AuthManager auth,
             Logger logger,
-            Path recordingsPath) {
+            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath) {
         this.server = server;
         this.netConf = netConf;
         this.requestHandlers = new ArrayList<>(requestHandlers);
