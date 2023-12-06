@@ -72,8 +72,19 @@ public class ClientAssetsIT extends StandardSelfTest {
 
         boolean foundAppBundle = false;
         for (Element el : scripts) {
-            foundAppBundle |= el.attr("src").matches("^/app(?:.\\w*)?\\.bundle\\.js$");
+            foundAppBundle |= el.attr("src").matches("^\\./app(?:.\\w*)?\\.bundle\\.js$");
         }
         Assertions.assertTrue(foundAppBundle, "No app.bundle.js script tag found");
+    }
+
+    @Test
+    public void indexHtmlShouldHaveRelativeBaseHref() {
+        Elements head = doc.getElementsByTag("head");
+        MatcherAssert.assertThat("Expected one <head>", head.size(), Matchers.equalTo(1));
+        Elements body = doc.getElementsByTag("base");
+        MatcherAssert.assertThat("Expected one <base>", body.size(), Matchers.equalTo(1));
+
+        Assertions.assertTrue(body.hasAttr("href"));
+        MatcherAssert.assertThat(body.attr("href"), Matchers.equalTo("./"));
     }
 }
