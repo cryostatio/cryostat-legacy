@@ -449,6 +449,7 @@
             <executable>git</executable>
             <arguments>
               <argument>describe</argument>
+              <argument>--tags</argument>
               <argument>--dirty</argument>
               <argument>--long</argument>
               <argument>--always</argument>
