@@ -72,7 +72,7 @@ public class ClientAssetsIT extends StandardSelfTest {
 
         boolean foundAppBundle = false;
         for (Element el : scripts) {
-            foundAppBundle |= el.attr("src").matches("^/app(?:.\\w*)?\\.bundle\\.js$");
+            foundAppBundle |= el.attr("src").matches("^app(?:.\\w*)?\\.bundle\\.js$");
         }
         Assertions.assertTrue(foundAppBundle, "No app.bundle.js script tag found");
     }
