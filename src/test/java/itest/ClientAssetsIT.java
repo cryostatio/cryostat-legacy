@@ -60,6 +60,18 @@ public class ClientAssetsIT extends StandardSelfTest {
     }
 
     @Test
+    public void indexHtmlShouldHaveRelativeBaseHref() {
+        Elements head = doc.getElementsByTag("head");
+        MatcherAssert.assertThat("Expected one <head>", head.size(), Matchers.equalTo(1));
+
+        Elements bases = head.first().getElementsByTag("base");
+        MatcherAssert.assertThat("Expected one <base>", bases.size(), Matchers.equalTo(1));
+
+        Element base = bases.get(0);
+        MatcherAssert.assertThat(base.attr("href"), Matchers.equalTo("./"));
+    }
+
+    @Test
     public void indexHtmlShouldHaveScriptTag() {
         Elements head = doc.getElementsByTag("head");
         MatcherAssert.assertThat("Expected one <head>", head.size(), Matchers.equalTo(1));
@@ -72,7 +84,7 @@ public class ClientAssetsIT extends StandardSelfTest {
 
         boolean foundAppBundle = false;
         for (Element el : scripts) {
-            foundAppBundle |= el.attr("src").matches("^/app(?:.\\w*)?\\.bundle\\.js$");
+            foundAppBundle |= el.attr("src").matches("^app(?:.\\w*)?\\.bundle\\.js$");
         }
         Assertions.assertTrue(foundAppBundle, "No app.bundle.js script tag found");
     }
