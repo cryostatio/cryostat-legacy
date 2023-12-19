@@ -78,7 +78,7 @@
   <org.codehaus.mojo.exec.plugin.version>3.1.1</org.codehaus.mojo.exec.plugin.version>
   <org.codehaus.mojo.build.helper.plugin.version>3.5.0</org.codehaus.mojo.build.helper.plugin.version>
   <com.mycila.license.maven.plugin.version>4.3</com.mycila.license.maven.plugin.version>
-  <org.owasp.dependency.check.version>9.0.6</org.owasp.dependency.check.version>
+  <org.owasp.dependency.check.version>9.0.7</org.owasp.dependency.check.version>
   <com.google.cloud.tools.jib.maven.plugin.version>3.4.0</com.google.cloud.tools.jib.maven.plugin.version>
 
   <!-- Use a separate property for dependency alignment purposes. -->
