@@ -134,8 +134,8 @@ public abstract class RecordingsModule {
     }
 
     @Provides
-    static EventOptionsBuilder.Factory provideEventOptionsBuilderFactory(ClientWriter cw) {
-        return new EventOptionsBuilder.Factory(cw);
+    static EventOptionsBuilder.Factory provideEventOptionsBuilderFactory() {
+        return new EventOptionsBuilder.Factory();
     }
 
     @Provides
