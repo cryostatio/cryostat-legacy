@@ -20,7 +20,7 @@ getPomProperty() {
         xpath -q -e "project/$1/text()" pom.xml
     else
         "${MVN}" help:help > /dev/null 2>&1
-        "${MVN}" build-helper:regex-property@image-tag-to-lower help:evaluate -o -B -q -DforceStdout -Dexpression="$1"
+        "${MVN}" build-helper:regex-property@image-tag-to-lower help:evaluate -B -q -DforceStdout -Dexpression="$1"
     fi
 }
 
