@@ -119,7 +119,7 @@
   <org.hamcrest.version>2.2</org.hamcrest.version>
   <org.mockito.version>5.2.0</org.mockito.version>
   <org.jacoco.maven.plugin.version>0.8.11</org.jacoco.maven.plugin.version>
-  <com.diffplug.spotless.maven.plugin.version>2.41.1</com.diffplug.spotless.maven.plugin.version>
+  <com.diffplug.spotless.maven.plugin.version>2.42.0</com.diffplug.spotless.maven.plugin.version>
   <com.google.googlejavaformat.version>1.17.0</com.google.googlejavaformat.version>
   <org.jsoup.version>1.16.1</org.jsoup.version>
   <shellcheck-maven-plugin.version>0.5.1</shellcheck-maven-plugin.version>
