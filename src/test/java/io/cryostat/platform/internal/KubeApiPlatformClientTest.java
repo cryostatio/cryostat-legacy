@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -69,7 +70,14 @@ class KubeApiPlatformClientTest {
 
     @BeforeEach
     void setup() throws Exception {
-        this.platformClient = new KubeApiPlatformClient(env, List.of(NAMESPACE), k8sClient, logger);
+        this.platformClient =
+                new KubeApiPlatformClient(
+                        env,
+                        List.of(NAMESPACE),
+                        Set.of("jfr-jmx"),
+                        Set.of(9091),
+                        k8sClient,
+                        logger);
     }
 
     @Test

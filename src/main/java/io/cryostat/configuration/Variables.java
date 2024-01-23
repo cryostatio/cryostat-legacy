@@ -47,6 +47,8 @@ public final class Variables {
     public static final String DISABLE_BUILTIN_DISCOVERY = "CRYOSTAT_DISABLE_BUILTIN_DISCOVERY";
     public static final String DISCOVERY_PING_PERIOD_MS = "CRYOSTAT_DISCOVERY_PING_PERIOD";
     public static final String K8S_NAMESPACES = "CRYOSTAT_K8S_NAMESPACES";
+    public static final String K8S_PORT_NAMES = "CRYOSTAT_DISCOVERY_K8S_PORT_NAMES";
+    public static final String K8S_PORT_NUMBERS = "CRYOSTAT_DISCOVERY_K8S_PORT_NUMBERS";
     public static final String VERTX_POOL_SIZE = "CRYOSTAT_VERTX_POOL_SIZE";
 
     // webserver configuration

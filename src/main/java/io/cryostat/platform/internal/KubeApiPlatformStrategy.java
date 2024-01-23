@@ -65,7 +65,14 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     @Override
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected {} Strategy", getClass().getSimpleName());
-        return new KubeApiPlatformClient(env, getNamespaces(), createClient(), logger);
+        List<String> portNames =
+                Arrays.asList(env.getEnv(Variables.K8S_PORT_NAMES, "jfr-jmx").split(","));
+        List<Integer> portNumbers =
+                Arrays.asList(env.getEnv(Variables.K8S_PORT_NUMBERS, "9091").split(",")).stream()
+                        .map(Integer::parseInt)
+                        .toList();
+        return new KubeApiPlatformClient(
+                env, getNamespaces(), portNames, portNumbers, createClient(), logger);
     }
 
     @Override
