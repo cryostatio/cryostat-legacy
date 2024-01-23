@@ -27,7 +27,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.platform.ServiceRef;
@@ -65,15 +64,12 @@ class KubeApiPlatformClientTest {
     KubeApiPlatformClient platformClient;
     KubernetesClient k8sClient;
     KubernetesMockServer server;
-    @Mock JFRConnectionToolkit connectionToolkit;
     @Mock Environment env;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() throws Exception {
-        this.platformClient =
-                new KubeApiPlatformClient(
-                        env, List.of(NAMESPACE), k8sClient, () -> connectionToolkit, logger);
+        this.platformClient = new KubeApiPlatformClient(env, List.of(NAMESPACE), k8sClient, logger);
     }
 
     @Test

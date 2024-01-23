@@ -25,7 +25,6 @@ import java.util.concurrent.ForkJoinPool;
 
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
@@ -42,18 +41,12 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     protected final Lazy<? extends AuthManager> authMgr;
     protected final Environment env;
     protected final FileSystem fs;
-    protected final Lazy<JFRConnectionToolkit> connectionToolkit;
     protected final Logger logger;
 
     KubeApiPlatformStrategy(
-            Lazy<? extends AuthManager> authMgr,
-            Lazy<JFRConnectionToolkit> connectionToolkit,
-            Environment env,
-            FileSystem fs,
-            Logger logger) {
+            Lazy<? extends AuthManager> authMgr, Environment env, FileSystem fs, Logger logger) {
         this.logger = logger;
         this.authMgr = authMgr;
-        this.connectionToolkit = connectionToolkit;
         this.env = env;
         this.fs = fs;
     }
@@ -72,8 +65,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     @Override
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected {} Strategy", getClass().getSimpleName());
-        return new KubeApiPlatformClient(
-                env, getNamespaces(), createClient(), connectionToolkit, logger);
+        return new KubeApiPlatformClient(env, getNamespaces(), createClient(), logger);
     }
 
     @Override
