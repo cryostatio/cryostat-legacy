@@ -38,6 +38,9 @@ import org.apache.commons.lang3.StringUtils;
 
 class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
 
+    public static final String NO_PORT_NAME = "-";
+    public static final String NO_PORT_NUMBER = "0";
+
     protected final Lazy<? extends AuthManager> authMgr;
     protected final Environment env;
     protected final FileSystem fs;
@@ -66,9 +69,12 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected {} Strategy", getClass().getSimpleName());
         List<String> portNames =
-                Arrays.asList(env.getEnv(Variables.K8S_PORT_NAMES, "jfr-jmx").split(","));
+                Arrays.asList(env.getEnv(Variables.K8S_PORT_NAMES, "jfr-jmx").split(",")).stream()
+                        .filter(n -> !NO_PORT_NAME.equals(n))
+                        .toList();
         List<Integer> portNumbers =
                 Arrays.asList(env.getEnv(Variables.K8S_PORT_NUMBERS, "9091").split(",")).stream()
+                        .filter(n -> !NO_PORT_NAME.equals(n))
                         .map(Integer::parseInt)
                         .toList();
         return new KubeApiPlatformClient(
