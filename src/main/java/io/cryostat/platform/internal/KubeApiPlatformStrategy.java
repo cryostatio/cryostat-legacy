@@ -70,10 +70,12 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
         logger.info("Selected {} Strategy", getClass().getSimpleName());
         List<String> portNames =
                 Arrays.asList(env.getEnv(Variables.K8S_PORT_NAMES, "jfr-jmx").split(",")).stream()
+                        .map(String::strip)
                         .filter(n -> !NO_PORT_NAME.equals(n))
                         .toList();
         List<Integer> portNumbers =
                 Arrays.asList(env.getEnv(Variables.K8S_PORT_NUMBERS, "9091").split(",")).stream()
+                        .map(String::strip)
                         .map(Integer::parseInt)
                         .filter(n -> !NO_PORT_NUMBER.equals(n))
                         .toList();
