@@ -35,7 +35,8 @@ public abstract class AbstractPlatformClient implements PlatformClient {
 
     @Override
     public boolean isEnabled() {
-        return !environment.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY);
+        return !Boolean.parseBoolean(
+                environment.getEnv(Variables.DISABLE_BUILTIN_DISCOVERY, "false"));
     }
 
     @Override
