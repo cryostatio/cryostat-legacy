@@ -195,7 +195,8 @@ using the environment variables `CRYOSTAT_DISCOVERY_K8S_PORT_NAMES` and
 `CRYOSTAT_DISCOVERY_K8S_PORT_NUMBERS` respectively. Both of these accept
 comma-separated lists as values. Any observed `Endpoints` object with a name
 in the given list or a number in the given list will be taken as a connectable
-target application. To set either of the lists empty use the value `-`.
+target application. To set the names list to the empty list use `-`. To set the
+numbers list to the empty list use `0`.
 
 The second discovery mechanism is JDP (Java Discovery Protocol). This relies on
 target JVMs being configured with the JVM flags to enable JDP and requires the
