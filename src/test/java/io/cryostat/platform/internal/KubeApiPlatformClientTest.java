@@ -73,7 +73,7 @@ class KubeApiPlatformClientTest {
     void setup() throws Exception {
         this.platformClient =
                 new KubeApiPlatformClient(
-                        List.of(NAMESPACE), k8sClient, () -> connectionToolkit, logger);
+                        env, List.of(NAMESPACE), k8sClient, () -> connectionToolkit, logger);
     }
 
     @Test

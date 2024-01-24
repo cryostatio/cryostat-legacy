@@ -121,6 +121,11 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     @Override
+    public final boolean isEnabled() {
+        return true;
+    }
+
+    @Override
     public void start(Promise<Void> future) throws Exception {
         pingPrune()
                 .whenComplete(

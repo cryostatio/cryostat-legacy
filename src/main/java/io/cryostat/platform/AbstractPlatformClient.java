@@ -19,14 +19,23 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.core.sys.Environment;
 
 public abstract class AbstractPlatformClient implements PlatformClient {
 
+    protected final Environment environment;
     protected final Set<Consumer<TargetDiscoveryEvent>> discoveryListeners;
 
-    protected AbstractPlatformClient() {
+    protected AbstractPlatformClient(Environment environment) {
+        this.environment = environment;
         this.discoveryListeners = new HashSet<>();
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return !environment.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY);
     }
 
     @Override

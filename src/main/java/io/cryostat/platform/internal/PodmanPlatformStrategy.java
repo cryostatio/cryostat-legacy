@@ -24,6 +24,7 @@ import java.util.concurrent.TimeoutException;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 
@@ -39,29 +40,32 @@ import io.vertx.ext.web.codec.BodyCodec;
 
 class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatformClient> {
 
-    private final Logger logger;
     private final Lazy<? extends AuthManager> authMgr;
     private final Lazy<WebClient> webClient;
     private final Lazy<Vertx> vertx;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Gson gson;
+    private final Environment environment;
     private final FileSystem fs;
+    private final Logger logger;
 
     PodmanPlatformStrategy(
-            Logger logger,
             Lazy<? extends AuthManager> authMgr,
             Lazy<WebClient> webClient,
             Lazy<Vertx> vertx,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Gson gson,
-            FileSystem fs) {
-        this.logger = logger;
+            Environment environment,
+            FileSystem fs,
+            Logger logger) {
         this.authMgr = authMgr;
         this.webClient = webClient;
         this.vertx = vertx;
         this.connectionToolkit = connectionToolkit;
         this.gson = gson;
+        this.environment = environment;
         this.fs = fs;
+        this.logger = logger;
     }
 
     @Override
@@ -130,6 +134,7 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
     public PodmanPlatformClient getPlatformClient() {
         logger.info("Selected {} Strategy", getClass().getSimpleName());
         return new PodmanPlatformClient(
+                environment,
                 Executors.newSingleThreadExecutor(),
                 webClient,
                 vertx,

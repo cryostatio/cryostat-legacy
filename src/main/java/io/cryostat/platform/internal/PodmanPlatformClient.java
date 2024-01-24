@@ -41,6 +41,7 @@ import javax.management.remote.JMXServiceURL;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.platform.AbstractPlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
@@ -81,6 +82,7 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
     private final CopyOnWriteArrayList<ContainerSpec> containers = new CopyOnWriteArrayList<>();
 
     PodmanPlatformClient(
+            Environment environment,
             ExecutorService executor,
             Lazy<WebClient> webClient,
             Lazy<Vertx> vertx,
@@ -88,6 +90,7 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Gson gson,
             Logger logger) {
+        super(environment);
         this.executor = executor;
         this.webClient = webClient;
         this.vertx = vertx;

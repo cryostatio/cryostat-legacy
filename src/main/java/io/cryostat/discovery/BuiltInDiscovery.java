@@ -109,9 +109,11 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                                     .onSuccess(
                                             subtree -> storage.update(id, subtree.getChildren()));
                             try {
-                                platform.start();
-                                platform.load(promise);
-                                enabledClients.add(platform);
+                                if (platform.isEnabled()) {
+                                    platform.start();
+                                    platform.load(promise);
+                                    enabledClients.add(platform);
+                                }
                             } catch (Exception e) {
                                 logger.warn(e);
                             }
