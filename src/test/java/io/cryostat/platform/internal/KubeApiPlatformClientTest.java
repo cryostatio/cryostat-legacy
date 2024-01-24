@@ -60,11 +60,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class KubeApiPlatformClientTest {
 
+    static final String NAMESPACE = "foo-namespace";
+
     @Nested
     @EnableKubernetesMockClient(https = false, crud = true)
     class WithDefaultPortNameAndNumber {
-
-        static final String NAMESPACE = "foo-namespace";
 
         KubeApiPlatformClient platformClient;
         KubernetesClient k8sClient;
@@ -829,6 +829,545 @@ class KubeApiPlatformClientTest {
             MatcherAssert.assertThat(
                     modifiedEvent.getEventKind(), Matchers.equalTo(EventKind.MODIFIED));
             MatcherAssert.assertThat(modifiedEvent.getServiceRef(), Matchers.equalTo(modified));
+        }
+    }
+
+    @Nested
+    @EnableKubernetesMockClient(https = false, crud = true)
+    class WithNonDefaultPortNameAndNumber {
+
+        KubeApiPlatformClient platformClient;
+        KubernetesClient k8sClient;
+        KubernetesMockServer server;
+        @Mock Environment env;
+        @Mock Logger logger;
+
+        @BeforeEach
+        void setup() throws Exception {
+            platformClient =
+                    new KubeApiPlatformClient(
+                            List.of(NAMESPACE),
+                            Set.of("cryostat-jmx", "cryostat-jfr"),
+                            Set.of(9999, 4545),
+                            k8sClient,
+                            logger);
+        }
+
+        @Test
+        void shouldReturnListOfMatchingEndpointRefs() throws Exception {
+            Pod targetA =
+                    new PodBuilder()
+                            .withNewMetadata()
+                            .withName("targetA")
+                            .withNamespace(NAMESPACE)
+                            .endMetadata()
+                            .build();
+            String ipA = "127.0.0.2";
+            String transformedIpA = ipA.replaceAll("\\.", "-");
+            int portA = 80;
+            k8sClient.pods().inNamespace(NAMESPACE).resource(targetA).create();
+
+            Pod targetB =
+                    new PodBuilder()
+                            .withNewMetadata()
+                            .withName("targetB")
+                            .withNamespace(NAMESPACE)
+                            .endMetadata()
+                            .build();
+            String ipB = "127.0.0.3";
+            String transformedIpB = ipB.replaceAll("\\.", "-");
+            int portB = 1234;
+            k8sClient.pods().inNamespace(NAMESPACE).resource(targetB).create();
+
+            Pod targetC =
+                    new PodBuilder()
+                            .withNewMetadata()
+                            .withName("targetC")
+                            .withNamespace(NAMESPACE)
+                            .endMetadata()
+                            .build();
+            String ipC = "127.0.0.4";
+            String transformedIpC = ipC.replaceAll("\\.", "-");
+            int portC = 9999;
+            k8sClient.pods().inNamespace(NAMESPACE).resource(targetC).create();
+
+            Pod targetD =
+                    new PodBuilder()
+                            .withNewMetadata()
+                            .withName("targetD")
+                            .withNamespace(NAMESPACE)
+                            .endMetadata()
+                            .build();
+            String ipD = "127.0.0.5";
+            String transformedIpD = ipD.replaceAll("\\.", "-");
+            int portD = 4545;
+            k8sClient.pods().inNamespace(NAMESPACE).resource(targetD).create();
+
+            Pod targetE =
+                    new PodBuilder()
+                            .withNewMetadata()
+                            .withName("targetE")
+                            .withNamespace(NAMESPACE)
+                            .endMetadata()
+                            .build();
+            String ipE = "127.0.0.6";
+            String transformedIpE = ipE.replaceAll("\\.", "-");
+            int portE = 5678;
+            k8sClient.pods().inNamespace(NAMESPACE).resource(targetE).create();
+
+            Endpoints endpoints =
+                    new EndpointsBuilder()
+                            .withNewMetadata()
+                            .withName("endpoints1")
+                            .withNamespace(NAMESPACE)
+                            .endMetadata()
+                            .addNewSubset()
+                            .withAddresses(
+                                    new EndpointAddressBuilder()
+                                            .withIp(ipA)
+                                            .withHostname(targetA.getMetadata().getName())
+                                            .withNewTargetRef()
+                                            .withName(targetA.getMetadata().getName())
+                                            .withKind(targetA.getKind())
+                                            .withNamespace(NAMESPACE)
+                                            .endTargetRef()
+                                            .build())
+                            .withPorts(
+                                    new EndpointPortBuilder()
+                                            .withName("tcp-80")
+                                            .withPort(portA)
+                                            .withProtocol("tcp")
+                                            .build())
+                            .endSubset()
+                            .addNewSubset()
+                            .withAddresses(
+                                    new EndpointAddressBuilder()
+                                            .withIp(ipB)
+                                            .withHostname(targetB.getMetadata().getName())
+                                            .withNewTargetRef()
+                                            .withName(targetB.getMetadata().getName())
+                                            .withKind(targetB.getKind())
+                                            .withNamespace(NAMESPACE)
+                                            .endTargetRef()
+                                            .build())
+                            .withPorts(
+                                    new EndpointPortBuilder()
+                                            .withName("cryostat-jmx")
+                                            .withPort(portB)
+                                            .withProtocol("tcp")
+                                            .build())
+                            .endSubset()
+                            .addNewSubset()
+                            .withAddresses(
+                                    new EndpointAddressBuilder()
+                                            .withIp(ipC)
+                                            .withHostname(targetC.getMetadata().getName())
+                                            .withNewTargetRef()
+                                            .withName(targetC.getMetadata().getName())
+                                            .withKind(targetC.getKind())
+                                            .withNamespace(NAMESPACE)
+                                            .endTargetRef()
+                                            .build())
+                            .withPorts(
+                                    new EndpointPortBuilder()
+                                            .withName("tcp-9999")
+                                            .withPort(portC)
+                                            .withProtocol("tcp")
+                                            .build())
+                            .endSubset()
+                            .addNewSubset()
+                            .withAddresses(
+                                    new EndpointAddressBuilder()
+                                            .withIp(ipD)
+                                            .withHostname(targetD.getMetadata().getName())
+                                            .withNewTargetRef()
+                                            .withName(targetD.getMetadata().getName())
+                                            .withKind(targetD.getKind())
+                                            .withNamespace(NAMESPACE)
+                                            .endTargetRef()
+                                            .build())
+                            .withPorts(
+                                    new EndpointPortBuilder()
+                                            .withName("tcp-9999")
+                                            .withPort(portD)
+                                            .withProtocol("tcp")
+                                            .build())
+                            .endSubset()
+                            .addNewSubset()
+                            .withAddresses(
+                                    new EndpointAddressBuilder()
+                                            .withIp(ipE)
+                                            .withHostname(targetE.getMetadata().getName())
+                                            .withNewTargetRef()
+                                            .withName(targetE.getMetadata().getName())
+                                            .withKind(targetE.getKind())
+                                            .withNamespace(NAMESPACE)
+                                            .endTargetRef()
+                                            .build())
+                            .withPorts(
+                                    new EndpointPortBuilder()
+                                            .withName("cryostat-jfr")
+                                            .withPort(portE)
+                                            .withProtocol("tcp")
+                                            .build())
+                            .endSubset()
+                            .build();
+
+            k8sClient.endpoints().inNamespace(NAMESPACE).resource(endpoints).create();
+
+            platformClient.start();
+            List<ServiceRef> result = platformClient.listDiscoverableServices();
+
+            // targetA is intentionally not a matching service
+            ServiceRef serv1 =
+                    new ServiceRef(
+                            null,
+                            URI.create(
+                                    String.format(
+                                            "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                            transformedIpB, NAMESPACE, portB)),
+                            targetB.getMetadata().getName());
+            serv1.setCryostatAnnotations(
+                    Map.of(
+                            AnnotationKey.REALM,
+                            "KubernetesApi",
+                            AnnotationKey.HOST,
+                            ipB,
+                            AnnotationKey.PORT,
+                            Integer.toString(portB),
+                            AnnotationKey.NAMESPACE,
+                            NAMESPACE,
+                            AnnotationKey.POD_NAME,
+                            targetB.getMetadata().getName()));
+            ServiceRef serv2 =
+                    new ServiceRef(
+                            null,
+                            URI.create(
+                                    String.format(
+                                            "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                            transformedIpC, NAMESPACE, portC)),
+                            targetC.getMetadata().getName());
+            serv2.setCryostatAnnotations(
+                    Map.of(
+                            AnnotationKey.REALM,
+                            "KubernetesApi",
+                            AnnotationKey.HOST,
+                            ipC,
+                            AnnotationKey.PORT,
+                            Integer.toString(portC),
+                            AnnotationKey.NAMESPACE,
+                            NAMESPACE,
+                            AnnotationKey.POD_NAME,
+                            targetC.getMetadata().getName()));
+            ServiceRef serv3 =
+                    new ServiceRef(
+                            null,
+                            URI.create(
+                                    String.format(
+                                            "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                            transformedIpD, NAMESPACE, portD)),
+                            targetD.getMetadata().getName());
+            serv3.setCryostatAnnotations(
+                    Map.of(
+                            AnnotationKey.REALM,
+                            "KubernetesApi",
+                            AnnotationKey.HOST,
+                            ipD,
+                            AnnotationKey.PORT,
+                            Integer.toString(portD),
+                            AnnotationKey.NAMESPACE,
+                            NAMESPACE,
+                            AnnotationKey.POD_NAME,
+                            targetD.getMetadata().getName()));
+            ServiceRef serv4 =
+                    new ServiceRef(
+                            null,
+                            URI.create(
+                                    String.format(
+                                            "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                            transformedIpE, NAMESPACE, portE)),
+                            targetE.getMetadata().getName());
+            serv4.setCryostatAnnotations(
+                    Map.of(
+                            AnnotationKey.REALM,
+                            "KubernetesApi",
+                            AnnotationKey.HOST,
+                            ipE,
+                            AnnotationKey.PORT,
+                            Integer.toString(portE),
+                            AnnotationKey.NAMESPACE,
+                            NAMESPACE,
+                            AnnotationKey.POD_NAME,
+                            targetE.getMetadata().getName()));
+            MatcherAssert.assertThat(
+                    result, Matchers.equalTo(Arrays.asList(serv1, serv2, serv3, serv4)));
+        }
+    }
+
+    @Nested
+    @EnableKubernetesMockClient(https = false, crud = true)
+    class WithEmptyPortNameAndNumber {
+
+        KubeApiPlatformClient platformClient;
+        KubernetesClient k8sClient;
+        KubernetesMockServer server;
+        @Mock Environment env;
+        @Mock Logger logger;
+
+        @BeforeEach
+        void setup() throws Exception {
+            platformClient =
+                    new KubeApiPlatformClient(
+                            List.of(NAMESPACE), Set.of(), Set.of(), k8sClient, logger);
+        }
+
+        @Test
+        void shouldReturnListOfMatchingEndpointRefs() throws Exception {
+            Pod targetA =
+                    new PodBuilder()
+                            .withNewMetadata()
+                            .withName("targetA")
+                            .withNamespace(NAMESPACE)
+                            .endMetadata()
+                            .build();
+            String ipA = "127.0.0.2";
+            String transformedIpA = ipA.replaceAll("\\.", "-");
+            int portA = 80;
+            k8sClient.pods().inNamespace(NAMESPACE).resource(targetA).create();
+
+            Pod targetB =
+                    new PodBuilder()
+                            .withNewMetadata()
+                            .withName("targetB")
+                            .withNamespace(NAMESPACE)
+                            .endMetadata()
+                            .build();
+            String ipB = "127.0.0.3";
+            String transformedIpB = ipB.replaceAll("\\.", "-");
+            int portB = 1234;
+            k8sClient.pods().inNamespace(NAMESPACE).resource(targetB).create();
+
+            Pod targetC =
+                    new PodBuilder()
+                            .withNewMetadata()
+                            .withName("targetC")
+                            .withNamespace(NAMESPACE)
+                            .endMetadata()
+                            .build();
+            String ipC = "127.0.0.4";
+            String transformedIpC = ipC.replaceAll("\\.", "-");
+            int portC = 9091;
+            k8sClient.pods().inNamespace(NAMESPACE).resource(targetC).create();
+
+            Pod targetD =
+                    new PodBuilder()
+                            .withNewMetadata()
+                            .withName("targetD")
+                            .withNamespace(NAMESPACE)
+                            .endMetadata()
+                            .build();
+            String ipD = "127.0.0.5";
+            String transformedIpD = ipD.replaceAll("\\.", "-");
+            int portD = 9091;
+            k8sClient.pods().inNamespace(NAMESPACE).resource(targetD).create();
+
+            Pod targetE =
+                    new PodBuilder()
+                            .withNewMetadata()
+                            .withName("targetE")
+                            .withNamespace(NAMESPACE)
+                            .endMetadata()
+                            .build();
+            String ipE = "127.0.0.6";
+            String transformedIpE = ipE.replaceAll("\\.", "-");
+            int portE = 5678;
+            k8sClient.pods().inNamespace(NAMESPACE).resource(targetE).create();
+
+            Endpoints endpoints =
+                    new EndpointsBuilder()
+                            .withNewMetadata()
+                            .withName("endpoints1")
+                            .withNamespace(NAMESPACE)
+                            .endMetadata()
+                            .addNewSubset()
+                            .withAddresses(
+                                    new EndpointAddressBuilder()
+                                            .withIp(ipA)
+                                            .withHostname(targetA.getMetadata().getName())
+                                            .withNewTargetRef()
+                                            .withName(targetA.getMetadata().getName())
+                                            .withKind(targetA.getKind())
+                                            .withNamespace(NAMESPACE)
+                                            .endTargetRef()
+                                            .build())
+                            .withPorts(
+                                    new EndpointPortBuilder()
+                                            .withName("tcp-80")
+                                            .withPort(portA)
+                                            .withProtocol("tcp")
+                                            .build())
+                            .endSubset()
+                            .addNewSubset()
+                            .withAddresses(
+                                    new EndpointAddressBuilder()
+                                            .withIp(ipB)
+                                            .withHostname(targetB.getMetadata().getName())
+                                            .withNewTargetRef()
+                                            .withName(targetB.getMetadata().getName())
+                                            .withKind(targetB.getKind())
+                                            .withNamespace(NAMESPACE)
+                                            .endTargetRef()
+                                            .build())
+                            .withPorts(
+                                    new EndpointPortBuilder()
+                                            .withName("jfr-jmx")
+                                            .withPort(portB)
+                                            .withProtocol("tcp")
+                                            .build())
+                            .endSubset()
+                            .addNewSubset()
+                            .withAddresses(
+                                    new EndpointAddressBuilder()
+                                            .withIp(ipC)
+                                            .withHostname(targetC.getMetadata().getName())
+                                            .withNewTargetRef()
+                                            .withName(targetC.getMetadata().getName())
+                                            .withKind(targetC.getKind())
+                                            .withNamespace(NAMESPACE)
+                                            .endTargetRef()
+                                            .build())
+                            .withPorts(
+                                    new EndpointPortBuilder()
+                                            .withName("tcp-9091")
+                                            .withPort(portC)
+                                            .withProtocol("tcp")
+                                            .build())
+                            .endSubset()
+                            .addNewSubset()
+                            .withAddresses(
+                                    new EndpointAddressBuilder()
+                                            .withIp(ipD)
+                                            .withHostname(targetD.getMetadata().getName())
+                                            .withNewTargetRef()
+                                            .withName(targetD.getMetadata().getName())
+                                            .withKind(targetD.getKind())
+                                            .withNamespace(NAMESPACE)
+                                            .endTargetRef()
+                                            .build())
+                            .withPorts(
+                                    new EndpointPortBuilder()
+                                            .withName("tcp-9091")
+                                            .withPort(portD)
+                                            .withProtocol("tcp")
+                                            .build())
+                            .endSubset()
+                            .addNewSubset()
+                            .withAddresses(
+                                    new EndpointAddressBuilder()
+                                            .withIp(ipE)
+                                            .withHostname(targetE.getMetadata().getName())
+                                            .withNewTargetRef()
+                                            .withName(targetE.getMetadata().getName())
+                                            .withKind(targetE.getKind())
+                                            .withNamespace(NAMESPACE)
+                                            .endTargetRef()
+                                            .build())
+                            .withPorts(
+                                    new EndpointPortBuilder()
+                                            .withName("jfr-jmx")
+                                            .withPort(portE)
+                                            .withProtocol("tcp")
+                                            .build())
+                            .endSubset()
+                            .build();
+
+            k8sClient.endpoints().inNamespace(NAMESPACE).resource(endpoints).create();
+
+            platformClient.start();
+            List<ServiceRef> result = platformClient.listDiscoverableServices();
+
+            // targetA is intentionally not a matching service
+            ServiceRef serv1 =
+                    new ServiceRef(
+                            null,
+                            URI.create(
+                                    String.format(
+                                            "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                            transformedIpB, NAMESPACE, portB)),
+                            targetB.getMetadata().getName());
+            serv1.setCryostatAnnotations(
+                    Map.of(
+                            AnnotationKey.REALM,
+                            "KubernetesApi",
+                            AnnotationKey.HOST,
+                            ipB,
+                            AnnotationKey.PORT,
+                            Integer.toString(portB),
+                            AnnotationKey.NAMESPACE,
+                            NAMESPACE,
+                            AnnotationKey.POD_NAME,
+                            targetB.getMetadata().getName()));
+            ServiceRef serv2 =
+                    new ServiceRef(
+                            null,
+                            URI.create(
+                                    String.format(
+                                            "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                            transformedIpC, NAMESPACE, portC)),
+                            targetC.getMetadata().getName());
+            serv2.setCryostatAnnotations(
+                    Map.of(
+                            AnnotationKey.REALM,
+                            "KubernetesApi",
+                            AnnotationKey.HOST,
+                            ipC,
+                            AnnotationKey.PORT,
+                            Integer.toString(portC),
+                            AnnotationKey.NAMESPACE,
+                            NAMESPACE,
+                            AnnotationKey.POD_NAME,
+                            targetC.getMetadata().getName()));
+            ServiceRef serv3 =
+                    new ServiceRef(
+                            null,
+                            URI.create(
+                                    String.format(
+                                            "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                            transformedIpD, NAMESPACE, portD)),
+                            targetD.getMetadata().getName());
+            serv3.setCryostatAnnotations(
+                    Map.of(
+                            AnnotationKey.REALM,
+                            "KubernetesApi",
+                            AnnotationKey.HOST,
+                            ipD,
+                            AnnotationKey.PORT,
+                            Integer.toString(portD),
+                            AnnotationKey.NAMESPACE,
+                            NAMESPACE,
+                            AnnotationKey.POD_NAME,
+                            targetD.getMetadata().getName()));
+            ServiceRef serv4 =
+                    new ServiceRef(
+                            null,
+                            URI.create(
+                                    String.format(
+                                            "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                            transformedIpE, NAMESPACE, portE)),
+                            targetE.getMetadata().getName());
+            serv4.setCryostatAnnotations(
+                    Map.of(
+                            AnnotationKey.REALM,
+                            "KubernetesApi",
+                            AnnotationKey.HOST,
+                            ipE,
+                            AnnotationKey.PORT,
+                            Integer.toString(portE),
+                            AnnotationKey.NAMESPACE,
+                            NAMESPACE,
+                            AnnotationKey.POD_NAME,
+                            targetE.getMetadata().getName()));
+            MatcherAssert.assertThat(result, Matchers.equalTo(Arrays.asList()));
         }
     }
 }
