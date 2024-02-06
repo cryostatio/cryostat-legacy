@@ -846,6 +846,7 @@ class KubeApiPlatformClientTest {
         void setup() throws Exception {
             platformClient =
                     new KubeApiPlatformClient(
+                            env,
                             List.of(NAMESPACE),
                             Set.of("cryostat-jmx", "cryostat-jfr"),
                             Set.of(9999, 4545),
@@ -1118,7 +1119,7 @@ class KubeApiPlatformClientTest {
         void setup() throws Exception {
             platformClient =
                     new KubeApiPlatformClient(
-                            List.of(NAMESPACE), Set.of(), Set.of(), k8sClient, logger);
+                            env, List.of(NAMESPACE), Set.of(), Set.of(), k8sClient, logger);
         }
 
         @Test
