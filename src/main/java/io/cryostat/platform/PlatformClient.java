@@ -23,6 +23,9 @@ import io.cryostat.platform.discovery.EnvironmentNode;
 import io.vertx.core.Promise;
 
 public interface PlatformClient {
+
+    boolean isEnabled();
+
     default void start() throws Exception {}
 
     default void load(Promise<EnvironmentNode> promise) {

@@ -25,6 +25,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.platform.AbstractPlatformClient;
 import io.cryostat.platform.ServiceRef;
@@ -46,9 +47,15 @@ public class CustomTargetPlatformClient extends AbstractPlatformClient {
     private final SortedSet<ServiceRef> targets;
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "Field is never mutated")
-    public CustomTargetPlatformClient(Lazy<DiscoveryStorage> storage) {
+    public CustomTargetPlatformClient(Environment environment, Lazy<DiscoveryStorage> storage) {
+        super(environment);
         this.storage = storage;
         this.targets = new TreeSet<>((u1, u2) -> u1.getServiceUri().compareTo(u2.getServiceUri()));
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
     }
 
     @Override

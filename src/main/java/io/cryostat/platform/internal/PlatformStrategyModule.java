@@ -52,8 +52,8 @@ public abstract class PlatformStrategyModule {
     @Provides
     @Singleton
     static CustomTargetPlatformClient provideCustomTargetPlatformClient(
-            Lazy<DiscoveryStorage> storage) {
-        return new CustomTargetPlatformClient(storage);
+            Environment environment, Lazy<DiscoveryStorage> storage) {
+        return new CustomTargetPlatformClient(environment, storage);
     }
 
     @Provides
@@ -73,54 +73,70 @@ public abstract class PlatformStrategyModule {
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Environment env,
             FileSystem fs) {
-        return new OpenShiftPlatformStrategy(logger, authManager, connectionToolkit, env, fs);
+        return new OpenShiftPlatformStrategy(authManager, connectionToolkit, env, fs, logger);
     }
 
     @Provides
     @Singleton
     static KubeApiPlatformStrategy provideKubeApiPlatformStrategy(
-            Logger logger,
             Lazy<NoopAuthManager> noopAuthManager,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Environment env,
-            FileSystem fs) {
-        return new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit, env, fs);
+            FileSystem fs,
+            Logger logger) {
+        return new KubeApiPlatformStrategy(noopAuthManager, connectionToolkit, env, fs, logger);
     }
 
     @Provides
     @Singleton
     static PodmanPlatformStrategy providePodmanPlatformStrategy(
-            Logger logger,
             Lazy<NoopAuthManager> noopAuthManager,
             @Named(UNIX_SOCKET_WEBCLIENT) Lazy<WebClient> webClient,
             Lazy<Vertx> vertx,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Gson gson,
-            FileSystem fs) {
+            Environment environment,
+            FileSystem fs,
+            Logger logger) {
         return new PodmanPlatformStrategy(
-                logger, noopAuthManager, webClient, vertx, connectionToolkit, gson, fs);
+                noopAuthManager,
+                webClient,
+                vertx,
+                connectionToolkit,
+                gson,
+                environment,
+                fs,
+                logger);
     }
 
     @Provides
     @Singleton
     static DockerPlatformStrategy provideDockerPlatformStrategy(
-            Logger logger,
             Lazy<NoopAuthManager> noopAuthManager,
             @Named(UNIX_SOCKET_WEBCLIENT) Lazy<WebClient> webClient,
             Lazy<Vertx> vertx,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Gson gson,
-            FileSystem fs) {
+            Environment environment,
+            FileSystem fs,
+            Logger logger) {
         return new DockerPlatformStrategy(
-                logger, noopAuthManager, webClient, vertx, connectionToolkit, gson, fs);
+                noopAuthManager,
+                webClient,
+                vertx,
+                connectionToolkit,
+                gson,
+                environment,
+                fs,
+                logger);
     }
 
     @Provides
     @Singleton
     static DefaultPlatformStrategy provideDefaultPlatformStrategy(
-            Logger logger, Lazy<NoopAuthManager> noopAuthManager) {
+            Environment environment, Lazy<NoopAuthManager> noopAuthManager, Logger logger) {
         return new DefaultPlatformStrategy(
-                logger, noopAuthManager, () -> new JvmDiscoveryClient(logger));
+                environment, noopAuthManager, () -> new JvmDiscoveryClient(logger), logger);
     }
 
     @Provides

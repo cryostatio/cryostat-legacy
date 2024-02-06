@@ -31,6 +31,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.DiscoveredJvmDescriptor;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.JvmDiscoveryEvent;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.platform.AbstractPlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
@@ -47,12 +48,14 @@ public class DefaultPlatformClient extends AbstractPlatformClient
 
     public static final NodeType NODE_TYPE = BaseNodeType.JVM;
 
-    private final Logger logger;
     private final JvmDiscoveryClient discoveryClient;
+    private final Logger logger;
 
-    DefaultPlatformClient(Logger logger, JvmDiscoveryClient discoveryClient) {
-        this.logger = logger;
+    DefaultPlatformClient(
+            Environment environment, JvmDiscoveryClient discoveryClient, Logger logger) {
+        super(environment);
         this.discoveryClient = discoveryClient;
+        this.logger = logger;
     }
 
     @Override

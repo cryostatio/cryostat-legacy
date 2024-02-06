@@ -74,6 +74,12 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                 .distinct()
                 .forEach(
                         platform -> {
+                            if (!platform.isEnabled()) {
+                                logger.info(
+                                        "Skipping built-in discovery with {} : not enabled",
+                                        platform.getClass().getSimpleName());
+                                return;
+                            }
                             logger.info(
                                     "Starting built-in discovery with {}",
                                     platform.getClass().getSimpleName());

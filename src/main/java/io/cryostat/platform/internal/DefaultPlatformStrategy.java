@@ -17,23 +17,27 @@ package io.cryostat.platform.internal;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
 
 import dagger.Lazy;
 
 class DefaultPlatformStrategy implements PlatformDetectionStrategy<DefaultPlatformClient> {
 
-    private final Logger logger;
+    private final Environment environment;
     private final Lazy<? extends AuthManager> authMgr;
     private final Lazy<JvmDiscoveryClient> discoveryClient;
+    private final Logger logger;
 
     DefaultPlatformStrategy(
-            Logger logger,
+            Environment environment,
             Lazy<? extends AuthManager> authMgr,
-            Lazy<JvmDiscoveryClient> discoveryClient) {
-        this.logger = logger;
+            Lazy<JvmDiscoveryClient> discoveryClient,
+            Logger logger) {
+        this.environment = environment;
         this.authMgr = authMgr;
         this.discoveryClient = discoveryClient;
+        this.logger = logger;
     }
 
     @Override
@@ -44,7 +48,7 @@ class DefaultPlatformStrategy implements PlatformDetectionStrategy<DefaultPlatfo
     @Override
     public DefaultPlatformClient getPlatformClient() {
         logger.info("Selected Default Platform Strategy");
-        return new DefaultPlatformClient(logger, discoveryClient.get());
+        return new DefaultPlatformClient(environment, discoveryClient.get(), logger);
     }
 
     @Override
