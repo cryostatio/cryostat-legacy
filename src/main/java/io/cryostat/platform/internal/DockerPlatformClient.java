@@ -36,6 +36,7 @@ import javax.management.remote.JMXServiceURL;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.platform.AbstractPlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
@@ -73,12 +74,14 @@ public class DockerPlatformClient extends AbstractPlatformClient {
     private final CopyOnWriteArrayList<ContainerSpec> containers = new CopyOnWriteArrayList<>();
 
     DockerPlatformClient(
+            Environment environment,
             Lazy<WebClient> webClient,
             Lazy<Vertx> vertx,
             SocketAddress dockerSocket,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Gson gson,
             Logger logger) {
+        super(environment);
         this.webClient = webClient;
         this.vertx = vertx;
         this.dockerSocket = dockerSocket;

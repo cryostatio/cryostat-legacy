@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
@@ -61,11 +62,12 @@ class CustomTargetPlatformClientTest {
         }
     }
 
+    @Mock Environment env;
     @Mock DiscoveryStorage storage;
 
     @BeforeEach
     void setup() {
-        this.client = new CustomTargetPlatformClient(() -> storage);
+        this.client = new CustomTargetPlatformClient(env, () -> storage);
     }
 
     @Test

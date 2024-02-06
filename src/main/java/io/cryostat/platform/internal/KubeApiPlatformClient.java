@@ -35,6 +35,7 @@ import javax.management.remote.JMXServiceURL;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.platform.AbstractPlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
@@ -105,10 +106,12 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
             new ConcurrentHashMap<>();
 
     KubeApiPlatformClient(
+            Environment environment,
             Collection<String> namespaces,
             KubernetesClient k8sClient,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Logger logger) {
+        super(environment);
         this.namespaces = new HashSet<>(namespaces);
         this.k8sClient = k8sClient;
         this.connectionToolkit = connectionToolkit;

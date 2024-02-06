@@ -34,6 +34,7 @@ import io.cryostat.core.net.discovery.DiscoveredJvmDescriptor;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.JvmDiscoveryEvent;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.TargetDiscoveryEvent;
@@ -56,13 +57,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DefaultPlatformClientTest {
 
-    @Mock Logger logger;
+    @Mock Environment env;
     @Mock JvmDiscoveryClient discoveryClient;
+    @Mock Logger logger;
     DefaultPlatformClient client;
 
     @BeforeEach
     void setup() {
-        this.client = new DefaultPlatformClient(logger, discoveryClient);
+        this.client = new DefaultPlatformClient(env, discoveryClient, logger);
     }
 
     @Test

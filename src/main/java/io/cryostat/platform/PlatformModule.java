@@ -90,8 +90,6 @@ public abstract class PlatformModule {
             List<String> platforms =
                     Arrays.asList(env.getEnv(Variables.PLATFORM_STRATEGY_ENV_VAR).split(","));
             fn = s -> platforms.contains(s.getClass().getCanonicalName());
-        } else if (env.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY)) {
-            fn = s -> false;
         } else {
             fn = PlatformDetectionStrategy::isAvailable;
         }
