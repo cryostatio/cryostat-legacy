@@ -28,12 +28,12 @@ import io.fabric8.openshift.client.OpenShiftClient;
 class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
 
     OpenShiftPlatformStrategy(
-            Logger logger,
             Lazy<? extends AuthManager> authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Environment env,
-            FileSystem fs) {
-        super(logger, authMgr, connectionToolkit, env, fs);
+            FileSystem fs,
+            Logger logger) {
+        super(authMgr, connectionToolkit, env, fs, logger);
     }
 
     @Override

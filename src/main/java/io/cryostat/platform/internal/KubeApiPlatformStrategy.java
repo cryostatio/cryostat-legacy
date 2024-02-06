@@ -39,18 +39,18 @@ import org.apache.commons.lang3.StringUtils;
 
 class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
 
-    protected final Logger logger;
     protected final Lazy<? extends AuthManager> authMgr;
     protected final Environment env;
     protected final FileSystem fs;
     protected final Lazy<JFRConnectionToolkit> connectionToolkit;
+    protected final Logger logger;
 
     KubeApiPlatformStrategy(
-            Logger logger,
             Lazy<? extends AuthManager> authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Environment env,
-            FileSystem fs) {
+            FileSystem fs,
+            Logger logger) {
         this.logger = logger;
         this.authMgr = authMgr;
         this.connectionToolkit = connectionToolkit;
@@ -73,7 +73,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected {} Strategy", getClass().getSimpleName());
         return new KubeApiPlatformClient(
-                getNamespaces(), createClient(), connectionToolkit, logger);
+                env, getNamespaces(), createClient(), connectionToolkit, logger);
     }
 
     @Override
