@@ -61,15 +61,9 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-build-
           ${{ runner.os }}-
-    - name: maven-settings
-      uses: s4u/maven-settings-action@v2
-      with:
-        githubServer: true
     - run: git submodule init
     - run: git submodule update
     - run: mvn -B -U -Dbuild.arch=${{ inputs.build-arch }} clean package
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Save cryostat image
       run: podman save -o cryostat-${{ inputs.build-arch }}.tar --format oci-archive quay.io/cryostat/cryostat
     - uses: actions/upload-artifact@v3

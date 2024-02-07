@@ -10,13 +10,6 @@
 <name>cryostat</name>
 <url>http://maven.apache.org</url>
 
-<repositories>
-  <repository>
-    <id>github</id>
-    <url>https://maven.pkg.github.com/cryostatio/cryostat-core</url>
-  </repository>
-</repositories>
-
 <properties>
   <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   <java.version>17</java.version>
