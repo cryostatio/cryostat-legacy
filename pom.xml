@@ -85,7 +85,7 @@
   <com.google.dagger.version>2.47</com.google.dagger.version>
   <com.google.dagger.compiler.version>${com.google.dagger.version}</com.google.dagger.compiler.version>
 
-  <io.cryostat.core.version>2.27.0</io.cryostat.core.version>
+  <io.cryostat.core.version>2.28.0</io.cryostat.core.version>
 
   <org.openjdk.nashorn.core.version>15.4</org.openjdk.nashorn.core.version>
   <org.apache.commons.lang3.version>3.13.0</org.apache.commons.lang3.version>
