@@ -16,6 +16,7 @@
 package io.cryostat.configuration;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
@@ -30,6 +31,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import javax.management.remote.JMXServiceURL;
 import javax.script.ScriptException;
 
 import io.cryostat.core.log.Logger;
@@ -49,6 +51,7 @@ import com.google.gson.JsonObject;
 import dagger.Lazy;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
+import org.openjdk.jmc.rjmx.ConnectionToolkit;
 
 public class CredentialsManager
         extends AbstractEventEmitter<CredentialsManager.CredentialsEvent, String> {
@@ -163,14 +166,25 @@ public class CredentialsManager
         return -1;
     }
 
+    public JMXServiceURL createServiceURL(String host, int port) throws MalformedURLException {
+        return ConnectionToolkit.createServiceURL(host, port);
+    }
+
     public Credentials getCredentialsByTargetId(String targetId) throws ScriptException {
         try {
             for (ServiceRef service : this.platformClient.listDiscoverableServices()) {
                 URI uri = service.getServiceUri();
                 boolean match = false;
                 boolean isJmx = URIUtil.isJmxUrl(uri);
+                boolean isShortForm = targetId.matches("localhost:\\d+");
+
                 if (isJmx) {
                     match = Objects.equals(uri.toString(), targetId);
+                } else if (isShortForm) {
+                    String[] parts = targetId.split(":");
+                    String host = parts[0];
+                    int port = Integer.parseInt(parts[1]);
+                    targetId = ConnectionToolkit.createServiceURL(host, port).toString();
                 } else {
                     URI in = new URI(targetId);
                     match = Objects.equals(uri, in);
@@ -182,7 +196,7 @@ public class CredentialsManager
                 }
             }
             return null;
-        } catch (URISyntaxException use) {
+        } catch (URISyntaxException | MalformedURLException use) {
             throw new IllegalStateException(use);
         }
     }
