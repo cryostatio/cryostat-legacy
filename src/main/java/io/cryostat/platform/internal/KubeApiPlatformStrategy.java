@@ -25,7 +25,6 @@ import java.util.concurrent.ForkJoinPool;
 
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
@@ -39,21 +38,18 @@ import org.apache.commons.lang3.StringUtils;
 
 class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
 
+    public static final String NO_PORT_NAME = "-";
+    public static final Integer NO_PORT_NUMBER = 0;
+
     protected final Lazy<? extends AuthManager> authMgr;
     protected final Environment env;
     protected final FileSystem fs;
-    protected final Lazy<JFRConnectionToolkit> connectionToolkit;
     protected final Logger logger;
 
     KubeApiPlatformStrategy(
-            Lazy<? extends AuthManager> authMgr,
-            Lazy<JFRConnectionToolkit> connectionToolkit,
-            Environment env,
-            FileSystem fs,
-            Logger logger) {
+            Lazy<? extends AuthManager> authMgr, Environment env, FileSystem fs, Logger logger) {
         this.logger = logger;
         this.authMgr = authMgr;
-        this.connectionToolkit = connectionToolkit;
         this.env = env;
         this.fs = fs;
     }
@@ -72,8 +68,19 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     @Override
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected {} Strategy", getClass().getSimpleName());
+        List<String> portNames =
+                Arrays.asList(env.getEnv(Variables.K8S_PORT_NAMES, "jfr-jmx").split(",")).stream()
+                        .map(String::strip)
+                        .filter(n -> !NO_PORT_NAME.equals(n))
+                        .toList();
+        List<Integer> portNumbers =
+                Arrays.asList(env.getEnv(Variables.K8S_PORT_NUMBERS, "9091").split(",")).stream()
+                        .map(String::strip)
+                        .map(Integer::parseInt)
+                        .filter(n -> !NO_PORT_NUMBER.equals(n))
+                        .toList();
         return new KubeApiPlatformClient(
-                env, getNamespaces(), createClient(), connectionToolkit, logger);
+                env, getNamespaces(), portNames, portNumbers, createClient(), logger);
     }
 
     @Override
