@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.platform.AbstractPlatformClient;
@@ -44,7 +43,6 @@ import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
 
-import dagger.Lazy;
 import io.fabric8.kubernetes.api.model.EndpointAddress;
 import io.fabric8.kubernetes.api.model.EndpointPort;
 import io.fabric8.kubernetes.api.model.EndpointSubset;
@@ -68,6 +66,8 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
 
     private final KubernetesClient k8sClient;
     private final Set<String> namespaces;
+    private final Set<String> portNames;
+    private final Set<Integer> portNumbers;
     private final LazyInitializer<HashMap<String, SharedIndexInformer<Endpoints>>> nsInformers =
             new LazyInitializer<HashMap<String, SharedIndexInformer<Endpoints>>>() {
                 @Override
@@ -98,7 +98,6 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
             };
     private Integer memoHash;
     private EnvironmentNode memoTree;
-    private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Logger logger;
     private final Map<Triple<String, String, String>, Pair<HasMetadata, EnvironmentNode>>
             discoveryNodeCache = new ConcurrentHashMap<>();
@@ -108,13 +107,15 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
     KubeApiPlatformClient(
             Environment environment,
             Collection<String> namespaces,
+            Collection<String> portNames,
+            Collection<Integer> portNumbers,
             KubernetesClient k8sClient,
-            Lazy<JFRConnectionToolkit> connectionToolkit,
             Logger logger) {
         super(environment);
         this.namespaces = new HashSet<>(namespaces);
+        this.portNames = new HashSet<>(portNames);
+        this.portNumbers = new HashSet<>(portNumbers);
         this.k8sClient = k8sClient;
-        this.connectionToolkit = connectionToolkit;
         this.logger = logger;
     }
 
@@ -289,7 +290,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
     }
 
     private boolean isCompatiblePort(EndpointPort port) {
-        return "jfr-jmx".equals(port.getName()) || 9091 == port.getPort();
+        return portNames.contains(port.getName()) || portNumbers.contains(port.getPort());
     }
 
     private List<ServiceRef> getAllServiceRefs() {

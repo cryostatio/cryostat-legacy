@@ -68,23 +68,15 @@ public abstract class PlatformStrategyModule {
     @Provides
     @Singleton
     static OpenShiftPlatformStrategy provideOpenShiftPlatformStrategy(
-            Logger logger,
-            Lazy<OpenShiftAuthManager> authManager,
-            Lazy<JFRConnectionToolkit> connectionToolkit,
-            Environment env,
-            FileSystem fs) {
-        return new OpenShiftPlatformStrategy(authManager, connectionToolkit, env, fs, logger);
+            Lazy<OpenShiftAuthManager> authManager, Environment env, FileSystem fs, Logger logger) {
+        return new OpenShiftPlatformStrategy(authManager, env, fs, logger);
     }
 
     @Provides
     @Singleton
     static KubeApiPlatformStrategy provideKubeApiPlatformStrategy(
-            Lazy<NoopAuthManager> noopAuthManager,
-            Lazy<JFRConnectionToolkit> connectionToolkit,
-            Environment env,
-            FileSystem fs,
-            Logger logger) {
-        return new KubeApiPlatformStrategy(noopAuthManager, connectionToolkit, env, fs, logger);
+            Lazy<NoopAuthManager> noopAuthManager, Environment env, FileSystem fs, Logger logger) {
+        return new KubeApiPlatformStrategy(noopAuthManager, env, fs, logger);
     }
 
     @Provides
