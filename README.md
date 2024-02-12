@@ -194,7 +194,14 @@ service endpoints and expose all discovered services as potential targets. This
 is runtime dynamic, allowing `cryostat` to discover new services which come
 online after `cryostat`, or to detect when known services disappear later.
 This requires the `cryostat` pod to have authorization to list services
-within its own namespace.
+within its own namespace. By default this will look for `Endpoints` objects
+with ports named `jfr-jmx` or numbered `9091`. This behaviour can be overridden
+using the environment variables `CRYOSTAT_DISCOVERY_K8S_PORT_NAMES` and
+`CRYOSTAT_DISCOVERY_K8S_PORT_NUMBERS` respectively. Both of these accept
+comma-separated lists as values. Any observed `Endpoints` object with a name
+in the given list or a number in the given list will be taken as a connectable
+target application. To set the names list to the empty list use `-`. To set the
+numbers list to the empty list use `0`.
 
 The second discovery mechanism is JDP (Java Discovery Protocol). This relies on
 target JVMs being configured with the JVM flags to enable JDP and requires the
