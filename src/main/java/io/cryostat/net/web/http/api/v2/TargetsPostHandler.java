@@ -28,6 +28,8 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import org.openjdk.jmc.rjmx.ConnectionToolkit;
+
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
@@ -50,7 +52,6 @@ import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
-import org.openjdk.jmc.rjmx.ConnectionToolkit;
 
 class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
 
@@ -153,16 +154,19 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             }
 
             MultiMap queries = params.getQueryParams();
-            boolean dryRun = StringUtils.isNotBlank(queries.get("dryrun"))
-                    && Boolean.valueOf(queries.get("dryrun"));
-            boolean storeCredentials = StringUtils.isNotBlank(queries.get("storeCredentials"))
-                    && Boolean.valueOf(queries.get("storeCredentials"));
+            boolean dryRun =
+                    StringUtils.isNotBlank(queries.get("dryrun"))
+                            && Boolean.valueOf(queries.get("dryrun"));
+            boolean storeCredentials =
+                    StringUtils.isNotBlank(queries.get("storeCredentials"))
+                            && Boolean.valueOf(queries.get("storeCredentials"));
 
             String username = attrs.get("username");
             String password = attrs.get("password");
-            Optional<Credentials> credentials = StringUtils.isBlank(username) || StringUtils.isBlank(password)
-                    ? Optional.empty()
-                    : Optional.of(new Credentials(username, password));
+            Optional<Credentials> credentials =
+                    StringUtils.isBlank(username) || StringUtils.isBlank(password)
+                            ? Optional.empty()
+                            : Optional.of(new Credentials(username, password));
 
             if (storeCredentials && credentials.isPresent()) {
                 String matchExpression = CredentialsManager.targetIdToMatchExpression(connectUrl);
