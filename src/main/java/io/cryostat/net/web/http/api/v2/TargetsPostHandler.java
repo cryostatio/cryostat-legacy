@@ -50,6 +50,7 @@ import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
+import org.openjdk.jmc.rjmx.ConnectionToolkit;
 
 class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
 
@@ -129,6 +130,14 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
         try {
             MultiMap attrs = params.getFormAttributes();
             String connectUrl = attrs.get("connectUrl");
+            // check incase custom target has short form connection url (i.e `localhost:0`,
+            // etc)
+            if (connectUrl.matches("localhost:\\d+")) {
+                String[] connectUrlParts = connectUrl.split(":");
+                String host = connectUrlParts[0];
+                int port = Integer.parseInt(connectUrlParts[1]);
+                connectUrl = ConnectionToolkit.createServiceURL(host, port).toString();
+            }
             if (StringUtils.isBlank(connectUrl)) {
                 throw new ApiException(400, "\"connectUrl\" form parameter must be provided");
             }
@@ -144,19 +153,16 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             }
 
             MultiMap queries = params.getQueryParams();
-            boolean dryRun =
-                    StringUtils.isNotBlank(queries.get("dryrun"))
-                            && Boolean.valueOf(queries.get("dryrun"));
-            boolean storeCredentials =
-                    StringUtils.isNotBlank(queries.get("storeCredentials"))
-                            && Boolean.valueOf(queries.get("storeCredentials"));
+            boolean dryRun = StringUtils.isNotBlank(queries.get("dryrun"))
+                    && Boolean.valueOf(queries.get("dryrun"));
+            boolean storeCredentials = StringUtils.isNotBlank(queries.get("storeCredentials"))
+                    && Boolean.valueOf(queries.get("storeCredentials"));
 
             String username = attrs.get("username");
             String password = attrs.get("password");
-            Optional<Credentials> credentials =
-                    StringUtils.isBlank(username) || StringUtils.isBlank(password)
-                            ? Optional.empty()
-                            : Optional.of(new Credentials(username, password));
+            Optional<Credentials> credentials = StringUtils.isBlank(username) || StringUtils.isBlank(password)
+                    ? Optional.empty()
+                    : Optional.of(new Credentials(username, password));
 
             if (storeCredentials && credentials.isPresent()) {
                 String matchExpression = CredentialsManager.targetIdToMatchExpression(connectUrl);
