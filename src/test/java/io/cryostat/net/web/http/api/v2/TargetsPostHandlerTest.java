@@ -254,6 +254,43 @@ class TargetsPostHandlerTest {
     }
 
     @Test
+    void testRequestWithShortFormCustomTarget() throws Exception {
+        MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
+        RequestParameters params = Mockito.mock(RequestParameters.class);
+        Mockito.when(params.getFormAttributes()).thenReturn(attrs);
+        Mockito.when(params.getQueryParams()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        Mockito.when(customTargetPlatformClient.addTarget(Mockito.any())).thenReturn(true);
+        Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of());
+        Mockito.when(
+                        jvmIdHelper.getJvmId(
+                                Mockito.anyString(),
+                                Mockito.anyBoolean(),
+                                Mockito.any(Optional.class)))
+                .thenReturn("id");
+
+        String connectUrl = "localhost:9099";
+        String alias = "TestAlias";
+        attrs.set("connectUrl", connectUrl);
+        attrs.set("alias", alias);
+
+        IntermediateResponse<ServiceRef> response = handler.handle(params);
+        MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
+
+        ArgumentCaptor<ServiceRef> refCaptor = ArgumentCaptor.forClass(ServiceRef.class);
+        Mockito.verify(customTargetPlatformClient).addTarget(refCaptor.capture());
+        ServiceRef captured = refCaptor.getValue();
+        String expectedConnectUrl = "service:jmx:rmi:///jndi/rmi://localhost:9099/jmxrmi";
+        MatcherAssert.assertThat(
+                captured.getServiceUri(), Matchers.equalTo(new URI(expectedConnectUrl)));
+        MatcherAssert.assertThat(captured.getAlias(), Matchers.equalTo(Optional.of(alias)));
+        MatcherAssert.assertThat(captured.getPlatformAnnotations(), Matchers.equalTo(Map.of()));
+        MatcherAssert.assertThat(
+                captured.getCryostatAnnotations(),
+                Matchers.equalTo(Map.of(AnnotationKey.REALM, "Custom Targets")));
+        MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(captured));
+    }
+
+    @Test
     void testRequestWithDuplicateTarget() throws IOException {
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
         RequestParameters params = Mockito.mock(RequestParameters.class);

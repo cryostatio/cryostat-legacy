@@ -131,6 +131,10 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
         try {
             MultiMap attrs = params.getFormAttributes();
             String connectUrl = attrs.get("connectUrl");
+
+            if (StringUtils.isBlank(connectUrl)) {
+                throw new ApiException(400, "\"connectUrl\" form parameter must be provided");
+            }
             // check incase custom target has short form connection url (i.e `localhost:0`,
             // etc)
             if (connectUrl.matches("localhost:\\d+")) {
@@ -138,9 +142,6 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                 String host = connectUrlParts[0];
                 int port = Integer.parseInt(connectUrlParts[1]);
                 connectUrl = ConnectionToolkit.createServiceURL(host, port).toString();
-            }
-            if (StringUtils.isBlank(connectUrl)) {
-                throw new ApiException(400, "\"connectUrl\" form parameter must be provided");
             }
             String alias = attrs.get("alias");
             if (StringUtils.isBlank(alias)) {
