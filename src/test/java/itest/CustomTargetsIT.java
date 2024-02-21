@@ -119,7 +119,7 @@ public class CustomTargetsIT extends StandardSelfTest {
         String expectedConnectUrl = "service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi";
         JsonObject body = response.get().getJsonObject("data").getJsonObject("result");
         MatcherAssert.assertThat(
-                body.getString("connectUrl"), Matchers.equalTo(expectedConnectUrl));
+                body.getString("connectUrl").strip(), Matchers.equalTo(expectedConnectUrl.strip()));
         MatcherAssert.assertThat(body.getString("alias"), Matchers.equalTo("self"));
     }
 
@@ -223,7 +223,7 @@ public class CustomTargetsIT extends StandardSelfTest {
 
         JsonObject body = response.get().getJsonObject("data").getJsonObject("result");
         MatcherAssert.assertThat(
-                body.getString("connectUrl"), Matchers.equalTo(expectedConnectUrl));
+                body.getString("connectUrl").strip(), Matchers.equalTo(expectedConnectUrl.strip()));
         MatcherAssert.assertThat(body.getString("alias"), Matchers.equalTo("self"));
 
         JsonObject result1 = resultFuture1.get();
@@ -239,7 +239,7 @@ public class CustomTargetsIT extends StandardSelfTest {
         MatcherAssert.assertThat(storedCredential.id, Matchers.any(Integer.class));
         MatcherAssert.assertThat(
                 storedCredential.matchExpression,
-                Matchers.equalTo("target.connectUrl == \"" + expectedConnectUrl + "\""));
+                Matchers.equalTo("target.connectUrl == \"" + expectedConnectUrl.strip() + "\""));
         MatcherAssert.assertThat(
                 storedCredential.numMatchingTargets, Matchers.equalTo(Integer.valueOf(1)));
 
@@ -247,8 +247,8 @@ public class CustomTargetsIT extends StandardSelfTest {
         JsonObject event = result2.getJsonObject("message").getJsonObject("event");
         MatcherAssert.assertThat(event.getString("kind"), Matchers.equalTo("FOUND"));
         MatcherAssert.assertThat(
-                event.getJsonObject("serviceRef").getString("connectUrl"),
-                Matchers.equalTo(expectedConnectUrl));
+                event.getJsonObject("serviceRef").getString("connectUrl").strip(),
+                Matchers.equalTo(expectedConnectUrl.strip()));
         MatcherAssert.assertThat(
                 event.getJsonObject("serviceRef").getString("alias"), Matchers.equalTo("self"));
     }
@@ -335,9 +335,9 @@ public class CustomTargetsIT extends StandardSelfTest {
                                                     Matchers.equalTo("LOST"));
                                             MatcherAssert.assertThat(
                                                     event.getJsonObject("serviceRef")
-                                                            .getString("connectUrl"),
+                                                            .getString("connectUrl").strip(),
                                                     Matchers.equalTo(
-                                                            "service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi"));
+                                                            "service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi".strip()));
                                             MatcherAssert.assertThat(
                                                     event.getJsonObject("serviceRef")
                                                             .getString("alias"),
@@ -356,7 +356,7 @@ public class CustomTargetsIT extends StandardSelfTest {
                         Collections.singletonList(jmxServiceUrl), StandardCharsets.UTF_8);
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
-                .delete("/api/v2/targets/" + encodedUrl)
+                .delete("/api/v2/targets/" + encodedUrl.strip())
                 .send(
                         ar -> {
                             assertRequestStatus(ar, response);
