@@ -137,7 +137,9 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             }
             // check incase custom target has short form connection url (i.e `localhost:0`,
             // etc)
-            if (connectUrl.matches("localhost:\\d+")) {
+            connectUrl = connectUrl.strip();
+            boolean isShortForm = connectUrl.matches("^[^\\s/:]+:\\d+$");
+            if (isShortForm) {
                 String[] connectUrlParts = connectUrl.split(":");
                 String host = connectUrlParts[0];
                 int port = Integer.parseInt(connectUrlParts[1]);

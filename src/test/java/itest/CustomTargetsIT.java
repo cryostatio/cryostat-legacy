@@ -15,8 +15,8 @@
  */
 package itest;
 
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -37,6 +37,7 @@ import itest.bases.StandardSelfTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.http.JvmIdWebRequest;
 import itest.util.http.StoredCredential;
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -350,7 +351,9 @@ public class CustomTargetsIT extends StandardSelfTest {
                 });
 
         String jmxServiceUrl = "service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi";
-        String encodedUrl = URLEncoder.encode(jmxServiceUrl, StandardCharsets.UTF_8);
+        String encodedUrl =
+                URLEncodedUtils.formatSegments(
+                        Collections.singletonList(jmxServiceUrl), StandardCharsets.UTF_8);
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
                 .delete("/api/v2/targets/" + encodedUrl)
@@ -377,7 +380,6 @@ public class CustomTargetsIT extends StandardSelfTest {
                         });
         JsonArray body = response.get();
         MatcherAssert.assertThat(body, Matchers.notNullValue());
-
         MatcherAssert.assertThat(body.size(), Matchers.equalTo(1));
 
         JsonObject selfJdp =
