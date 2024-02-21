@@ -362,7 +362,6 @@ public class CustomTargetsIT extends StandardSelfTest {
                         });
 
         latch.await(5, TimeUnit.SECONDS);
-
     }
 
     @Test
