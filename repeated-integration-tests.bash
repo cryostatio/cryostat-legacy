@@ -45,6 +45,8 @@ STARTFLAGS=(
     "-Dcryostat.itest.imageTag=${ITEST_IMG_VERSION}"
     "-Dcryostat.itest.pullImages=${PULL_IMAGES}"
     "build-helper:regex-property@image-tag-to-lower"
+    "exec:exec@print-podman-version"
+    "exec:exec@print-podman-info"
     "exec:exec@create-pod"
     "exec:exec@start-jfr-datasource"
     "exec:exec@start-grafana"
@@ -59,6 +61,10 @@ STARTFLAGS=(
 
 if [ -n "$2" ]; then
     STARTFLAGS+=("-Dit.test=$2")
+fi
+
+if [ -n "${RANDOM_SEED}" ]; then
+    STARTFLAGS+=("-Dfailsafe.runOrder.random.seed=${RANDOM_SEED}")
 fi
 
 STOPFLAGS=(

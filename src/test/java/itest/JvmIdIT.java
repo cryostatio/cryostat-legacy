@@ -15,60 +15,36 @@
  */
 package itest;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 import itest.bases.ExternalTargetsTest;
-import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
 import itest.util.http.JvmIdWebRequest;
 import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class JvmIdIT extends ExternalTargetsTest {
 
     static final int NUM_EXT_CONTAINERS = 3;
-    static final List<String> CONTAINERS = new ArrayList<>();
 
     @BeforeAll
     static void setup() throws Exception {
         Set<Podman.ImageSpec> specs = new HashSet<>();
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
-            specs.add(
+            Podman.ImageSpec spec =
                     new Podman.ImageSpec(
-                            FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", String.valueOf(9093 + i))));
+                            "vertx-fib-demo-" + i,
+                            FIB_DEMO_IMAGESPEC,
+                            Map.of("JMX_PORT", String.valueOf(9093 + i)));
+            specs.add(spec);
+            CONTAINERS.add(Podman.runAppWithAgent(10_000 + i, spec));
         }
-        for (Podman.ImageSpec spec : specs) {
-            CONTAINERS.add(Podman.run(spec));
-        }
-        CompletableFuture.allOf(
-                        CONTAINERS.stream()
-                                .map(id -> Podman.waitForContainerState(id, "running"))
-                                .collect(Collectors.toList())
-                                .toArray(new CompletableFuture[0]))
-                .join();
         waitForDiscovery(NUM_EXT_CONTAINERS);
-    }
-
-    @AfterAll
-    static void cleanup() throws ITestCleanupFailedException {
-        for (String id : CONTAINERS) {
-            try {
-                Podman.kill(id);
-            } catch (Exception e) {
-                throw new ITestCleanupFailedException(
-                        String.format("Failed to kill container instance with ID %s", id), e);
-            }
-        }
     }
 
     @Test

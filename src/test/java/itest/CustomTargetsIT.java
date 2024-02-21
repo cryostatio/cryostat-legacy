@@ -16,6 +16,7 @@
 package itest;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -26,11 +27,15 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import io.cryostat.MainModule;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.web.http.HttpMimeType;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import io.vertx.core.MultiMap;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import itest.DiscoveryIT.Target;
 import itest.bases.StandardSelfTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.http.JvmIdWebRequest;
@@ -46,6 +51,8 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 @TestMethodOrder(OrderAnnotation.class)
 public class CustomTargetsIT extends StandardSelfTest {
+
+    private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
 
     private final ExecutorService worker = ForkJoinPool.commonPool();
     static final Map<String, String> NULL_RESULT = new HashMap<>();
@@ -121,44 +128,31 @@ public class CustomTargetsIT extends StandardSelfTest {
     @Test
     @Order(2)
     void targetShouldNotAppearInListing() throws InterruptedException, ExecutionException {
-        CompletableFuture<JsonArray> response = new CompletableFuture<>();
+        CompletableFuture<List<Target>> response = new CompletableFuture<>();
         webClient
                 .get("/api/v1/targets")
                 .send(
                         ar -> {
                             assertRequestStatus(ar, response);
-                            response.complete(ar.result().bodyAsJsonArray());
+                            response.complete(
+                                    gson.fromJson(
+                                            ar.result().bodyAsString(),
+                                            new TypeToken<List<Target>>() {}));
                         });
-        JsonArray body = response.get();
-        MatcherAssert.assertThat(body, Matchers.notNullValue());
-        MatcherAssert.assertThat(body.size(), Matchers.equalTo(1));
+        List<Target> targets = response.get();
+        MatcherAssert.assertThat(targets, Matchers.notNullValue());
+        MatcherAssert.assertThat(targets.size(), Matchers.equalTo(1));
 
-        JsonObject selfJdp =
-                new JsonObject(
-                        Map.of(
-                                "jvmId",
-                                itestJvmId,
-                                "alias",
-                                "io.cryostat.Cryostat",
-                                "connectUrl",
-                                "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi",
-                                "labels",
-                                Map.of(),
-                                "annotations",
-                                Map.of(
-                                        "cryostat",
-                                        Map.of(
-                                                "REALM",
-                                                "JDP",
-                                                "HOST",
-                                                "cryostat-itests",
-                                                "PORT",
-                                                "9091",
-                                                "JAVA_MAIN",
-                                                "io.cryostat.Cryostat"),
-                                        "platform",
-                                        Map.of())));
-        MatcherAssert.assertThat(body, Matchers.contains(selfJdp));
+        MatcherAssert.assertThat(
+                targets,
+                Matchers.hasItems(
+                        Matchers.allOf(
+                                Matchers.hasProperty(
+                                        "connectUrl",
+                                        Matchers.equalTo(
+                                                "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi")),
+                                Matchers.hasProperty(
+                                        "alias", Matchers.equalTo("io.cryostat.Cryostat")))));
     }
 
     @Test
@@ -249,61 +243,34 @@ public class CustomTargetsIT extends StandardSelfTest {
     @Order(4)
     void targetShouldAppearInListing()
             throws ExecutionException, InterruptedException, TimeoutException {
-        CompletableFuture<JsonArray> response = new CompletableFuture<>();
+        CompletableFuture<List<Target>> response = new CompletableFuture<>();
         webClient
                 .get("/api/v1/targets")
                 .send(
                         ar -> {
                             assertRequestStatus(ar, response);
-                            response.complete(ar.result().bodyAsJsonArray());
+                            response.complete(
+                                    gson.fromJson(
+                                            ar.result().bodyAsString(),
+                                            new TypeToken<List<Target>>() {}));
                         });
-        JsonArray body = response.get();
-        MatcherAssert.assertThat(body, Matchers.notNullValue());
-        MatcherAssert.assertThat(body.size(), Matchers.equalTo(2));
+        List<Target> targets = response.get();
+        MatcherAssert.assertThat(targets, Matchers.notNullValue());
+        MatcherAssert.assertThat(targets.size(), Matchers.equalTo(2));
 
-        JsonObject selfJdp =
-                new JsonObject(
-                        Map.of(
-                                "jvmId",
-                                itestJvmId,
-                                "alias",
-                                "io.cryostat.Cryostat",
-                                "connectUrl",
-                                "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi",
-                                "labels",
-                                Map.of(),
-                                "annotations",
-                                Map.of(
-                                        "cryostat",
-                                        Map.of(
-                                                "REALM",
-                                                "JDP",
-                                                "HOST",
-                                                "cryostat-itests",
-                                                "PORT",
-                                                "9091",
-                                                "JAVA_MAIN",
-                                                "io.cryostat.Cryostat"),
-                                        "platform",
-                                        Map.of())));
-        JsonObject selfCustom =
-                new JsonObject(
-                        Map.of(
-                                "jvmId",
-                                itestJvmId,
-                                "alias",
-                                "self",
-                                "connectUrl",
-                                "localhost:0",
-                                "labels",
-                                Map.of(),
-                                "annotations",
-                                Map.of(
-                                        "cryostat",
-                                        Map.of("REALM", "Custom Targets"),
-                                        "platform",
-                                        Map.of())));
-        MatcherAssert.assertThat(body, Matchers.containsInAnyOrder(selfJdp, selfCustom));
+        MatcherAssert.assertThat(
+                targets,
+                Matchers.hasItems(
+                        Matchers.allOf(
+                                Matchers.hasProperty(
+                                        "connectUrl",
+                                        Matchers.equalTo(
+                                                "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi")),
+                                Matchers.hasProperty(
+                                        "alias", Matchers.equalTo("io.cryostat.Cryostat"))),
+                        Matchers.allOf(
+                                Matchers.hasProperty("connectUrl", Matchers.equalTo("localhost:0")),
+                                Matchers.hasProperty("alias", Matchers.equalTo("self")))));
     }
 
     @Test
@@ -357,43 +324,6 @@ public class CustomTargetsIT extends StandardSelfTest {
     @Test
     @Order(6)
     void targetShouldNoLongerAppearInListing() throws ExecutionException, InterruptedException {
-        CompletableFuture<JsonArray> response = new CompletableFuture<>();
-        webClient
-                .get("/api/v1/targets")
-                .send(
-                        ar -> {
-                            assertRequestStatus(ar, response);
-                            response.complete(ar.result().bodyAsJsonArray());
-                        });
-        JsonArray body = response.get();
-        MatcherAssert.assertThat(body, Matchers.notNullValue());
-        MatcherAssert.assertThat(body.size(), Matchers.equalTo(1));
-
-        JsonObject selfJdp =
-                new JsonObject(
-                        Map.of(
-                                "jvmId",
-                                itestJvmId,
-                                "alias",
-                                "io.cryostat.Cryostat",
-                                "connectUrl",
-                                "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi",
-                                "labels",
-                                Map.of(),
-                                "annotations",
-                                Map.of(
-                                        "cryostat",
-                                        Map.of(
-                                                "REALM",
-                                                "JDP",
-                                                "HOST",
-                                                "cryostat-itests",
-                                                "PORT",
-                                                "9091",
-                                                "JAVA_MAIN",
-                                                "io.cryostat.Cryostat"),
-                                        "platform",
-                                        Map.of())));
-        MatcherAssert.assertThat(body, Matchers.contains(selfJdp));
+        targetShouldNotAppearInListing();
     }
 }

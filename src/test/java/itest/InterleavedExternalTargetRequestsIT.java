@@ -18,19 +18,16 @@ package itest;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.ServiceRef.AnnotationKey;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -38,12 +35,10 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.ExternalTargetsTest;
-import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
 import itest.util.http.JvmIdWebRequest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -59,48 +54,34 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
     static final int NUM_EXT_CONTAINERS = 4;
     static final int NUM_AUTH_EXT_CONTAINERS = 4;
     static final int NUM_EXT_CONTAINERS_TOTAL = NUM_EXT_CONTAINERS + NUM_AUTH_EXT_CONTAINERS;
-    static final List<String> CONTAINERS = new ArrayList<>();
 
     @BeforeAll
     static void setup() throws Exception {
-        Set<Podman.ImageSpec> specs = new HashSet<>();
+        List<Podman.ImageSpec> specs = new ArrayList<>(NUM_EXT_CONTAINERS_TOTAL);
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
-            specs.add(
+            Podman.ImageSpec spec =
                     new Podman.ImageSpec(
-                            FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", String.valueOf(9093 + i))));
+                            "vertx-fib-demo-" + i,
+                            FIB_DEMO_IMAGESPEC,
+                            Map.of("JMX_PORT", String.valueOf(9093 + i)));
+            specs.add(spec);
         }
         for (int i = 0; i < NUM_AUTH_EXT_CONTAINERS; i++) {
-            specs.add(
+            Podman.ImageSpec spec =
                     new Podman.ImageSpec(
+                            "vertx-fib-demo-" + NUM_EXT_CONTAINERS + i,
                             FIB_DEMO_IMAGESPEC,
                             Map.of(
                                     "JMX_PORT",
                                     String.valueOf(9093 + NUM_EXT_CONTAINERS + i),
                                     "USE_AUTH",
-                                    "true")));
+                                    "true"));
+            specs.add(spec);
         }
-        for (Podman.ImageSpec spec : specs) {
-            CONTAINERS.add(Podman.run(spec));
+        for (int i = 0; i < NUM_EXT_CONTAINERS_TOTAL; i++) {
+            CONTAINERS.add(Podman.runAppWithAgent(10_000 + i, specs.get(i)));
         }
-        CompletableFuture.allOf(
-                        CONTAINERS.stream()
-                                .map(id -> Podman.waitForContainerState(id, "running"))
-                                .collect(Collectors.toList())
-                                .toArray(new CompletableFuture[0]))
-                .join();
         waitForDiscovery(NUM_EXT_CONTAINERS_TOTAL);
-    }
-
-    @AfterAll
-    static void cleanup() throws ITestCleanupFailedException {
-        for (String id : CONTAINERS) {
-            try {
-                Podman.kill(id);
-            } catch (Exception e) {
-                throw new ITestCleanupFailedException(
-                        String.format("Failed to kill container instance with ID %s", id), e);
-            }
-        }
     }
 
     @Test
@@ -124,44 +105,33 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
         // ordering may not be guaranteed so use a Set, but there should be no duplicates and so
         // size should not change
         MatcherAssert.assertThat(actual.size(), Matchers.equalTo(NUM_EXT_CONTAINERS_TOTAL + 1));
-        Set<ServiceRef> expected = new HashSet<>();
-        String cryostatTargetId =
-                String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME);
-        String cryostatJvmId = JvmIdWebRequest.jvmIdRequest(cryostatTargetId);
-        ServiceRef cryostat =
-                new ServiceRef(cryostatJvmId, new URI(cryostatTargetId), "io.cryostat.Cryostat");
-        cryostat.setCryostatAnnotations(
-                Map.of(
-                        AnnotationKey.REALM,
-                        "JDP",
-                        AnnotationKey.JAVA_MAIN,
-                        "io.cryostat.Cryostat",
-                        AnnotationKey.HOST,
-                        Podman.POD_NAME,
-                        AnnotationKey.PORT,
-                        "9091"));
-        expected.add(cryostat);
+        MatcherAssert.assertThat(
+                actual,
+                Matchers.hasItem(
+                        Matchers.allOf(
+                                Matchers.hasProperty(
+                                        "serviceUri",
+                                        Matchers.equalTo(URI.create(SELF_REFERENCE_JMX_URL))),
+                                Matchers.hasProperty(
+                                        "jvmId",
+                                        Matchers.equalTo(
+                                                JvmIdWebRequest.jvmIdRequest(
+                                                        SELF_REFERENCE_JMX_URL))))));
         for (int i = 0; i < NUM_EXT_CONTAINERS_TOTAL; i++) {
-            URI uri =
-                    new URI(
-                            String.format(
-                                    "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi",
-                                    Podman.POD_NAME, 9093 + i));
-            String jvmId = JvmIdWebRequest.jvmIdRequest(uri, VERTX_FIB_CREDENTIALS);
-            ServiceRef ext = new ServiceRef(jvmId, uri, "es.andrewazor.demo.Main");
-            ext.setCryostatAnnotations(
-                    Map.of(
-                            AnnotationKey.REALM,
-                            "JDP",
-                            AnnotationKey.JAVA_MAIN,
-                            "es.andrewazor.demo.Main",
-                            AnnotationKey.HOST,
-                            Podman.POD_NAME,
-                            AnnotationKey.PORT,
-                            Integer.toString(9093 + i)));
-            expected.add(ext);
+            String serviceUri =
+                    String.format(
+                            "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi",
+                            Podman.POD_NAME, 9093 + i);
+            String jvmId =
+                    JvmIdWebRequest.jvmIdRequest(URI.create(serviceUri), VERTX_FIB_CREDENTIALS);
+            MatcherAssert.assertThat(
+                    actual,
+                    Matchers.hasItem(
+                            Matchers.allOf(
+                                    Matchers.hasProperty(
+                                            "serviceUri", Matchers.equalTo(URI.create(serviceUri))),
+                                    Matchers.hasProperty("jvmId", Matchers.equalTo(jvmId)))));
         }
-        MatcherAssert.assertThat(actual, Matchers.equalTo(expected));
     }
 
     @Test

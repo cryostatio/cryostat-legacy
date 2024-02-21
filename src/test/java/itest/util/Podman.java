@@ -20,13 +20,13 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import io.cryostat.core.sys.Environment;
@@ -42,81 +42,68 @@ public abstract class Podman {
     public static final Duration STARTUP_TIMEOUT = Duration.ofSeconds(60);
 
     public static final String POD_NAME;
+    public static final int CRYOSTAT_WEB_PORT;
 
     public static final ExecutorService POOL = Executors.newCachedThreadPool();
 
     static {
         Environment env = new Environment();
         POD_NAME = env.getProperty("cryostatPodName");
+        CRYOSTAT_WEB_PORT = Integer.parseInt(env.getProperty("cryostat.itest.webPort", "8181"));
     }
 
-    public static String run(ImageSpec imageSpec) throws Exception {
+    public static String runAppWithAgent(int agentHttpPort, ImageSpec spec, boolean preferJmx)
+            throws Exception {
+        Map<String, String> augmentedEnvs = new HashMap<>(spec.envs);
+
+        augmentedEnvs.putIfAbsent("CRYOSTAT_AGENT_APP_NAME", spec.name);
+        augmentedEnvs.putIfAbsent("CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL", "true");
+        augmentedEnvs.putIfAbsent("CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME", "false");
+        augmentedEnvs.putIfAbsent("CRYOSTAT_AGENT_WEBSERVER_HOST", "localhost");
+        augmentedEnvs.putIfAbsent("CRYOSTAT_AGENT_WEBSERVER_PORT", String.valueOf(agentHttpPort));
+        augmentedEnvs.putIfAbsent(
+                "CRYOSTAT_AGENT_CALLBACK", String.format("http://localhost:%d/", agentHttpPort));
+        augmentedEnvs.putIfAbsent(
+                "CRYOSTAT_AGENT_BASEURI", String.format("http://localhost:%d/", CRYOSTAT_WEB_PORT));
+        augmentedEnvs.putIfAbsent("CRYOSTAT_AGENT_TRUST_ALL", "true");
+        augmentedEnvs.putIfAbsent(
+                "CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX", String.valueOf(preferJmx));
+
+        ImageSpec augmentedSpec = new ImageSpec(spec.imageSpec, augmentedEnvs);
         List<String> args = new ArrayList<>();
         args.add("run");
+        args.add("--name=" + augmentedSpec.name);
         args.add("--quiet");
         args.add("--pod=" + POD_NAME);
+        args.add("--health-cmd");
+        args.add(
+                String.format(
+                        "curl --fail http://localhost:%d",
+                        Integer.parseInt(spec.envs.getOrDefault("HTTP_PORT", "8081"))));
         args.add("--detach");
         args.add("--rm");
 
-        imageSpec
-                .envs
-                .entrySet()
+        augmentedSpec.envs.entrySet().stream()
+                .map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
                 .forEach(
                         env -> {
                             args.add("--env");
-                            args.add(env.getKey() + "=" + env.getValue());
+                            args.add(env);
                         });
+        args.add(augmentedSpec.imageSpec);
 
-        args.add(imageSpec.imageSpec);
-
-        return runCommand(args.toArray(new String[0])).out();
+        return runCommand(args.toArray(new String[0])).out().strip();
     }
 
-    public static Future<Void> waitForContainerState(String id, String state) {
-        CompletableFuture<Void> cf = new CompletableFuture<>();
-
-        POOL.submit(
-                () -> {
-                    try {
-                        long start = System.currentTimeMillis();
-                        long elapsed = 0;
-                        String fmtState = String.format("\"%s\"", Objects.requireNonNull(state));
-                        while (elapsed < STARTUP_TIMEOUT.toMillis()) {
-                            String out =
-                                    runCommand(
-                                                    "container",
-                                                    "inspect",
-                                                    "--format=\"{{.State.Status}}\"",
-                                                    id)
-                                            .out();
-                            if (fmtState.trim().equalsIgnoreCase(out)) {
-                                break;
-                            }
-                            long now = System.currentTimeMillis();
-                            long delta = now - start;
-                            elapsed += delta;
-                            Thread.sleep(2_000L);
-                        }
-                        if (elapsed >= STARTUP_TIMEOUT.toMillis()) {
-                            throw new PodmanException(
-                                    String.format(
-                                            "Container %s did not reach %s state in %ds",
-                                            id, fmtState, STARTUP_TIMEOUT.toSeconds()));
-                        }
-                        cf.complete(null);
-                    } catch (Exception e) {
-                        cf.completeExceptionally(e);
-                    }
-                });
-
-        return cf;
+    public static String runAppWithAgent(int agentHttpPort, ImageSpec spec) throws Exception {
+        return runAppWithAgent(agentHttpPort, spec, true);
     }
 
-    public static String kill(String id) throws Exception {
-        return runCommand("kill", id).out();
+    public static String stop(String id) throws Exception {
+        return runCommand("stop", id).out();
     }
 
-    private static CommandOutput runCommand(String... args) throws Exception {
+    public static CommandOutput runCommand(String... args) throws Exception {
         Process proc = null;
         try {
             List<String> argsList = new ArrayList<>();
@@ -130,7 +117,7 @@ public abstract class Podman {
                 System.out.println(co.out());
             }
             if (StringUtils.isNotBlank(co.err())) {
-                System.out.println(co.err());
+                System.err.println(co.err());
             }
             if (co.exitValue() != 0) {
                 throw new PodmanException(co);
@@ -182,15 +169,21 @@ public abstract class Podman {
     }
 
     public static class ImageSpec {
-        public final Map<String, String> envs;
+        public final String name;
         public final String imageSpec;
+        public final Map<String, String> envs;
 
         public ImageSpec(String imageSpec) {
-            this(imageSpec, Collections.emptyMap());
+            this(UUID.randomUUID().toString(), imageSpec, Collections.emptyMap());
         }
 
         public ImageSpec(String imageSpec, Map<String, String> envs) {
-            this.imageSpec = imageSpec;
+            this(UUID.randomUUID().toString(), imageSpec, envs);
+        }
+
+        public ImageSpec(String name, String imageSpec, Map<String, String> envs) {
+            this.name = Objects.requireNonNull(name);
+            this.imageSpec = Objects.requireNonNull(imageSpec);
             this.envs = Collections.unmodifiableMap(envs);
         }
     }

@@ -15,10 +15,6 @@
  */
 package itest;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -46,8 +42,8 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.ExternalTargetsTest;
-import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -68,7 +64,6 @@ class GraphQLIT extends ExternalTargetsTest {
     private final ExecutorService worker = ForkJoinPool.commonPool();
 
     static final int NUM_EXT_CONTAINERS = 8;
-    static final List<String> CONTAINERS = new ArrayList<>();
 
     static final String TEST_RECORDING_NAME = "archivedRecording";
 
@@ -76,31 +71,72 @@ class GraphQLIT extends ExternalTargetsTest {
     static void setup() throws Exception {
         Set<Podman.ImageSpec> specs = new HashSet<>();
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
-            specs.add(
+            Podman.ImageSpec spec =
                     new Podman.ImageSpec(
-                            FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", String.valueOf(9093 + i))));
+                            "vertx-fib-demo-" + i,
+                            FIB_DEMO_IMAGESPEC,
+                            Map.of("JMX_PORT", String.valueOf(9093 + i)));
+            specs.add(spec);
+            CONTAINERS.add(Podman.runAppWithAgent(10_000 + i, spec, false));
         }
-        for (Podman.ImageSpec spec : specs) {
-            CONTAINERS.add(Podman.run(spec));
-        }
-        CompletableFuture.allOf(
-                        CONTAINERS.stream()
-                                .map(id -> Podman.waitForContainerState(id, "running"))
-                                .collect(Collectors.toList())
-                                .toArray(new CompletableFuture[0]))
-                .join();
         waitForDiscovery(NUM_EXT_CONTAINERS);
     }
 
+    @BeforeAll
+    static void defineCustomTargets() throws Exception {
+        for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
+            int port = 9093 + i;
+            String connectUrl =
+                    String.format(
+                            "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi", Podman.POD_NAME, port);
+
+            MultiMap form = MultiMap.caseInsensitiveMultiMap();
+            form.add("connectUrl", connectUrl);
+            form.add("alias", "vertx-fib-demo-" + i);
+            form.add("annotations.cryostat.PORT", String.valueOf(port));
+
+            CompletableFuture<Void> response = new CompletableFuture<>();
+            ForkJoinPool.commonPool()
+                    .submit(
+                            () -> {
+                                webClient
+                                        .post("/api/v2/targets")
+                                        .sendForm(
+                                                form,
+                                                ar -> {
+                                                    assertRequestStatus(ar, response);
+                                                    response.complete(null);
+                                                });
+                            });
+            response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        }
+    }
+
     @AfterAll
-    static void cleanup() throws ITestCleanupFailedException {
-        for (String id : CONTAINERS) {
-            try {
-                Podman.kill(id);
-            } catch (Exception e) {
-                throw new ITestCleanupFailedException(
-                        String.format("Failed to kill container instance with ID %s", id), e);
-            }
+    static void deleteCustomTargets() throws Exception {
+        for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
+            int port = 9093 + i;
+            String connectUrl =
+                    String.format(
+                            "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi", Podman.POD_NAME, port);
+
+            CompletableFuture<Void> response = new CompletableFuture<>();
+            ForkJoinPool.commonPool()
+                    .submit(
+                            () -> {
+                                webClient
+                                        .delete(
+                                                String.format(
+                                                        "/api/v2/targets/%s",
+                                                        URLEncodedUtils.formatSegments(connectUrl)
+                                                                .substring(1)))
+                                        .send(
+                                                ar -> {
+                                                    assertRequestStatus(ar, response);
+                                                    response.complete(null);
+                                                });
+                            });
+            response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         }
     }
 
@@ -111,7 +147,7 @@ class GraphQLIT extends ExternalTargetsTest {
         JsonObject query = new JsonObject();
         query.put(
                 "query",
-                "query { environmentNodes(filter: { name: \"JDP\" }) { name nodeType"
+                "query { environmentNodes(filter: { name: \"Custom Targets\" }) { name nodeType"
                         + " descendantTargets { name nodeType } } }");
         webClient
                 .post("/api/v2.2/graphql")
@@ -129,25 +165,27 @@ class GraphQLIT extends ExternalTargetsTest {
 
         EnvironmentNodes expected = new EnvironmentNodes();
 
-        EnvironmentNode jdp = new EnvironmentNode();
-        jdp.name = "JDP";
-        jdp.nodeType = "Realm";
+        EnvironmentNode customTargets = new EnvironmentNode();
+        customTargets.name = "Custom Targets";
+        customTargets.nodeType = "Realm";
 
-        jdp.descendantTargets = new ArrayList<>();
+        customTargets.descendantTargets = new ArrayList<>();
         Node cryostat = new Node();
         cryostat.name = "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi";
-        cryostat.nodeType = "JVM";
-        jdp.descendantTargets.add(cryostat);
+        cryostat.nodeType = "CustomTarget";
+        customTargets.descendantTargets.add(cryostat);
 
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
             Node target = new Node();
             int port = 9093 + i;
-            target.name = "service:jmx:rmi:///jndi/rmi://cryostat-itests:" + port + "/jmxrmi";
-            target.nodeType = "JVM";
-            jdp.descendantTargets.add(target);
+            target.name =
+                    String.format(
+                            "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi", Podman.POD_NAME, port);
+            target.nodeType = "CustomTarget";
+            customTargets.descendantTargets.add(target);
         }
 
-        expected.environmentNodes = List.of(jdp);
+        expected.environmentNodes = List.of(customTargets);
 
         MatcherAssert.assertThat(actual.data, Matchers.equalTo(expected));
     }
@@ -174,60 +212,29 @@ class GraphQLIT extends ExternalTargetsTest {
                             }
                         });
         TargetNodesQueryResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        MatcherAssert.assertThat(actual.data.targetNodes, Matchers.hasSize(NUM_EXT_CONTAINERS + 1));
-
-        TargetNode cryostat = new TargetNode();
-        Target cryostatTarget = new Target();
-        cryostatTarget.alias = "io.cryostat.Cryostat";
-        cryostatTarget.serviceUri =
-                String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME);
-        cryostat.name = cryostatTarget.serviceUri;
-        cryostat.target = cryostatTarget;
-        cryostat.nodeType = "JVM";
-        Annotations cryostatAnnotations = new Annotations();
-        cryostatAnnotations.cryostat =
-                Map.of(
-                        "REALM",
-                        "JDP",
-                        "JAVA_MAIN",
-                        "io.cryostat.Cryostat",
-                        "HOST",
-                        Podman.POD_NAME,
-                        "PORT",
-                        "9091");
-        cryostatAnnotations.platform = Map.of();
-        cryostatTarget.annotations = cryostatAnnotations;
-        cryostat.labels = Map.of();
-        MatcherAssert.assertThat(actual.data.targetNodes, Matchers.hasItem(cryostat));
+        MatcherAssert.assertThat(
+                actual.data.targetNodes,
+                Matchers.hasSize(
+                        // targets will be discovered via Agent discovery and we also define a
+                        // Custom Target for each, plus Cryostat itself as its own Custom Target
+                        NUM_EXT_CONTAINERS * 2 + 1));
 
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
-            int port = 9093 + i;
-            String uri =
+            int jmxPort = 9093 + i;
+            String jmxUri =
                     String.format(
-                            "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi", Podman.POD_NAME, port);
-            String mainClass = "es.andrewazor.demo.Main";
-            TargetNode ext = new TargetNode();
-            Target target = new Target();
-            target.alias = mainClass;
-            target.serviceUri = uri;
-            ext.name = target.serviceUri;
-            ext.target = target;
-            ext.nodeType = "JVM";
-            Annotations annotations = new Annotations();
-            annotations.cryostat =
-                    Map.of(
-                            "REALM",
-                            "JDP",
-                            "JAVA_MAIN",
-                            mainClass,
-                            "HOST",
-                            Podman.POD_NAME,
-                            "PORT",
-                            Integer.toString(port));
-            annotations.platform = Map.of();
-            target.annotations = annotations;
-            ext.labels = Map.of();
-            MatcherAssert.assertThat(actual.data.targetNodes, Matchers.hasItem(ext));
+                            "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi", Podman.POD_NAME, jmxPort);
+
+            MatcherAssert.assertThat(
+                    actual.data.targetNodes,
+                    Matchers.hasItems(Matchers.hasProperty("name", Matchers.equalTo(jmxUri))));
+
+            int httpPort = 10_000 + i;
+            String agentUri = String.format("http://%s:%d/", "localhost", httpPort);
+
+            MatcherAssert.assertThat(
+                    actual.data.targetNodes,
+                    Matchers.hasItems(Matchers.hasProperty("name", Matchers.equalTo(agentUri))));
         }
     }
 
@@ -259,7 +266,7 @@ class GraphQLIT extends ExternalTargetsTest {
                 String.format("service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi", Podman.POD_NAME, 9093);
         TargetNode ext = new TargetNode();
         ext.name = uri;
-        ext.nodeType = "JVM";
+        ext.nodeType = "CustomTarget";
         MatcherAssert.assertThat(actual.data.targetNodes, Matchers.hasItem(ext));
     }
 
@@ -394,8 +401,7 @@ class GraphQLIT extends ExternalTargetsTest {
         ArchivedRecording archivedRecording = activeRecording.doArchive;
         MatcherAssert.assertThat(
                 archivedRecording.name,
-                Matchers.matchesRegex(
-                        "^es-andrewazor-demo-Main_graphql-itest_[0-9]{8}T[0-9]{6}Z\\.jfr$"));
+                Matchers.matchesRegex("^vertx-fib-demo-0_graphql-itest_[0-9]{8}T[0-9]{6}Z\\.jfr$"));
     }
 
     @Test
@@ -543,8 +549,7 @@ class GraphQLIT extends ExternalTargetsTest {
 
         MatcherAssert.assertThat(
                 archivedRecording.name,
-                Matchers.matchesRegex(
-                        "^es-andrewazor-demo-Main_graphql-itest_[0-9]{8}T[0-9]{6}Z\\.jfr$"));
+                Matchers.matchesRegex("^vertx-fib-demo-0_graphql-itest_[0-9]{8}T[0-9]{6}Z\\.jfr$"));
     }
 
     @Test
@@ -554,8 +559,8 @@ class GraphQLIT extends ExternalTargetsTest {
         JsonObject query = new JsonObject();
         query.put(
                 "query",
-                "query { environmentNodes(filter: { name: \"JDP\" }) { id descendantTargets { id }"
-                        + " } }");
+                "query { environmentNodes(filter: { name: \"Custom Targets\" }) { id"
+                        + " descendantTargets { id } } }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -609,19 +614,17 @@ class GraphQLIT extends ExternalTargetsTest {
         TargetNodesQueryResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         List<TargetNode> targetNodes = actual.data.targetNodes;
 
-        int expectedSize = 2;
-
-        assertThat(targetNodes.size(), is(expectedSize));
+        MatcherAssert.assertThat(targetNodes, Matchers.hasSize(2));
 
         TargetNode target1 = new TargetNode();
         target1.name = "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi";
-        target1.nodeType = "JVM";
+        target1.nodeType = "CustomTarget";
         TargetNode target2 = new TargetNode();
         target2.name = "service:jmx:rmi:///jndi/rmi://cryostat-itests:9093/jmxrmi";
-        target2.nodeType = "JVM";
+        target2.nodeType = "CustomTarget";
 
-        assertThat(targetNodes, hasItem(target1));
-        assertThat(targetNodes, hasItem(target2));
+        MatcherAssert.assertThat(targetNodes, Matchers.hasItem(target1));
+        MatcherAssert.assertThat(targetNodes, Matchers.hasItem(target2));
     }
 
     @Test
@@ -709,8 +712,8 @@ class GraphQLIT extends ExternalTargetsTest {
         ActiveRecording r2 = new ActiveRecording();
         r2.name = "Recording2";
 
-        assertThat(filteredRecordings, hasItem(r1));
-        assertThat(filteredRecordings, hasItem(r2));
+        MatcherAssert.assertThat(filteredRecordings, Matchers.hasItem(r1));
+        MatcherAssert.assertThat(filteredRecordings, Matchers.hasItem(r2));
 
         // Delete recordings
         for (ActiveRecording recording : filteredRecordings) {
@@ -972,7 +975,7 @@ class GraphQLIT extends ExternalTargetsTest {
 
         String query =
                 "query { environmentNodes(filter: { names: [\"anotherName1\","
-                        + " \"JDP\",\"anotherName2\"] }) { name nodeType } }";
+                        + " \"Custom Targets\",\"anotherName2\"] }) { name nodeType } }";
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -989,16 +992,12 @@ class GraphQLIT extends ExternalTargetsTest {
         EnvironmentNodesResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         List<EnvironmentNode> environmentNodes = actual.data.environmentNodes;
 
-        Assertions.assertEquals(1, environmentNodes.size(), "The list filtered should be 1");
+        MatcherAssert.assertThat(environmentNodes.size(), Matchers.equalTo(1));
 
-        boolean nameExists = false;
-        for (EnvironmentNode environmentNode : environmentNodes) {
-            if (environmentNode.name.matches("JDP")) {
-                nameExists = true;
-                break;
-            }
-        }
-        Assertions.assertTrue(nameExists, "Name not found");
+        Assertions.assertTrue(
+                environmentNodes.stream()
+                        .map(node -> node.name)
+                        .anyMatch(name -> "Custom Targets".equals(name)));
     }
 
     @Test
@@ -1265,6 +1264,17 @@ class GraphQLIT extends ExternalTargetsTest {
                     && Objects.equals(serviceUri, other.serviceUri)
                     && Objects.equals(annotations, other.annotations);
         }
+
+        @Override
+        public String toString() {
+            return "Target [alias="
+                    + alias
+                    + ", serviceUri="
+                    + serviceUri
+                    + ", annotations="
+                    + annotations
+                    + "]";
+        }
     }
 
     static class Annotations {
@@ -1290,6 +1300,11 @@ class GraphQLIT extends ExternalTargetsTest {
             Annotations other = (Annotations) obj;
             return Objects.equals(cryostat, other.cryostat)
                     && Objects.equals(platform, other.platform);
+        }
+
+        @Override
+        public String toString() {
+            return "Annotations [platform=" + platform + ", cryostat=" + cryostat + "]";
         }
     }
 
@@ -1434,7 +1449,7 @@ class GraphQLIT extends ExternalTargetsTest {
         }
     }
 
-    static class TargetNode {
+    public static class TargetNode {
         String name;
         String nodeType;
         Map<String, String> labels;
@@ -1482,6 +1497,54 @@ class GraphQLIT extends ExternalTargetsTest {
                     && Objects.equals(nodeType, other.nodeType)
                     && Objects.equals(recordings, other.recordings)
                     && Objects.equals(target, other.target);
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getNodeType() {
+            return nodeType;
+        }
+
+        public void setNodeType(String nodeType) {
+            this.nodeType = nodeType;
+        }
+
+        public Map<String, String> getLabels() {
+            return labels;
+        }
+
+        public void setLabels(Map<String, String> labels) {
+            this.labels = labels;
+        }
+
+        public Target getTarget() {
+            return target;
+        }
+
+        public void setTarget(Target target) {
+            this.target = target;
+        }
+
+        public Recordings getRecordings() {
+            return recordings;
+        }
+
+        public void setRecordings(Recordings recordings) {
+            this.recordings = recordings;
+        }
+
+        public ActiveRecording getDoStartRecording() {
+            return doStartRecording;
+        }
+
+        public void setDoStartRecording(ActiveRecording doStartRecording) {
+            this.doStartRecording = doStartRecording;
         }
     }
 
