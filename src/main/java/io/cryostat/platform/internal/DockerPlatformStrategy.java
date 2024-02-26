@@ -21,7 +21,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -35,6 +34,8 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.codec.BodyCodec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatformClient> {
 
@@ -46,7 +47,7 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
     private final Gson gson;
     private final Environment environment;
     private final FileSystem fs;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     DockerPlatformStrategy(
             Lazy<? extends AuthManager> authMgr,
@@ -55,8 +56,7 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Gson gson,
             Environment environment,
-            FileSystem fs,
-            Logger logger) {
+            FileSystem fs) {
         this.authMgr = authMgr;
         this.webClient = webClient;
         this.vertx = vertx;
@@ -64,7 +64,6 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
         this.gson = gson;
         this.environment = environment;
         this.fs = fs;
-        this.logger = logger;
     }
 
     @Override
@@ -80,7 +79,9 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
                 Epoll.unavailabilityCause().printStackTrace();
             }
         } catch (NoClassDefFoundError noClassDefFoundError) {
-            logger.warn(new UnsupportedOperationException(noClassDefFoundError));
+            logger.warn(
+                    "Unix domain sockets unavailable",
+                    new UnsupportedOperationException(noClassDefFoundError));
             return false;
         }
 
@@ -124,7 +125,7 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
         try {
             return result.get(2, TimeUnit.SECONDS);
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
-            logger.error(e);
+            logger.error("Docker API exception", e);
             return false;
         }
     }
@@ -133,7 +134,7 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
     public DockerPlatformClient getPlatformClient() {
         logger.info("Selected {} Strategy", getClass().getSimpleName());
         return new DockerPlatformClient(
-                environment, webClient, vertx, getSocket(), connectionToolkit, gson, logger);
+                environment, webClient, vertx, getSocket(), connectionToolkit, gson);
     }
 
     @Override

@@ -28,7 +28,6 @@ import java.util.concurrent.TimeoutException;
 
 import io.cryostat.MainModule;
 import io.cryostat.MockVertx;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.Notification;
@@ -57,10 +56,9 @@ class MessagingServerTest {
     Vertx vertx;
     MessagingServer server;
     @Mock Environment env;
-    @Mock Logger logger;
     @Mock HttpServer httpServer;
     @Mock AuthManager authManager;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
     @Mock ServerWebSocket sws;
     @Mock Clock clock;
     @Mock NotificationFactory notificationFactory;
@@ -99,15 +97,7 @@ class MessagingServerTest {
 
         server =
                 new MessagingServer(
-                        vertx,
-                        httpServer,
-                        env,
-                        authManager,
-                        notificationFactory,
-                        2,
-                        clock,
-                        logger,
-                        gson);
+                        vertx, httpServer, env, authManager, notificationFactory, 2, clock, gson);
     }
 
     @Test

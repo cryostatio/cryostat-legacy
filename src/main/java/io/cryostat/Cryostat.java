@@ -24,7 +24,6 @@ import javax.inject.Singleton;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.CryostatCore;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.MessagingServer;
@@ -39,12 +38,14 @@ import dagger.Component;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class Cryostat extends AbstractVerticle {
 
     private final Environment environment = new Environment();
     private final Client client;
-    private final Logger logger = Logger.INSTANCE;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private Cryostat(Client client) {
         this.client = client;
@@ -58,7 +59,7 @@ class Cryostat extends AbstractVerticle {
             client.credentialsManager().migrate();
             client.ruleRegistry().loadRules();
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Startup exception", e);
             future.fail(e);
             return;
         }
@@ -113,7 +114,7 @@ class Cryostat extends AbstractVerticle {
             if (!(cause instanceof Exception)) {
                 cause = new RuntimeException(cause);
             }
-            logger.error((Exception) cause);
+            logger.error("Shutdown exception", (Exception) cause);
         }
         logger.info("{} shutting down...", instanceName());
         client.vertx().close().onComplete(n -> logger.info("Shutdown complete"));

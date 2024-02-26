@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 import java.util.Set;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.web.http.HttpMimeType;
 
@@ -47,9 +46,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class GrafanaDashboardUrlGetHandlerTest {
 
     GrafanaDashboardUrlGetHandler handler;
-    @Mock Logger logger;
     @Mock Environment env;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() {

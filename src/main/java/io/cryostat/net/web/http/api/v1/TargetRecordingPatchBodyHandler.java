@@ -21,7 +21,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -37,9 +36,8 @@ class TargetRecordingPatchBodyHandler extends AbstractAuthenticatedRequestHandle
     static final BodyHandler BODY_HANDLER = BodyHandler.create(true).setHandleFileUploads(false);
 
     @Inject
-    TargetRecordingPatchBodyHandler(
-            AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
-        super(auth, credentialsManager, logger);
+    TargetRecordingPatchBodyHandler(AuthManager auth, CredentialsManager credentialsManager) {
+        super(auth, credentialsManager);
     }
 
     @Override

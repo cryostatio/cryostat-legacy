@@ -22,7 +22,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -37,6 +36,8 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.codec.BodyCodec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatformClient> {
 
@@ -47,7 +48,7 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
     private final Gson gson;
     private final Environment environment;
     private final FileSystem fs;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     PodmanPlatformStrategy(
             Lazy<? extends AuthManager> authMgr,
@@ -56,8 +57,7 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Gson gson,
             Environment environment,
-            FileSystem fs,
-            Logger logger) {
+            FileSystem fs) {
         this.authMgr = authMgr;
         this.webClient = webClient;
         this.vertx = vertx;
@@ -65,7 +65,6 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
         this.gson = gson;
         this.environment = environment;
         this.fs = fs;
-        this.logger = logger;
     }
 
     @Override
@@ -81,7 +80,9 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
                 Epoll.unavailabilityCause().printStackTrace();
             }
         } catch (NoClassDefFoundError noClassDefFoundError) {
-            logger.warn(new UnsupportedOperationException(noClassDefFoundError));
+            logger.warn(
+                    "Unix domain sockets unavailable",
+                    new UnsupportedOperationException(noClassDefFoundError));
             return false;
         }
 
@@ -125,7 +126,7 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
         try {
             return result.get(2, TimeUnit.SECONDS);
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
-            logger.error(e);
+            logger.error("Podman API exception", e);
             return false;
         }
     }
@@ -140,8 +141,7 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
                 vertx,
                 getSocket(),
                 connectionToolkit,
-                gson,
-                logger);
+                gson);
     }
 
     @Override

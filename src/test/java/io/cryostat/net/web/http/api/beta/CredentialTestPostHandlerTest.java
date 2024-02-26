@@ -23,7 +23,6 @@ import java.util.Set;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
@@ -52,9 +51,8 @@ class CredentialTestPostHandlerTest {
     CredentialTestPostHandler handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
-    @Mock Logger logger;
     @Mock TargetConnectionManager tcm;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() {

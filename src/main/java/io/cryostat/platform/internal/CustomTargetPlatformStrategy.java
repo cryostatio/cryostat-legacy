@@ -15,23 +15,21 @@
  */
 package io.cryostat.platform.internal;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 
 import dagger.Lazy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CustomTargetPlatformStrategy
         implements PlatformDetectionStrategy<CustomTargetPlatformClient> {
 
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Lazy<? extends AuthManager> authMgr;
     private final Lazy<CustomTargetPlatformClient> client;
 
     CustomTargetPlatformStrategy(
-            Logger logger,
-            Lazy<? extends AuthManager> authMgr,
-            Lazy<CustomTargetPlatformClient> client) {
-        this.logger = logger;
+            Lazy<? extends AuthManager> authMgr, Lazy<CustomTargetPlatformClient> client) {
         this.authMgr = authMgr;
         this.client = client;
     }

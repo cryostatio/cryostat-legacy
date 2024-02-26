@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
@@ -61,7 +60,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 @TestMethodOrder(OrderAnnotation.class)
 public class CredentialsV2_2IT extends ExternalTargetsTest {
 
-    private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
+    private static final Gson gson = MainModule.provideGson();
     static final List<String> CONTAINERS = new ArrayList<>();
     static final Map<String, String> NULL_RESULT = new HashMap<>();
     static final String REQUEST_URL = "/api/v2.2/credentials";

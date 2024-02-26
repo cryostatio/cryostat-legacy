@@ -24,7 +24,6 @@ import java.net.UnknownHostException;
 import java.util.Set;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -55,8 +54,7 @@ class NotificationsUrlGetHandlerTest {
         NotificationsUrlGetHandler handler;
         @Mock HttpServer httpServer;
         @Mock NetworkConfiguration netConf;
-        @Mock Logger logger;
-        Gson gson = MainModule.provideGson(logger);
+        Gson gson = MainModule.provideGson();
 
         @BeforeEach
         void setup() {
@@ -114,10 +112,9 @@ class NotificationsUrlGetHandlerTest {
     class WithSsl {
 
         NotificationsUrlGetHandler handler;
-        @Mock Logger logger;
         @Mock HttpServer httpServer;
         @Mock NetworkConfiguration netConf;
-        Gson gson = MainModule.provideGson(logger);
+        Gson gson = MainModule.provideGson();
 
         @BeforeEach
         void setup() {

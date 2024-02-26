@@ -26,7 +26,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.reports.ReportService;
@@ -60,13 +59,11 @@ class TargetReportGetHandlerTest {
     @Mock AuthManager authManager;
     @Mock CredentialsManager credentialsManager;
     @Mock ReportService reportService;
-    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         this.handler =
-                new TargetReportGetHandler(
-                        authManager, credentialsManager, reportService, 30, logger);
+                new TargetReportGetHandler(authManager, credentialsManager, reportService, 30);
     }
 
     @Nested

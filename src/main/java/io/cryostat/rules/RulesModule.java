@@ -27,7 +27,6 @@ import javax.script.ScriptEngine;
 
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.TargetConnectionManager;
@@ -52,14 +51,13 @@ public abstract class RulesModule {
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
             Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             FileSystem fs,
-            Gson gson,
-            Logger logger) {
+            Gson gson) {
         try {
             Path rulesDir = confDir.resolve(RULES_SUBDIRECTORY);
             if (!fs.isDirectory(rulesDir)) {
                 Files.createDirectory(rulesDir);
             }
-            return new RuleRegistry(rulesDir, matchExpressionEvaluator, fs, gson, logger);
+            return new RuleRegistry(rulesDir, matchExpressionEvaluator, fs, gson);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -67,8 +65,8 @@ public abstract class RulesModule {
 
     @Provides
     @Singleton
-    static MatchExpressionDao provideMatchExpressionDao(EntityManager em, Logger logger) {
-        return new MatchExpressionDao(em, logger);
+    static MatchExpressionDao provideMatchExpressionDao(EntityManager em) {
+        return new MatchExpressionDao(em);
     }
 
     @Provides
@@ -78,10 +76,9 @@ public abstract class RulesModule {
             Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             DiscoveryStorage discovery,
             MatchExpressionDao dao,
-            Gson gson,
-            Logger logger) {
+            Gson gson) {
         return new MatchExpressionManager(
-                matchExpressionValidator, matchExpressionEvaluator, discovery, dao, gson, logger);
+                matchExpressionValidator, matchExpressionEvaluator, discovery, dao, gson);
     }
 
     @Provides
@@ -95,9 +92,8 @@ public abstract class RulesModule {
     static MatchExpressionEvaluator provideMatchExpressionEvaluator(
             ScriptEngine scriptEngine,
             CredentialsManager credentialsManager,
-            RuleRegistry ruleRegistry,
-            Logger logger) {
-        return new MatchExpressionEvaluator(scriptEngine, credentialsManager, ruleRegistry, logger);
+            RuleRegistry ruleRegistry) {
+        return new MatchExpressionEvaluator(scriptEngine, credentialsManager, ruleRegistry);
     }
 
     @Provides
@@ -111,8 +107,7 @@ public abstract class RulesModule {
             RecordingArchiveHelper recordingArchiveHelper,
             RecordingTargetHelper recordingTargetHelper,
             RecordingMetadataManager metadataManager,
-            PeriodicArchiverFactory periodicArchiverFactory,
-            Logger logger) {
+            PeriodicArchiverFactory periodicArchiverFactory) {
         return new RuleProcessor(
                 Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors() * 2),
                 storage,
@@ -123,13 +118,12 @@ public abstract class RulesModule {
                 recordingArchiveHelper,
                 recordingTargetHelper,
                 metadataManager,
-                periodicArchiverFactory,
-                logger);
+                periodicArchiverFactory);
     }
 
     @Provides
     @Singleton
-    static PeriodicArchiverFactory providePeriodicArchivedFactory(Logger logger) {
-        return new PeriodicArchiverFactory(logger);
+    static PeriodicArchiverFactory providePeriodicArchivedFactory() {
+        return new PeriodicArchiverFactory();
     }
 }

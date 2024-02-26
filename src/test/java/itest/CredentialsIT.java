@@ -25,7 +25,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
@@ -50,7 +49,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 public class CredentialsIT extends ExternalTargetsTest {
 
-    private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
+    private static final Gson gson = MainModule.provideGson();
     static final List<String> CONTAINERS = new ArrayList<>();
     static final Map<String, String> NULL_RESULT = new HashMap<>();
 

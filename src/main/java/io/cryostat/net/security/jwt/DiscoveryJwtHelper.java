@@ -30,7 +30,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.web.WebServer;
 
 import com.nimbusds.jose.EncryptionMethod;
@@ -70,8 +69,7 @@ public class DiscoveryJwtHelper {
             JWSVerifier verifier,
             JWEEncrypter encrypter,
             JWEDecrypter decrypter,
-            Duration discoveryPingPeriod,
-            Logger logger) {
+            Duration discoveryPingPeriod) {
         this.webServer = webServer;
         this.signer = signer;
         this.verifier = verifier;

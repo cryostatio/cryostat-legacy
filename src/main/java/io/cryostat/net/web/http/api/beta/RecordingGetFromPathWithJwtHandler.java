@@ -23,7 +23,6 @@ import java.util.concurrent.ExecutionException;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
@@ -57,9 +56,8 @@ public class RecordingGetFromPathWithJwtHandler extends AbstractAssetJwtConsumin
             AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
             JvmIdHelper jvmIdHelper,
-            RecordingArchiveHelper recordingArchiveHelper,
-            Logger logger) {
-        super(auth, credentialsManager, jwtFactory, webServer, logger);
+            RecordingArchiveHelper recordingArchiveHelper) {
+        super(auth, credentialsManager, jwtFactory, webServer);
         this.jvmIdHelper = jvmIdHelper;
         this.recordingArchiveHelper = recordingArchiveHelper;
     }

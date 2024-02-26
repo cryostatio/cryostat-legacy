@@ -22,7 +22,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
@@ -50,14 +49,13 @@ class ArchivedRecordingReportCacheTest {
     @Mock Path destinationFile;
     @Mock FileSystem fs;
     @Mock SubprocessReportGenerator subprocessReportGenerator;
-    @Mock Logger logger;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
 
     @BeforeEach
     void setup() {
         this.cache =
                 new ArchivedRecordingReportCache(
-                        fs, () -> subprocessReportGenerator, recordingArchiveHelper, 30, logger);
+                        fs, () -> subprocessReportGenerator, recordingArchiveHelper, 30);
         this.sourceTarget = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
         this.recordingName = "foo";
     }

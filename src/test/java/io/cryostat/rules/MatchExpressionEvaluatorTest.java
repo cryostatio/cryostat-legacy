@@ -26,7 +26,6 @@ import javax.script.ScriptException;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 
@@ -49,7 +48,6 @@ class MatchExpressionEvaluatorTest {
 
     MatchExpressionEvaluator ruleMatcher;
     @Mock ServiceRef serviceRef;
-    @Mock Logger logger;
     @Mock CredentialsManager credentials;
     @Mock RuleRegistry rules;
 
@@ -63,8 +61,7 @@ class MatchExpressionEvaluatorTest {
     @BeforeEach
     void setup() throws Exception {
         this.ruleMatcher =
-                new MatchExpressionEvaluator(
-                        MainModule.provideScriptEngine(), credentials, rules, logger);
+                new MatchExpressionEvaluator(MainModule.provideScriptEngine(), credentials, rules);
 
         this.serviceUri = new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi");
         this.jvmId = "-some1234HashId=";

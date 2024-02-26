@@ -37,7 +37,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.CredentialsManager.CredentialsEvent;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.net.ConnectionDescriptor;
@@ -58,6 +57,8 @@ import io.cryostat.util.events.EventListener;
 import io.vertx.core.AbstractVerticle;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDiscoveryEvent> {
 
@@ -71,7 +72,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
     private final RecordingTargetHelper recordingTargetHelper;
     private final RecordingMetadataManager metadataManager;
     private final PeriodicArchiverFactory periodicArchiverFactory;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final Map<Pair<String, Rule>, Future<?>> tasks;
 
@@ -85,8 +86,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
             RecordingArchiveHelper recordingArchiveHelper,
             RecordingTargetHelper recordingTargetHelper,
             RecordingMetadataManager metadataManager,
-            PeriodicArchiverFactory periodicArchiverFactory,
-            Logger logger) {
+            PeriodicArchiverFactory periodicArchiverFactory) {
         this.executor = executor;
         this.platformClient = platformClient;
         this.registry = registry;
@@ -97,7 +97,6 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
         this.recordingTargetHelper = recordingTargetHelper;
         this.metadataManager = metadataManager;
         this.periodicArchiverFactory = periodicArchiverFactory;
-        this.logger = logger;
         this.tasks = new ConcurrentHashMap<>();
 
         this.registry.addListener(this.ruleListener());
@@ -258,7 +257,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                                 archiveRuleRecording(
                                         new ConnectionDescriptor(serviceRef, credentials), rule);
                             } catch (Exception e) {
-                                logger.error(e);
+                                logger.error("Archival exception", e);
                             }
                         } else {
                             try {
@@ -267,7 +266,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                                     return;
                                 }
                             } catch (Exception e) {
-                                logger.error(e);
+                                logger.error("Start exception", e);
                                 return;
                             }
 
@@ -299,7 +298,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                             tasks.put(key, task);
                         }
                     } catch (ScriptException e) {
-                        logger.error(e);
+                        logger.error("Script exception", e);
                     }
                 });
     }
@@ -327,7 +326,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                     it.remove();
                     task.cancel(false);
                 } catch (Exception e) {
-                    logger.error(e);
+                    logger.error("Cancellation exception", e);
                 }
             }
         }
@@ -362,7 +361,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                             })
                     .get();
         } catch (Exception e) {
-            logger.error(new RuleException(e));
+            logger.error("Archival exception", new RuleException(e));
         }
     }
 
@@ -406,7 +405,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
             return future.handleAsync(
                             (recording, throwable) -> {
                                 if (throwable != null) {
-                                    logger.error(new RuleException(throwable));
+                                    logger.error("Start exception", new RuleException(throwable));
                                     return false;
                                 }
                                 if (recording == null) {
@@ -426,13 +425,13 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                                             recording.getName(),
                                             new Metadata(labels));
                                 } catch (IOException ioe) {
-                                    logger.error(ioe);
+                                    logger.error("Metadata exception", ioe);
                                 }
                                 return true;
                             })
                     .get();
         } catch (InterruptedException | ExecutionException e) {
-            logger.error(new RuleException(e));
+            logger.error("Start exception", new RuleException(e));
             return false;
         }
     }

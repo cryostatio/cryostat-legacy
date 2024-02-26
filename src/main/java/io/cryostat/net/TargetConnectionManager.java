@@ -34,7 +34,6 @@ import java.util.regex.Pattern;
 
 import javax.management.remote.JMXServiceURL;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.net.JFRConnectionToolkit;
@@ -52,6 +51,8 @@ import jdk.jfr.Category;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TargetConnectionManager {
 
@@ -62,7 +63,7 @@ public class TargetConnectionManager {
     private final Lazy<AgentConnection.Factory> agentConnectionFactory;
     private final Executor executor;
     private final long connectionTimeoutSeconds;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final AsyncLoadingCache<ConnectionDescriptor, JFRConnection> connections;
     private final Map<String, Object> targetLocks;
@@ -76,13 +77,11 @@ public class TargetConnectionManager {
             Scheduler scheduler,
             Duration ttl,
             int maxTargetConnections,
-            long connectionTimeoutSeconds,
-            Logger logger) {
+            long connectionTimeoutSeconds) {
         this.jfrConnectionToolkit = jfrConnectionToolkit;
         this.agentConnectionFactory = agentConnectionFactory;
         this.executor = executor;
         this.connectionTimeoutSeconds = connectionTimeoutSeconds;
-        this.logger = logger;
 
         this.targetLocks = new ConcurrentHashMap<>();
         if (maxTargetConnections > 0) {
@@ -134,7 +133,7 @@ public class TargetConnectionManager {
                                 try {
                                     return task.execute(conn);
                                 } catch (Exception e) {
-                                    logger.error(e);
+                                    logger.error("Execution exception", e);
                                     throw new CompletionException(e);
                                 }
                             },
@@ -197,7 +196,7 @@ public class TargetConnectionManager {
                 }
             }
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Connection closure exception", e);
         } finally {
             if (semaphore.isPresent()) {
                 semaphore.get().release();

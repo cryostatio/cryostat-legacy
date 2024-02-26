@@ -29,7 +29,6 @@ import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.Event;
 import io.cryostat.core.agent.LocalProbeTemplateService;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -62,11 +61,10 @@ public class TargetProbesGetHandlerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock LocalProbeTemplateService templateService;
     @Mock FileSystem fs;
-    @Mock Logger logger;
     @Mock NotificationFactory notificationFactory;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Environment env;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() {

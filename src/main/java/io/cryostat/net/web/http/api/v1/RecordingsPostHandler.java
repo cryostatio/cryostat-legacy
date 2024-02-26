@@ -34,7 +34,6 @@ import javax.inject.Provider;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
@@ -67,7 +66,6 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private final Provider<WebServer> webServer;
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final RecordingMetadataManager recordingMetadataManager;
-    private final Logger logger;
 
     private static final String NOTIFICATION_CATEGORY = "ArchivedRecordingCreated";
 
@@ -81,9 +79,8 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             NotificationFactory notificationFactory,
             Provider<WebServer> webServer,
             RecordingArchiveHelper recordingArchiveHelper,
-            RecordingMetadataManager recordingMetadataManager,
-            Logger logger) {
-        super(auth, credentialsManager, logger);
+            RecordingMetadataManager recordingMetadataManager) {
+        super(auth, credentialsManager);
         this.fs = fs;
         this.savedRecordingsPath = savedRecordingsPath;
         this.gson = gson;
@@ -91,7 +88,6 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         this.webServer = webServer;
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.recordingMetadataManager = recordingMetadataManager;
-        this.logger = logger;
     }
 
     @Override
@@ -228,7 +224,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                     } catch (InterruptedException
                                             | ExecutionException
                                             | IOException e) {
-                                        logger.error(e);
+                                        logger.error("Metadata set exception", e);
                                         ctx.fail(new HttpException(500, e));
                                         return;
                                     }
@@ -265,7 +261,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                     } catch (URISyntaxException
                                             | UnknownHostException
                                             | SocketException e) {
-                                        logger.error(e);
+                                        logger.error("Recording metadata exception", e);
                                         ctx.fail(new HttpException(500, e));
                                         return;
                                     }

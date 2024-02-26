@@ -15,27 +15,26 @@
  */
 package io.cryostat;
 
-import io.cryostat.core.log.Logger;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class VerticleDeployer {
 
     private final Vertx vertx;
     private final int poolSize;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @SuppressFBWarnings(
             value = "EI_EXPOSE_REP2",
             justification = "vertx is externally mutable and that's fine")
-    public VerticleDeployer(Vertx vertx, int poolSize, Logger logger) {
+    public VerticleDeployer(Vertx vertx, int poolSize) {
         this.vertx = vertx;
         this.poolSize = poolSize;
-        this.logger = logger;
     }
 
     public Future deploy(Verticle verticle, boolean worker) {

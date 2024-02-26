@@ -21,14 +21,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.security.ResourceAction;
 
 public class NoopAuthManager extends AbstractAuthManager {
-
-    public NoopAuthManager(Logger logger) {
-        super(logger);
-    }
 
     @Override
     public AuthenticationScheme getScheme() {

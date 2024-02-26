@@ -22,7 +22,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
@@ -44,9 +43,8 @@ class TargetTemplateGetHandler extends AbstractAuthenticatedRequestHandler {
     TargetTemplateGetHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
-            TargetConnectionManager targetConnectionManager,
-            Logger logger) {
-        super(auth, credentialsManager, logger);
+            TargetConnectionManager targetConnectionManager) {
+        super(auth, credentialsManager);
         this.targetConnectionManager = targetConnectionManager;
     }
 

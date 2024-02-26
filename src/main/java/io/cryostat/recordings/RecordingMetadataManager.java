@@ -40,7 +40,6 @@ import javax.inject.Provider;
 import javax.script.ScriptException;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.discovery.DiscoveryStorage;
@@ -64,6 +63,8 @@ import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RecordingMetadataManager extends AbstractVerticle
         implements Consumer<TargetDiscoveryEvent>, EventListener<JvmIdHelper.IdEvent, String> {
@@ -84,7 +85,7 @@ public class RecordingMetadataManager extends AbstractVerticle
     private final JvmIdHelper jvmIdHelper;
     private final Gson gson;
     private final Base32 base32;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final CountDownLatch migrationLatch = new CountDownLatch(1);
 
@@ -101,8 +102,7 @@ public class RecordingMetadataManager extends AbstractVerticle
             NotificationFactory notificationFactory,
             JvmIdHelper jvmIdHelper,
             Gson gson,
-            Base32 base32,
-            Logger logger) {
+            Base32 base32) {
         this.executor = executor;
         this.recordingMetadataDir = recordingMetadataDir;
         this.archivedRecordingsPath = archivedRecordingsPath;
@@ -116,7 +116,6 @@ public class RecordingMetadataManager extends AbstractVerticle
         this.jvmIdHelper = jvmIdHelper;
         this.gson = gson;
         this.base32 = base32;
-        this.logger = logger;
     }
 
     @Override
@@ -248,7 +247,11 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                                                 file);
                                                                     }
                                                                 } catch (IOException ioe) {
-                                                                    logger.error(ioe);
+                                                                    logger.error(
+                                                                            "Metadata"
+                                                                                + " deserialization"
+                                                                                + " exception",
+                                                                            ioe);
                                                                 }
                                                             });
                                         }
@@ -377,8 +380,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                                             logger.info("Successfully pruned all stale metadata");
                                         } catch (Exception e) {
                                             logger.warn(
-                                                    "Couldn't read archived recordings directory");
-                                            logger.warn(e);
+                                                    "Couldn't read archived recordings directory",
+                                                    e);
                                         } finally {
                                             migrationLatch.countDown();
                                         }
@@ -399,7 +402,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                     try {
                         migrationLatch.await();
                     } catch (InterruptedException e) {
-                        logger.error(e);
+                        logger.error("Migration wait exception", e);
                     }
 
                     switch (tde.getEventKind()) {
@@ -727,8 +730,7 @@ public class RecordingMetadataManager extends AbstractVerticle
 
                     fs.deleteIfExists(oldMetadataPath);
                 } catch (Exception e) {
-                    logger.error("Metadata could not be transferred");
-                    logger.error(e);
+                    logger.error("Metadata could not be transferred", e);
                 }
             }
             if (fs.listDirectoryChildren(oldParent).isEmpty()) {
@@ -754,11 +756,11 @@ public class RecordingMetadataManager extends AbstractVerticle
                         deleteRecordingMetadataIfExists(jvmId, recordingName);
                     }
                 } catch (IOException e) {
-                    logger.error(e);
+                    logger.error("Metadata deletion exception", e);
                 }
             }
         } catch (IOException e) {
-            logger.error(e);
+            logger.error("Metadata exception", e);
         }
     }
 
@@ -780,7 +782,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                     // java streams doesn't allow checked exceptions to propagate
                                     // can assume won't throw b/c previous calls to other io methods
                                     // were successful
-                                    logger.error(e);
+                                    logger.error("Directory list exception", e);
                                     return false;
                                 }
                             })
@@ -788,7 +790,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                     .findFirst()
                     .orElse(false);
         } catch (IOException ioe) {
-            logger.error(ioe);
+            logger.error("Metadata exception", ioe);
             throw ioe;
         }
     }
@@ -812,7 +814,7 @@ public class RecordingMetadataManager extends AbstractVerticle
             logger.warn("Target unreachable {}, msg {}", cd.getTargetId(), te.getMessage());
             return false;
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Target connection exception", e);
             return false;
         }
     }

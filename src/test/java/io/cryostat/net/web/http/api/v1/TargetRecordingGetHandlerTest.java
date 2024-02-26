@@ -29,7 +29,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
@@ -75,7 +74,6 @@ class TargetRecordingGetHandlerTest {
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock Optional<InputStream> stream;
 
-    @Mock Logger logger;
     @Mock JFRConnection connection;
     @Mock CryostatFlightRecorderService service;
 
@@ -88,8 +86,7 @@ class TargetRecordingGetHandlerTest {
                         credentialsManager,
                         targetConnectionManager,
                         httpServer,
-                        recordingTargetHelper,
-                        logger);
+                        recordingTargetHelper);
     }
 
     @Test

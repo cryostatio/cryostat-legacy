@@ -26,7 +26,6 @@ import java.util.concurrent.ExecutionException;
 import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.PermissionDeniedException;
@@ -61,12 +60,11 @@ class AbstractAuthenticatedRequestHandlerTest {
     @Mock RoutingContext ctx;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
-    @Mock Logger logger;
     @Mock HttpServerResponse resp;
 
     @BeforeEach
     void setup() {
-        this.handler = new AuthenticatedHandler(auth, credentialsManager, logger);
+        this.handler = new AuthenticatedHandler(auth, credentialsManager);
         Mockito.lenient().when(ctx.response()).thenReturn(resp);
         Mockito.lenient()
                 .when(
@@ -165,9 +163,7 @@ class AbstractAuthenticatedRequestHandlerTest {
         @Test
         void shouldPropagateIfHandlerThrowsHttpException() {
             Exception expectedException = new HttpException(200);
-            handler =
-                    new ThrowingAuthenticatedHandler(
-                            auth, credentialsManager, logger, expectedException);
+            handler = new ThrowingAuthenticatedHandler(auth, credentialsManager, expectedException);
 
             HttpException ex =
                     Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
@@ -177,9 +173,7 @@ class AbstractAuthenticatedRequestHandlerTest {
         @Test
         void shouldThrow500IfConnectionFails() {
             Exception expectedException = new ConnectionException("");
-            handler =
-                    new ThrowingAuthenticatedHandler(
-                            auth, credentialsManager, logger, expectedException);
+            handler = new ThrowingAuthenticatedHandler(auth, credentialsManager, expectedException);
 
             HttpException ex =
                     Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
@@ -191,9 +185,7 @@ class AbstractAuthenticatedRequestHandlerTest {
             Exception cause = new SecurityException();
             Exception expectedException = new ConnectionException("");
             expectedException.initCause(cause);
-            handler =
-                    new ThrowingAuthenticatedHandler(
-                            auth, credentialsManager, logger, expectedException);
+            handler = new ThrowingAuthenticatedHandler(auth, credentialsManager, expectedException);
 
             Mockito.when(ctx.response()).thenReturn(resp);
 
@@ -208,9 +200,7 @@ class AbstractAuthenticatedRequestHandlerTest {
             Exception cause = new ConnectIOException("SSL trust");
             Exception expectedException = new ConnectionException("");
             expectedException.initCause(cause);
-            handler =
-                    new ThrowingAuthenticatedHandler(
-                            auth, credentialsManager, logger, expectedException);
+            handler = new ThrowingAuthenticatedHandler(auth, credentialsManager, expectedException);
 
             HttpException ex =
                     Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
@@ -223,9 +213,7 @@ class AbstractAuthenticatedRequestHandlerTest {
             Exception cause = new UnknownHostException("localhostt");
             Exception expectedException = new ConnectionException("");
             expectedException.initCause(cause);
-            handler =
-                    new ThrowingAuthenticatedHandler(
-                            auth, credentialsManager, logger, expectedException);
+            handler = new ThrowingAuthenticatedHandler(auth, credentialsManager, expectedException);
 
             HttpException ex =
                     Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
@@ -236,9 +224,7 @@ class AbstractAuthenticatedRequestHandlerTest {
         @Test
         void shouldThrow500IfHandlerThrowsUnexpectedly() {
             Exception expectedException = new NullPointerException();
-            handler =
-                    new ThrowingAuthenticatedHandler(
-                            auth, credentialsManager, logger, expectedException);
+            handler = new ThrowingAuthenticatedHandler(auth, credentialsManager, expectedException);
 
             HttpException ex =
                     Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
@@ -255,7 +241,7 @@ class AbstractAuthenticatedRequestHandlerTest {
 
         @BeforeEach
         void setup3() {
-            handler = new ConnectionDescriptorHandler(auth, credentialsManager, logger);
+            handler = new ConnectionDescriptorHandler(auth, credentialsManager);
             Mockito.when(ctx.request()).thenReturn(req);
             when(req.headers()).thenReturn(headers);
             when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
@@ -403,9 +389,8 @@ class AbstractAuthenticatedRequestHandlerTest {
     }
 
     static class AuthenticatedHandler extends AbstractAuthenticatedRequestHandler {
-        AuthenticatedHandler(
-                AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
-            super(auth, credentialsManager, logger);
+        AuthenticatedHandler(AuthManager auth, CredentialsManager credentialsManager) {
+            super(auth, credentialsManager);
         }
 
         @Override
@@ -436,11 +421,8 @@ class AbstractAuthenticatedRequestHandlerTest {
         private final Exception thrown;
 
         ThrowingAuthenticatedHandler(
-                AuthManager auth,
-                CredentialsManager credentialsManager,
-                Logger logger,
-                Exception thrown) {
-            super(auth, credentialsManager, logger);
+                AuthManager auth, CredentialsManager credentialsManager, Exception thrown) {
+            super(auth, credentialsManager);
             this.thrown = thrown;
         }
 
@@ -453,9 +435,8 @@ class AbstractAuthenticatedRequestHandlerTest {
     static class ConnectionDescriptorHandler extends AuthenticatedHandler {
         ConnectionDescriptor desc;
 
-        ConnectionDescriptorHandler(
-                AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
-            super(auth, credentialsManager, logger);
+        ConnectionDescriptorHandler(AuthManager auth, CredentialsManager credentialsManager) {
+            super(auth, credentialsManager);
         }
 
         @Override

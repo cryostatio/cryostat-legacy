@@ -33,7 +33,6 @@ import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -93,8 +92,7 @@ class RecordingsFromIdPostHandlerTest {
     @Mock JvmIdHelper jvmIdHelper;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock RecordingMetadataManager recordingMetadataManager;
-    @Mock Logger logger;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     // this is the basename file name timestamp (December 19, 2019)
     long expectedArchivedTime = Instant.parse("2019-12-19T21:38:34.00Z").toEpochMilli();
@@ -142,8 +140,7 @@ class RecordingsFromIdPostHandlerTest {
                         recordingMetadataManager,
                         recordingsPath,
                         globalMaxFiles,
-                        () -> webServer,
-                        logger);
+                        () -> webServer);
     }
 
     @Nested

@@ -26,18 +26,18 @@ import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
 
-import io.cryostat.core.log.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractDao<I, T> {
 
     protected final Class<T> klazz;
     protected final EntityManager entityManager;
-    protected final Logger logger;
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
-    protected AbstractDao(Class<T> klazz, EntityManager entityManager, Logger logger) {
+    protected AbstractDao(Class<T> klazz, EntityManager entityManager) {
         this.klazz = klazz;
         this.entityManager = entityManager;
-        this.logger = logger;
     }
 
     public final T save(T t) {
@@ -54,7 +54,7 @@ public abstract class AbstractDao<I, T> {
                 if (transaction != null) {
                     transaction.rollback();
                 }
-                logger.error(e);
+                logger.error("Persist exception", e);
                 throw e;
             }
         }
@@ -74,7 +74,7 @@ public abstract class AbstractDao<I, T> {
                 if (transaction != null) {
                     transaction.rollback();
                 }
-                logger.error(e);
+                logger.error("Delete exception", e);
                 return false;
             }
         }

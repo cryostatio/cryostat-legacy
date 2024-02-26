@@ -27,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import com.google.gson.Gson;
@@ -45,7 +44,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class FileSystemArchivedRequestsIT extends JwtAssetsSelfTest {
-    private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
+    private static final Gson gson = MainModule.provideGson();
 
     static final String TEST_RECORDING_NAME = "FileSystemArchivedRequestsIT";
 

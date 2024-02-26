@@ -20,7 +20,6 @@ import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import io.cryostat.configuration.Variables;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationListener;
@@ -73,16 +72,14 @@ public abstract class ReportsModule {
             TargetConnectionManager targetConnectionManager,
             @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             @Named(ACTIVE_REPORT_CACHE_EXPIRY_SECONDS) long cacheExpirySeconds,
-            @Named(ACTIVE_REPORT_CACHE_REFRESH_SECONDS) long cacheRefreshSeconds,
-            Logger logger) {
+            @Named(ACTIVE_REPORT_CACHE_REFRESH_SECONDS) long cacheRefreshSeconds) {
         return new ActiveRecordingReportCache(
                 reportGeneratorServiceProvider,
                 fs,
                 targetConnectionManager,
                 generationTimeoutSeconds,
                 cacheExpirySeconds,
-                cacheRefreshSeconds,
-                logger);
+                cacheRefreshSeconds);
     }
 
     @Binds
@@ -95,14 +92,12 @@ public abstract class ReportsModule {
             FileSystem fs,
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             RecordingArchiveHelper recordingArchiveHelper,
-            @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
-            Logger logger) {
+            @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds) {
         return new ArchivedRecordingReportCache(
                 fs,
                 reportGeneratorServiceProvider,
                 recordingArchiveHelper,
-                generationTimeoutSeconds,
-                logger);
+                generationTimeoutSeconds);
     }
 
     @Provides
@@ -128,10 +123,9 @@ public abstract class ReportsModule {
             Vertx vertx,
             WebClient http,
             Environment env,
-            @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
-            Logger logger) {
+            @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds) {
         return new RemoteReportGenerator(
-                targetConnectionManager, fs, vertx, http, env, generationTimeoutSeconds, logger);
+                targetConnectionManager, fs, vertx, http, env, generationTimeoutSeconds);
     }
 
     @Provides
@@ -140,15 +134,9 @@ public abstract class ReportsModule {
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
             Provider<JavaProcess.Builder> javaProcessBuilder,
-            @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
-            Logger logger) {
+            @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds) {
         return new SubprocessReportGenerator(
-                env,
-                fs,
-                targetConnectionManager,
-                javaProcessBuilder,
-                generationTimeoutSeconds,
-                logger);
+                env, fs, targetConnectionManager, javaProcessBuilder, generationTimeoutSeconds);
     }
 
     @Provides

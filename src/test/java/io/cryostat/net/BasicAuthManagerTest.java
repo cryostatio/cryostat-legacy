@@ -21,7 +21,6 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
 
@@ -36,7 +35,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -45,64 +43,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class BasicAuthManagerTest {
 
     BasicAuthManager mgr;
-    @Mock Logger logger;
     @Mock FileSystem fs;
     @Mock Path confDir;
 
     @BeforeEach
     void setup() {
-        mgr = new BasicAuthManager(logger, fs, confDir);
+        mgr = new BasicAuthManager(fs, confDir);
     }
 
     @Nested
     class ConfigLoadingTest {
-        @Test
-        void shouldWarnWhenPropertiesNotFound() throws Exception {
-            mgr.loadConfig();
-
-            ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-            ArgumentCaptor<Object> objectCaptor = ArgumentCaptor.forClass(Object.class);
-            Mockito.verify(logger).warn(messageCaptor.capture(), objectCaptor.capture());
-            MatcherAssert.assertThat(
-                    messageCaptor.getValue(),
-                    Matchers.stringContainsInOrder("User properties file", "does not exist"));
-        }
-
-        @Test
-        void shouldWarnWhenPropertiesNotFile() throws Exception {
-            Path mockPath = Mockito.mock(Path.class);
-            Mockito.when(confDir.resolve(Mockito.anyString())).thenReturn(mockPath);
-            Mockito.when(fs.exists(mockPath)).thenReturn(true);
-            Mockito.when(fs.isRegularFile(mockPath)).thenReturn(false);
-
-            mgr.loadConfig();
-
-            ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-            ArgumentCaptor<Object> objectCaptor = ArgumentCaptor.forClass(Object.class);
-            Mockito.verify(logger).warn(messageCaptor.capture(), objectCaptor.capture());
-            MatcherAssert.assertThat(
-                    messageCaptor.getValue(),
-                    Matchers.stringContainsInOrder("User properties path", "is not a file"));
-        }
-
-        @Test
-        void shouldWarnWhenPropertiesNotReadable() throws Exception {
-            Path mockPath = Mockito.mock(Path.class);
-            Mockito.when(confDir.resolve(Mockito.anyString())).thenReturn(mockPath);
-            Mockito.when(fs.exists(mockPath)).thenReturn(true);
-            Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
-            Mockito.when(fs.isReadable(mockPath)).thenReturn(false);
-
-            mgr.loadConfig();
-
-            ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-            ArgumentCaptor<Object> objectCaptor = ArgumentCaptor.forClass(Object.class);
-            Mockito.verify(logger).warn(messageCaptor.capture(), objectCaptor.capture());
-            MatcherAssert.assertThat(
-                    messageCaptor.getValue(),
-                    Matchers.stringContainsInOrder("User properties file", "is not readable"));
-        }
-
         @Test
         void shouldLogFileReadErrors() throws Exception {
             Path mockPath = Mockito.mock(Path.class);
@@ -114,8 +64,6 @@ class BasicAuthManagerTest {
             Mockito.when(fs.readFile(mockPath)).thenThrow(ex);
 
             mgr.loadConfig();
-
-            Mockito.verify(logger).error(ex);
         }
     }
 
@@ -142,23 +90,11 @@ class BasicAuthManagerTest {
         @Test
         void shouldFailAuthenticationWhenCredentialsMalformed() throws Exception {
             Assertions.assertFalse(mgr.validateToken(() -> "user", ResourceAction.NONE).get());
-            ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-            ArgumentCaptor<Object> objectCaptor = ArgumentCaptor.forClass(Object.class);
-            Mockito.verify(logger).warn(messageCaptor.capture(), objectCaptor.capture());
-            MatcherAssert.assertThat(
-                    messageCaptor.getValue(),
-                    Matchers.stringContainsInOrder("User properties file", "does not exist"));
         }
 
         @Test
         void shouldFailAuthenticationWhenNoMatchFound() throws Exception {
             Assertions.assertFalse(mgr.validateToken(() -> "user:pass", ResourceAction.NONE).get());
-            ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-            ArgumentCaptor<Object> objectCaptor = ArgumentCaptor.forClass(Object.class);
-            Mockito.verify(logger).warn(messageCaptor.capture(), objectCaptor.capture());
-            MatcherAssert.assertThat(
-                    messageCaptor.getValue(),
-                    Matchers.stringContainsInOrder("User properties file", "does not exist"));
         }
 
         @Test
@@ -174,7 +110,6 @@ class BasicAuthManagerTest {
                                     "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1"));
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
             Assertions.assertTrue(mgr.validateToken(() -> "user:pass", ResourceAction.NONE).get());
-            Mockito.verifyNoInteractions(logger);
         }
 
         @Test
@@ -193,7 +128,6 @@ class BasicAuthManagerTest {
             Assertions.assertFalse(mgr.validateToken(() -> "user:sass", ResourceAction.NONE).get());
             Assertions.assertFalse(
                     mgr.validateToken(() -> "user2:pass", ResourceAction.NONE).get());
-            Mockito.verifyNoInteractions(logger);
         }
 
         @Test
@@ -217,7 +151,6 @@ class BasicAuthManagerTest {
             Assertions.assertFalse(mgr.validateToken(() -> "foo:bar", ResourceAction.NONE).get());
             Assertions.assertTrue(
                     mgr.validateToken(() -> "admin:admin", ResourceAction.NONE).get());
-            Mockito.verifyNoInteractions(logger);
         }
     }
 

@@ -27,7 +27,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportGenerationException;
 import io.cryostat.net.reports.ReportService;
@@ -59,9 +58,8 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
             CredentialsManager credentialsManager,
             ReportService reportService,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
-                    long reportGenerationTimeoutSeconds,
-            Logger logger) {
-        super(auth, credentialsManager, logger);
+                    long reportGenerationTimeoutSeconds) {
+        super(auth, credentialsManager);
         this.reportService = reportService;
         this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
     }

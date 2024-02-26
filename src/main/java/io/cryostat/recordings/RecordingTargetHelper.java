@@ -34,7 +34,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 import io.cryostat.core.EventOptionsBuilder;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.Template;
 import io.cryostat.core.templates.TemplateType;
@@ -53,6 +52,8 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RecordingTargetHelper {
 
@@ -78,7 +79,7 @@ public class RecordingTargetHelper {
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final ReportService reportService;
     private final RecordingMetadataManager recordingMetadataManager;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Map<Pair<String, String>, Long> scheduledRecordingTasks;
     private final RecordingArchiveHelper recordingArchiveHelper;
 
@@ -92,8 +93,7 @@ public class RecordingTargetHelper {
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
             RecordingMetadataManager recordingMetadataManager,
-            RecordingArchiveHelper recordingArchiveHelper,
-            Logger logger) {
+            RecordingArchiveHelper recordingArchiveHelper) {
         this.vertx = vertx;
         this.targetConnectionManager = targetConnectionManager;
         this.webServer = webServer;
@@ -104,7 +104,6 @@ public class RecordingTargetHelper {
         this.reportService = reportService;
         this.recordingMetadataManager = recordingMetadataManager;
         this.recordingArchiveHelper = recordingArchiveHelper;
-        this.logger = logger;
         this.scheduledRecordingTasks = new ConcurrentHashMap<>();
     }
 
@@ -478,7 +477,7 @@ public class RecordingTargetHelper {
                     .send();
         } catch (JvmIdGetException e) {
             logger.info("Retain null jvmId for target [{}]", targetId);
-            logger.info(e);
+            logger.info("JVM ID exception", e);
         }
     }
 

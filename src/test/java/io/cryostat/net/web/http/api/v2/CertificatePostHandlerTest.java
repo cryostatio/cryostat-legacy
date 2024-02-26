@@ -31,7 +31,6 @@ import java.util.function.Function;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
@@ -70,8 +69,7 @@ class CertificatePostHandlerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock Environment env;
     @Mock FileSystem fs;
-    @Mock Logger logger;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @Mock RoutingContext ctx;
     @Mock FileOutputStream outStream;

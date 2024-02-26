@@ -22,7 +22,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.TargetDiscoveryEvent;
@@ -31,6 +30,8 @@ import io.cryostat.platform.internal.PlatformDetectionStrategy;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BuiltInDiscovery extends AbstractVerticle implements Consumer<TargetDiscoveryEvent> {
 
@@ -41,19 +42,17 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
     private final Set<PlatformDetectionStrategy<?>> unselectedStrategies;
     private final Set<PlatformClient> enabledClients = new HashSet<>();
     private final NotificationFactory notificationFactory;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     BuiltInDiscovery(
             DiscoveryStorage storage,
             Set<PlatformDetectionStrategy<?>> selectedStrategies,
             Set<PlatformDetectionStrategy<?>> unselectedStrategies,
-            NotificationFactory notificationFactory,
-            Logger logger) {
+            NotificationFactory notificationFactory) {
         this.storage = storage;
         this.selectedStrategies = selectedStrategies;
         this.unselectedStrategies = unselectedStrategies;
         this.notificationFactory = notificationFactory;
-        this.logger = logger;
     }
 
     @Override
@@ -119,7 +118,7 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                                 platform.load(promise);
                                 enabledClients.add(platform);
                             } catch (Exception e) {
-                                logger.warn(e);
+                                logger.warn("Platform start exception", e);
                             }
                         });
         start.tryComplete();
@@ -133,7 +132,7 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
             try {
                 it.next().stop();
             } catch (Exception e) {
-                logger.error(e);
+                logger.error("Platform stop exception", e);
             }
             it.remove();
         }

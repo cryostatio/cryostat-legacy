@@ -25,7 +25,6 @@ import java.util.concurrent.CompletableFuture;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.HttpServer;
@@ -57,9 +56,8 @@ class TargetRecordingGetHandler extends AbstractAssetJwtConsumingHandler {
             AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
             HttpServer httpServer,
-            TargetConnectionManager targetConnectionManager,
-            Logger logger) {
-        super(auth, credentialsManager, jwtFactory, webServer, logger);
+            TargetConnectionManager targetConnectionManager) {
+        super(auth, credentialsManager, jwtFactory, webServer);
         this.targetConnectionManager = targetConnectionManager;
         this.vertx = httpServer.getVertx();
     }
@@ -118,7 +116,8 @@ class TargetRecordingGetHandler extends AbstractAssetJwtConsumingHandler {
                                                         return conn.getService()
                                                                 .openStream(desc, false);
                                                     } catch (Exception e) {
-                                                        logger.error(e);
+                                                        logger.error(
+                                                                "JFR stream open exception", e);
                                                         throw new ApiException(500, e);
                                                     }
                                                 })

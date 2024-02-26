@@ -30,7 +30,6 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
 
@@ -48,8 +47,7 @@ class BasicAuthManager extends AbstractAuthManager {
     private volatile boolean configLoaded = false;
 
     // TODO salted hashes
-    BasicAuthManager(Logger logger, FileSystem fs, Path confDir) {
-        super(logger);
+    BasicAuthManager(FileSystem fs, Path confDir) {
         this.fs = fs;
         this.confDir = confDir;
         this.users = new Properties();
@@ -197,7 +195,7 @@ class BasicAuthManager extends AbstractAuthManager {
             users.load(br);
             this.configLoaded = true;
         } catch (IOException e) {
-            logger.error(e);
+            logger.error("Config load exception", e);
         }
     }
 }

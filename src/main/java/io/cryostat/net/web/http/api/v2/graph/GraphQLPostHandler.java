@@ -20,7 +20,6 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.RequestHandler;
@@ -33,6 +32,8 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.graphql.GraphQLHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class GraphQLPostHandler implements RequestHandler {
 
@@ -40,13 +41,12 @@ class GraphQLPostHandler implements RequestHandler {
 
     private final GraphQLHandler handler;
     private final AuthManager auth;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Inject
-    GraphQLPostHandler(GraphQL graph, AuthManager auth, Logger logger) {
+    GraphQLPostHandler(GraphQL graph, AuthManager auth) {
         this.handler = GraphQLHandler.create(graph);
         this.auth = auth;
-        this.logger = logger;
     }
 
     @Override

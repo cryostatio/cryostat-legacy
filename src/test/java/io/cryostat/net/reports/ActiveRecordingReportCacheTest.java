@@ -26,7 +26,6 @@ import java.util.concurrent.Future;
 
 import javax.inject.Provider;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
@@ -55,7 +54,6 @@ class ActiveRecordingReportCacheTest {
     @Mock Environment env;
     @Mock FileSystem fs;
     @Mock TargetConnectionManager targetConnectionManager;
-    @Mock Logger logger;
     @Mock CompletableFuture<Path> pathFuture;
     @Mock Path destinationFile;
     @Mock JavaProcess.Builder javaProcessBuilder;
@@ -67,13 +65,7 @@ class ActiveRecordingReportCacheTest {
     void setup() {
         this.cache =
                 new ActiveRecordingReportCache(
-                        () -> subprocessReportGenerator,
-                        fs,
-                        targetConnectionManager,
-                        30,
-                        30,
-                        30,
-                        logger);
+                        () -> subprocessReportGenerator, fs, targetConnectionManager, 30, 30, 30);
     }
 
     @Test

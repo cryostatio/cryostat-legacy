@@ -31,7 +31,6 @@ import java.util.regex.Matcher;
 import javax.script.ScriptException;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -46,6 +45,8 @@ import com.nimbusds.jwt.proc.BadJWTException;
 import dagger.Lazy;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler {
 
@@ -53,19 +54,17 @@ public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler
     protected final CredentialsManager credentialsManager;
     protected final AssetJwtHelper jwt;
     protected final Lazy<WebServer> webServer;
-    protected final Logger logger;
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     protected AbstractAssetJwtConsumingHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
             AssetJwtHelper jwt,
-            Lazy<WebServer> webServer,
-            Logger logger) {
+            Lazy<WebServer> webServer) {
         this.auth = auth;
         this.credentialsManager = credentialsManager;
         this.jwt = jwt;
         this.webServer = webServer;
-        this.logger = logger;
     }
 
     public abstract void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception;
@@ -154,7 +153,7 @@ public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler
             try {
                 credentials = credentialsManager.getCredentialsByTargetId(targetId);
             } catch (ScriptException e) {
-                logger.error(e);
+                logger.error("Credentials get exception", e);
             }
         } else {
             String c;

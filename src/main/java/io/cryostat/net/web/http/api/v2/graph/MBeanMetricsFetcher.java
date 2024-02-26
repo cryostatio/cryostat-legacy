@@ -21,7 +21,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.MBeanMetrics;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -31,23 +30,21 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.TargetNode;
 
 import graphql.schema.DataFetchingEnvironment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MBeanMetricsFetcher extends AbstractPermissionedDataFetcher<MBeanMetrics> {
 
     private final TargetConnectionManager tcm;
     private final CredentialsManager credentialsManager;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Inject
     MBeanMetricsFetcher(
-            AuthManager auth,
-            TargetConnectionManager tcm,
-            CredentialsManager credentialsManager,
-            Logger logger) {
+            AuthManager auth, TargetConnectionManager tcm, CredentialsManager credentialsManager) {
         super(auth);
         this.tcm = tcm;
         this.credentialsManager = credentialsManager;
-        this.logger = logger;
     }
 
     @Override
@@ -75,7 +72,7 @@ public class MBeanMetricsFetcher extends AbstractPermissionedDataFetcher<MBeanMe
         try {
             return tcm.executeConnectedTask(cd, conn -> conn.getMBeanMetrics());
         } catch (Exception e) {
-            logger.warn(e);
+            logger.warn("MBean get exception", e);
             return null;
         }
     }

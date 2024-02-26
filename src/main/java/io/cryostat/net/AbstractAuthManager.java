@@ -19,15 +19,12 @@ import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import io.cryostat.core.log.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractAuthManager implements AuthManager {
 
-    protected final Logger logger;
-
-    protected AbstractAuthManager(Logger logger) {
-        this.logger = logger;
-    }
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Override
     public AuthenticatedAction doAuthenticated(
@@ -57,7 +54,7 @@ public abstract class AbstractAuthManager implements AuthManager {
                         this.onFailure.run();
                     }
                 } catch (Exception e) {
-                    logger.warn(e);
+                    logger.warn("Execution exception", e);
                     this.onFailure.run();
                 }
             }

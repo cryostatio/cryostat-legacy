@@ -23,7 +23,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -49,9 +48,8 @@ class DiscoveryRegistrationCheckHandler extends AbstractDiscoveryJwtConsumingHan
             DiscoveryJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
             DiscoveryStorage storage,
-            @Named(MainModule.UUID_FROM_STRING) Function<String, UUID> uuidFromString,
-            Logger logger) {
-        super(storage, auth, jwtFactory, webServer, uuidFromString, logger);
+            @Named(MainModule.UUID_FROM_STRING) Function<String, UUID> uuidFromString) {
+        super(storage, auth, jwtFactory, webServer, uuidFromString);
         this.storage = storage;
         this.uuidFromString = uuidFromString;
     }

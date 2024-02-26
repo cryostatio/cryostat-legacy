@@ -19,19 +19,15 @@ import java.io.IOException;
 
 import javax.management.remote.JMXServiceURL;
 
-import io.cryostat.core.log.Logger;
-
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GsonJmxServiceUrlAdapter extends TypeAdapter<JMXServiceURL> {
 
-    private final Logger logger;
-
-    public GsonJmxServiceUrlAdapter(Logger logger) {
-        this.logger = logger;
-    }
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Override
     public JMXServiceURL read(JsonReader reader) throws IOException {
@@ -40,7 +36,7 @@ public class GsonJmxServiceUrlAdapter extends TypeAdapter<JMXServiceURL> {
         try {
             jmxUrl = new JMXServiceURL(url);
         } catch (Exception e) {
-            logger.warn(e);
+            logger.warn("JSON read exception", e);
             jmxUrl = null;
         }
         return jmxUrl;

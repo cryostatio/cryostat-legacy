@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.AggregateInfo;
@@ -35,18 +34,18 @@ import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import graphql.schema.DataFetchingEnvironment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class AllArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archived> {
 
     private final RecordingArchiveHelper archiveHelper;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Inject
-    AllArchivedRecordingsFetcher(
-            AuthManager auth, RecordingArchiveHelper archiveHelper, Logger logger) {
+    AllArchivedRecordingsFetcher(AuthManager auth, RecordingArchiveHelper archiveHelper) {
         super(auth);
         this.archiveHelper = archiveHelper;
-        this.logger = logger;
     }
 
     @Override

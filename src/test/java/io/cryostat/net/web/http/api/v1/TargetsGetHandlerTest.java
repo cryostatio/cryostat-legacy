@@ -23,7 +23,6 @@ import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
@@ -56,13 +55,12 @@ class TargetsGetHandlerTest {
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock DiscoveryStorage storage;
-    @Mock Logger logger;
     @Mock JFRConnectionToolkit connectionToolkit;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetsGetHandler(auth, credentialsManager, storage, gson, logger);
+        this.handler = new TargetsGetHandler(auth, credentialsManager, storage, gson);
     }
 
     @Test

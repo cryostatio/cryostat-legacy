@@ -22,7 +22,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -50,7 +49,6 @@ class SubprocessReportGeneratorTest {
     @Mock FileSystem fs;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock JavaProcess.Builder javaProcessBuilder;
-    @Mock Logger logger;
     @Mock Process proc;
     ConnectionDescriptor connectionDescriptor;
     RecordingDescriptor recordingDescriptor;
@@ -97,7 +95,7 @@ class SubprocessReportGeneratorTest {
                 .thenReturn("200");
         this.generator =
                 new SubprocessReportGenerator(
-                        env, fs, targetConnectionManager, () -> javaProcessBuilder, 30, logger);
+                        env, fs, targetConnectionManager, () -> javaProcessBuilder, 30);
     }
 
     @Test

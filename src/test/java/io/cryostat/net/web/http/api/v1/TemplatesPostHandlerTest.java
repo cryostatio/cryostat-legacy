@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Set;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.templates.LocalStorageTemplateService;
 import io.cryostat.core.templates.MutableTemplateService.InvalidXmlException;
@@ -60,7 +59,6 @@ class TemplatesPostHandlerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock LocalStorageTemplateService templateService;
     @Mock FileSystem fs;
-    @Mock Logger logger;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
@@ -81,7 +79,7 @@ class TemplatesPostHandlerTest {
         lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
                 new TemplatesPostHandler(
-                        auth, credentialsManager, templateService, fs, notificationFactory, logger);
+                        auth, credentialsManager, templateService, fs, notificationFactory);
     }
 
     @Test

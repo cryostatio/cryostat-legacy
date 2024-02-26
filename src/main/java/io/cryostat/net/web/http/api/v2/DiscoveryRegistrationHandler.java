@@ -34,7 +34,6 @@ import javax.inject.Named;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.discovery.PluginInfo;
@@ -68,7 +67,6 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
     private final Set<PlatformDetectionStrategy<?>> selectedStrategies;
     private final DiscoveryJwtHelper jwtFactory;
     private final Function<String, UUID> uuidFromString;
-    private final Logger logger;
 
     @Inject
     DiscoveryRegistrationHandler(
@@ -81,8 +79,7 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
                     Set<PlatformDetectionStrategy<?>> selectedStrategies,
             DiscoveryJwtHelper jwt,
             @Named(MainModule.UUID_FROM_STRING) Function<String, UUID> uuidFromString,
-            Gson gson,
-            Logger logger) {
+            Gson gson) {
         super(auth, credentialsManager, gson);
         this.env = env;
         this.storage = storage;
@@ -90,7 +87,6 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
         this.selectedStrategies = selectedStrategies;
         this.jwtFactory = jwt;
         this.uuidFromString = uuidFromString;
-        this.logger = logger;
     }
 
     @Override

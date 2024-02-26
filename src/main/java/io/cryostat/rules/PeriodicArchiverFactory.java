@@ -18,19 +18,12 @@ package io.cryostat.rules;
 import java.util.function.Function;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
 
 import org.apache.commons.lang3.tuple.Pair;
 
 class PeriodicArchiverFactory {
-
-    private final Logger logger;
-
-    PeriodicArchiverFactory(Logger logger) {
-        this.logger = logger;
-    }
 
     PeriodicArchiver create(
             ServiceRef serviceRef,
@@ -39,11 +32,6 @@ class PeriodicArchiverFactory {
             RecordingArchiveHelper recordingArchiveHelper,
             Function<Pair<String, Rule>, Void> failureNotifier) {
         return new PeriodicArchiver(
-                serviceRef,
-                credentialsManager,
-                rule,
-                recordingArchiveHelper,
-                failureNotifier,
-                logger);
+                serviceRef, credentialsManager, rule, recordingArchiveHelper, failureNotifier);
     }
 }

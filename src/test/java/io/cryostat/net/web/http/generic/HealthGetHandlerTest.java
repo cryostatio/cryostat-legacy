@@ -23,7 +23,6 @@ import java.util.Map;
 
 import io.cryostat.ApplicationVersion;
 import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.web.http.HttpMimeType;
 
@@ -59,12 +58,11 @@ class HealthGetHandlerTest {
     @Mock ApplicationVersion appVersion;
     @Mock WebClient webClient;
     @Mock Environment env;
-    @Mock Logger logger;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() {
-        this.handler = new HealthGetHandler(appVersion, webClient, env, gson, logger);
+        this.handler = new HealthGetHandler(appVersion, webClient, env, gson);
     }
 
     @Test

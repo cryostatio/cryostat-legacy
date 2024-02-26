@@ -20,7 +20,6 @@ import java.util.Set;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.FlightRecorderException;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateService;
 import io.cryostat.core.templates.TemplateType;
@@ -59,13 +58,11 @@ class TargetTemplateGetHandlerTest {
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection conn;
     @Mock TemplateService templateService;
-    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         this.handler =
-                new TargetTemplateGetHandler(
-                        auth, credentialsManager, targetConnectionManager, logger);
+                new TargetTemplateGetHandler(auth, credentialsManager, targetConnectionManager);
     }
 
     @Test

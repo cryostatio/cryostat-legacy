@@ -26,7 +26,6 @@ import java.util.concurrent.CompletableFuture;
 import javax.inject.Provider;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -71,7 +70,6 @@ class RecordingsFetcherTest {
     @Mock CredentialsManager credentialsManager;
     @Mock RecordingMetadataManager metadataManager;
     @Mock Provider<WebServer> webServer;
-    @Mock Logger logger;
 
     @Mock DataFetchingEnvironment env;
     @Mock GraphQLContext graphCtx;
@@ -94,8 +92,7 @@ class RecordingsFetcherTest {
                         archiveHelper,
                         credentialsManager,
                         metadataManager,
-                        webServer,
-                        logger);
+                        webServer);
     }
 
     @Test

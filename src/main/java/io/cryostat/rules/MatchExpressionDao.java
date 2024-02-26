@@ -17,11 +17,10 @@ package io.cryostat.rules;
 
 import javax.persistence.EntityManager;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.storage.AbstractDao;
 
 class MatchExpressionDao extends AbstractDao<Integer, MatchExpression> {
-    MatchExpressionDao(EntityManager em, Logger logger) {
-        super(MatchExpression.class, em, logger);
+    MatchExpressionDao(EntityManager em) {
+        super(MatchExpression.class, em);
     }
 }

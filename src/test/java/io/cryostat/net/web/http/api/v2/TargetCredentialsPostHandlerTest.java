@@ -21,7 +21,6 @@ import java.util.Set;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -52,11 +51,10 @@ class TargetCredentialsPostHandlerTest {
     AbstractV2RequestHandler<Void> handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
-    @Mock Logger logger;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() {
@@ -77,7 +75,7 @@ class TargetCredentialsPostHandlerTest {
 
         this.handler =
                 new TargetCredentialsPostHandler(
-                        auth, credentialsManager, notificationFactory, gson, logger);
+                        auth, credentialsManager, notificationFactory, gson);
     }
 
     @Nested

@@ -32,7 +32,6 @@ import io.cryostat.DirectExecutorService;
 import io.cryostat.MainModule;
 import io.cryostat.MockVertx;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.Notification;
@@ -73,7 +72,6 @@ public class RecordingMetadataManagerTest {
     @Mock FileSystem fs;
     @Mock Provider<RecordingArchiveHelper> archiveHelperProvider;
     @Mock Base32 base32;
-    @Mock Logger logger;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock CredentialsManager credentialsManager;
     @Mock PlatformClient platformClient;
@@ -83,7 +81,7 @@ public class RecordingMetadataManagerTest {
     @Mock Notification.OwnedResourceBuilder notificationOwnedResourceBuilder;
     @Mock JFRConnection connection;
     @Mock ConnectionDescriptor connectionDescriptor;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() throws JvmIdGetException {
@@ -145,8 +143,7 @@ public class RecordingMetadataManagerTest {
                         notificationFactory,
                         jvmIdHelper,
                         gson,
-                        base32,
-                        logger);
+                        base32);
         this.recordingMetadataManager.init(vertx, null);
     }
 

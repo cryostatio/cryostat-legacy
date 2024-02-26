@@ -28,7 +28,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.rules.RuleRegistry.RuleEvent;
@@ -53,8 +52,7 @@ class RuleRegistryTest {
     @Mock Path rulesDir;
     @Mock MatchExpressionEvaluator matchExpressionEvaluator;
     @Mock FileSystem fs;
-    @Mock Logger logger;
-    Gson gson = Mockito.spy(MainModule.provideGson(logger));
+    Gson gson = Mockito.spy(MainModule.provideGson());
 
     Rule testRule;
     String ruleJson;
@@ -62,8 +60,7 @@ class RuleRegistryTest {
 
     @BeforeEach
     void setup() throws Exception {
-        this.registry =
-                new RuleRegistry(rulesDir, () -> matchExpressionEvaluator, fs, gson, logger);
+        this.registry = new RuleRegistry(rulesDir, () -> matchExpressionEvaluator, fs, gson);
         this.testRule =
                 new Rule.Builder()
                         .name("test rule")
@@ -76,7 +73,7 @@ class RuleRegistryTest {
                         .maxAgeSeconds(78)
                         .enabled(true)
                         .build();
-        this.ruleJson = MainModule.provideGson(logger).toJson(testRule);
+        this.ruleJson = MainModule.provideGson().toJson(testRule);
         this.fileReader = new BufferedReader(new StringReader(ruleJson));
     }
 
@@ -315,7 +312,7 @@ class RuleRegistryTest {
                         .maxAgeSeconds(78)
                         .enabled(false)
                         .build();
-        this.ruleJson = MainModule.provideGson(logger).toJson(rule);
+        this.ruleJson = MainModule.provideGson().toJson(rule);
         this.fileReader = new BufferedReader(new StringReader(ruleJson));
 
         registry.addRule(rule);

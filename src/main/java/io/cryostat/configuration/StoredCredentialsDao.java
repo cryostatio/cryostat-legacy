@@ -17,11 +17,10 @@ package io.cryostat.configuration;
 
 import javax.persistence.EntityManager;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.storage.AbstractDao;
 
 class StoredCredentialsDao extends AbstractDao<Integer, StoredCredentials> {
-    StoredCredentialsDao(EntityManager em, Logger logger) {
-        super(StoredCredentials.class, em, logger);
+    StoredCredentialsDao(EntityManager em) {
+        super(StoredCredentials.class, em);
     }
 }

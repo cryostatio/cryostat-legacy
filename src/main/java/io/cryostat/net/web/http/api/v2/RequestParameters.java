@@ -23,13 +23,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import io.cryostat.core.log.Logger;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.MultiMap;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RequestParameters {
 
@@ -42,6 +42,7 @@ public class RequestParameters {
     private final MultiMap formAttributes;
     private final Set<FileUpload> fileUploads;
     private final String body;
+    private static final Logger logger = LoggerFactory.getLogger(RequestParameters.class);
 
     @SuppressFBWarnings(
             value = "EI_EXPOSE_REP2",
@@ -126,7 +127,7 @@ public class RequestParameters {
         try {
             return InetAddress.getByName(host);
         } catch (UnknownHostException e) {
-            Logger.INSTANCE.error(e);
+            logger.error("Address resolution exception", e);
         }
         return addr;
     }

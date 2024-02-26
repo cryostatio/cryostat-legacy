@@ -21,7 +21,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
@@ -47,9 +46,8 @@ class TargetTemplateGetHandler extends AbstractAssetJwtConsumingHandler {
             CredentialsManager credentialsManager,
             AssetJwtHelper jwt,
             Lazy<WebServer> webServer,
-            TargetConnectionManager targetConnectionManager,
-            Logger logger) {
-        super(auth, credentialsManager, jwt, webServer, logger);
+            TargetConnectionManager targetConnectionManager) {
+        super(auth, credentialsManager, jwt, webServer);
         this.targetConnectionManager = targetConnectionManager;
     }
 

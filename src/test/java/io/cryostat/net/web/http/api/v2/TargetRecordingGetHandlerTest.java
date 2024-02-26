@@ -26,7 +26,6 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
@@ -78,7 +77,6 @@ class TargetRecordingGetHandlerTest {
     @Mock HttpServer httpServer;
     @Mock Vertx vertx;
     @Mock TargetConnectionManager targetConnectionManager;
-    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
@@ -90,8 +88,7 @@ class TargetRecordingGetHandlerTest {
                         jwt,
                         () -> webServer,
                         httpServer,
-                        targetConnectionManager,
-                        logger);
+                        targetConnectionManager);
     }
 
     @Nested

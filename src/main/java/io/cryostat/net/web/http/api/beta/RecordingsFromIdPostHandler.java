@@ -35,7 +35,6 @@ import javax.inject.Provider;
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
@@ -65,7 +64,6 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
     static final String PATH = "recordings/:jvmId";
 
     private final Gson gson;
-    private final Logger logger;
 
     private final FileSystem fs;
     private final JvmIdHelper idHelper;
@@ -90,9 +88,8 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
             RecordingMetadataManager recordingMetadataManager,
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             @Named(Variables.PUSH_MAX_FILES_ENV) int globalMaxFiles,
-            Provider<WebServer> webServer,
-            Logger logger) {
-        super(auth, credentialsManager, logger);
+            Provider<WebServer> webServer) {
+        super(auth, credentialsManager);
         this.fs = fs;
         this.idHelper = idHelper;
         this.notificationFactory = notificationFactory;
@@ -102,7 +99,6 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
         this.globalMaxFiles = globalMaxFiles;
         this.webServer = webServer;
         this.gson = gson;
-        this.logger = logger;
     }
 
     @Override
@@ -268,7 +264,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
                                     } catch (InterruptedException
                                             | ExecutionException
                                             | IOException e) {
-                                        logger.error(e);
+                                        logger.error("Upload prune exception", e);
                                         throw new ApiException(500, e);
                                     }
 
@@ -299,7 +295,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
                                             | UnknownHostException
                                             | SocketException
                                             | JvmIdGetException e) {
-                                        logger.error(e);
+                                        logger.error("Recording metadata exception", e);
                                         throw new ApiException(500, e);
                                     }
 

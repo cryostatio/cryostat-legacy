@@ -21,7 +21,6 @@ import java.util.Set;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
@@ -48,11 +47,10 @@ class TargetCredentialsGetHandlerTest {
     AbstractV2RequestHandler<List<ServiceRef>> handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
-    @Mock Logger logger;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() {
@@ -71,7 +69,7 @@ class TargetCredentialsGetHandlerTest {
                 .thenReturn(notificationBuilder);
         Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
 
-        this.handler = new TargetCredentialsGetHandler(auth, credentialsManager, gson, logger);
+        this.handler = new TargetCredentialsGetHandler(auth, credentialsManager, gson);
     }
 
     @Nested

@@ -23,7 +23,6 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
@@ -63,8 +62,7 @@ class TargetRecordingOptionsGetHandlerTest {
     @Mock RecordingOptionsBuilder builder;
     @Mock IConstrainedMap<String> recordingOptions;
     @Mock JFRConnection jfrConnection;
-    @Mock Logger logger;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() {
@@ -74,8 +72,7 @@ class TargetRecordingOptionsGetHandlerTest {
                         credentialsManager,
                         targetConnectionManager,
                         recordingOptionsBuilderFactory,
-                        gson,
-                        logger);
+                        gson);
     }
 
     @Test

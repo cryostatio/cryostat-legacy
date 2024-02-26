@@ -29,7 +29,6 @@ import org.openjdk.jmc.rjmx.IConnectionHandle;
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.LocalProbeTemplateService;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -66,7 +65,6 @@ public class TargetProbePostHandlerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock LocalProbeTemplateService templateService;
     @Mock FileSystem fs;
-    @Mock Logger logger;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
@@ -74,7 +72,7 @@ public class TargetProbePostHandlerTest {
     @Mock JvmIdHelper jvmIdHelper;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Environment env;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() throws JvmIdGetException {
@@ -103,7 +101,6 @@ public class TargetProbePostHandlerTest {
 
         this.handler =
                 new TargetProbePostHandler(
-                        logger,
                         notificationFactory,
                         templateService,
                         fs,

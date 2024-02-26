@@ -29,7 +29,6 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.discovery.PluginInfo;
 import io.cryostat.net.AuthManager;
@@ -51,6 +50,8 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler {
 
@@ -61,21 +62,19 @@ abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler
     protected final DiscoveryJwtHelper jwt;
     protected final Lazy<WebServer> webServer;
     protected final Function<String, UUID> uuidFromString;
-    protected final Logger logger;
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     protected AbstractDiscoveryJwtConsumingHandler(
             DiscoveryStorage storage,
             AuthManager auth,
             DiscoveryJwtHelper jwt,
             Lazy<WebServer> webServer,
-            Function<String, UUID> uuidFromString,
-            Logger logger) {
+            Function<String, UUID> uuidFromString) {
         this.storage = storage;
         this.auth = auth;
         this.jwt = jwt;
         this.webServer = webServer;
         this.uuidFromString = uuidFromString;
-        this.logger = logger;
     }
 
     abstract void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception;
@@ -178,14 +177,14 @@ abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler
         return baseUrl.toURI().resolve("/api/v2.2/discovery/" + pluginId);
     }
 
-    static InetAddress tryResolveAddress(InetAddress addr, String host) {
+    InetAddress tryResolveAddress(InetAddress addr, String host) {
         if (StringUtils.isBlank(host)) {
             return addr;
         }
         try {
             return InetAddress.getByName(host);
         } catch (UnknownHostException e) {
-            Logger.INSTANCE.error(e);
+            logger.error("Address resolution exception", e);
         }
         return addr;
     }

@@ -26,12 +26,14 @@ import java.util.concurrent.CompletableFuture;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.recordings.RecordingNotFoundException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 abstract class AbstractReportGeneratorService implements ReportGeneratorService {
 
@@ -39,13 +41,12 @@ abstract class AbstractReportGeneratorService implements ReportGeneratorService 
 
     protected final TargetConnectionManager targetConnectionManager;
     protected final FileSystem fs;
-    protected final Logger logger;
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     protected AbstractReportGeneratorService(
-            TargetConnectionManager targetConnectionManager, FileSystem fs, Logger logger) {
+            TargetConnectionManager targetConnectionManager, FileSystem fs) {
         this.targetConnectionManager = targetConnectionManager;
         this.fs = fs;
-        this.logger = logger;
     }
 
     @Override
@@ -63,7 +64,7 @@ abstract class AbstractReportGeneratorService implements ReportGeneratorService 
                     try {
                         fs.deleteIfExists(recording);
                     } catch (IOException e) {
-                        logger.warn(e);
+                        logger.warn("Deletion exception", e);
                     }
                 });
     }

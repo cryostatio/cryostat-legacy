@@ -22,7 +22,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -38,18 +37,15 @@ class RuleGetHandler extends AbstractV2RequestHandler<Rule> {
     static final String PATH = RulesPostHandler.PATH + "/:name";
 
     private final RuleRegistry ruleRegistry;
-    private final Logger logger;
 
     @Inject
     RuleGetHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
             RuleRegistry ruleRegistry,
-            Gson gson,
-            Logger logger) {
+            Gson gson) {
         super(auth, credentialsManager, gson);
         this.ruleRegistry = ruleRegistry;
-        this.logger = logger;
     }
 
     @Override

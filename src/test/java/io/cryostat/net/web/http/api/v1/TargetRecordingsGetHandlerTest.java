@@ -25,7 +25,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
@@ -66,8 +65,7 @@ class TargetRecordingsGetHandlerTest {
     @Mock TargetConnectionManager connectionManager;
     @Mock WebServer webServer;
     @Mock RecordingMetadataManager recordingMetadataManager;
-    @Mock Logger logger;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() {
@@ -78,8 +76,7 @@ class TargetRecordingsGetHandlerTest {
                         connectionManager,
                         () -> webServer,
                         recordingMetadataManager,
-                        gson,
-                        logger);
+                        gson);
     }
 
     @Test

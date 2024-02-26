@@ -23,7 +23,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
@@ -48,7 +47,6 @@ class PeriodicArchiverTest {
     Rule rule;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
     AtomicInteger failureCounter;
-    @Mock Logger logger;
     @Mock Queue<String> previousRecordings;
 
     @BeforeEach
@@ -75,8 +73,7 @@ class PeriodicArchiverTest {
                         p -> {
                             failureCounter.incrementAndGet();
                             return null;
-                        },
-                        logger);
+                        });
     }
 
     @Test

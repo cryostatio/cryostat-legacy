@@ -25,7 +25,6 @@ import java.util.function.Predicate;
 
 import javax.script.ScriptException;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 
@@ -33,6 +32,8 @@ import com.google.gson.Gson;
 import dagger.Lazy;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MatchExpressionManager {
     private final MatchExpressionValidator matchExpressionValidator;
@@ -40,21 +41,19 @@ public class MatchExpressionManager {
     private final PlatformClient platformClient;
     private final MatchExpressionDao dao;
     private final Gson gson;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     MatchExpressionManager(
             MatchExpressionValidator matchExpressionValidator,
             Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             PlatformClient platformClient,
             MatchExpressionDao dao,
-            Gson gson,
-            Logger logger) {
+            Gson gson) {
         this.matchExpressionValidator = matchExpressionValidator;
         this.matchExpressionEvaluator = matchExpressionEvaluator;
         this.platformClient = platformClient;
         this.dao = dao;
         this.gson = gson;
-        this.logger = logger;
     }
 
     public int addMatchExpression(String matchExpression)
@@ -97,7 +96,7 @@ public class MatchExpressionManager {
                     matchedTargets.add(target);
                 }
             } catch (ScriptException e) {
-                logger.error(e);
+                logger.error("Script exception", e);
                 break;
             }
         }

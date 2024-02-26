@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 
 import javax.management.remote.JMXServiceURL;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.DiscoveredJvmDescriptor;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.JvmDiscoveryEvent;
@@ -41,6 +40,9 @@ import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.util.URIUtil;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class DefaultPlatformClient extends AbstractPlatformClient
         implements Consumer<JvmDiscoveryEvent> {
 
@@ -49,13 +51,11 @@ public class DefaultPlatformClient extends AbstractPlatformClient
     public static final NodeType NODE_TYPE = BaseNodeType.JVM;
 
     private final JvmDiscoveryClient discoveryClient;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    DefaultPlatformClient(
-            Environment environment, JvmDiscoveryClient discoveryClient, Logger logger) {
+    DefaultPlatformClient(Environment environment, JvmDiscoveryClient discoveryClient) {
         super(environment);
         this.discoveryClient = discoveryClient;
-        this.logger = logger;
     }
 
     @Override
@@ -76,7 +76,7 @@ public class DefaultPlatformClient extends AbstractPlatformClient
         try {
             notifyAsyncTargetDiscovery(evt.getEventKind(), convert(evt.getJvmDescriptor()));
         } catch (MalformedURLException | URISyntaxException e) {
-            logger.warn(e);
+            logger.warn("Bad target URI exception", e);
         }
     }
 
@@ -88,7 +88,7 @@ public class DefaultPlatformClient extends AbstractPlatformClient
                             try {
                                 return convert(desc);
                             } catch (MalformedURLException | URISyntaxException e) {
-                                logger.warn(e);
+                                logger.warn("Target URI conversion exception", e);
                                 return null;
                             }
                         })

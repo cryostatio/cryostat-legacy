@@ -22,7 +22,6 @@ import javax.crypto.SecretKey;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.discovery.DiscoveryModule;
 import io.cryostat.net.AuthManager;
@@ -52,8 +51,7 @@ public abstract class JwtModule {
             JWSVerifier verifier,
             JWEEncrypter encrypter,
             JWEDecrypter decrypter,
-            AuthManager auth,
-            Logger logger) {
+            AuthManager auth) {
         try {
             return new AssetJwtHelper(
                     webServer,
@@ -61,8 +59,7 @@ public abstract class JwtModule {
                     verifier,
                     encrypter,
                     decrypter,
-                    !AuthenticationScheme.NONE.equals(auth.getScheme()),
-                    logger);
+                    !AuthenticationScheme.NONE.equals(auth.getScheme()));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -77,11 +74,10 @@ public abstract class JwtModule {
             JWEEncrypter encrypter,
             JWEDecrypter decrypter,
             AuthManager auth,
-            @Named(DiscoveryModule.DISCOVERY_PING_DURATION) Duration discoveryPingPeriod,
-            Logger logger) {
+            @Named(DiscoveryModule.DISCOVERY_PING_DURATION) Duration discoveryPingPeriod) {
         try {
             return new DiscoveryJwtHelper(
-                    webServer, signer, verifier, encrypter, decrypter, discoveryPingPeriod, logger);
+                    webServer, signer, verifier, encrypter, decrypter, discoveryPingPeriod);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -121,7 +117,7 @@ public abstract class JwtModule {
 
     @Provides
     @Singleton
-    static JWEEncrypter provideJweEncrypter(Environment env, SecretKey key, Logger logger) {
+    static JWEEncrypter provideJweEncrypter(Environment env, SecretKey key) {
         try {
             return new DirectEncrypter(key);
         } catch (Exception e) {

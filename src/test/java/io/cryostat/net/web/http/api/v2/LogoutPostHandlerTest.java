@@ -19,7 +19,6 @@ import java.util.Optional;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 
@@ -44,8 +43,7 @@ public class LogoutPostHandlerTest {
     LogoutPostHandler handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
-    @Mock Logger logger;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @Mock RoutingContext ctx;
     @Mock RequestParameters requestParams;

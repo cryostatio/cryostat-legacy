@@ -27,7 +27,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.platform.ServiceRef;
@@ -70,18 +69,12 @@ class KubeApiPlatformClientTest {
         KubernetesClient k8sClient;
         KubernetesMockServer server;
         @Mock Environment env;
-        @Mock Logger logger;
 
         @BeforeEach
         void setup() throws Exception {
             platformClient =
                     new KubeApiPlatformClient(
-                            env,
-                            List.of(NAMESPACE),
-                            Set.of("jfr-jmx"),
-                            Set.of(9091),
-                            k8sClient,
-                            logger);
+                            env, List.of(NAMESPACE), Set.of("jfr-jmx"), Set.of(9091), k8sClient);
         }
 
         @Test
@@ -840,7 +833,6 @@ class KubeApiPlatformClientTest {
         KubernetesClient k8sClient;
         KubernetesMockServer server;
         @Mock Environment env;
-        @Mock Logger logger;
 
         @BeforeEach
         void setup() throws Exception {
@@ -850,8 +842,7 @@ class KubeApiPlatformClientTest {
                             List.of(NAMESPACE),
                             Set.of("cryostat-jmx", "cryostat-jfr"),
                             Set.of(9999, 4545),
-                            k8sClient,
-                            logger);
+                            k8sClient);
         }
 
         @Test
@@ -1113,13 +1104,12 @@ class KubeApiPlatformClientTest {
         KubernetesClient k8sClient;
         KubernetesMockServer server;
         @Mock Environment env;
-        @Mock Logger logger;
 
         @BeforeEach
         void setup() throws Exception {
             platformClient =
                     new KubeApiPlatformClient(
-                            env, List.of(NAMESPACE), Set.of(), Set.of(), k8sClient, logger);
+                            env, List.of(NAMESPACE), Set.of(), Set.of(), k8sClient);
         }
 
         @Test

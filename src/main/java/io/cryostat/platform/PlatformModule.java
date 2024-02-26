@@ -29,7 +29,6 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.configuration.Variables;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.platform.discovery.PlatformDiscoveryModule;
@@ -39,20 +38,22 @@ import io.cryostat.platform.internal.PlatformStrategyModule;
 
 import dagger.Module;
 import dagger.Provides;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Module(includes = {PlatformStrategyModule.class, PlatformDiscoveryModule.class})
 public abstract class PlatformModule {
 
     public static final String SELECTED_PLATFORMS = "SELECTED_PLATFORMS";
     public static final String UNSELECTED_PLATFORMS = "UNSELECTED_PLATFORMS";
+    private static final Logger logger = LoggerFactory.getLogger(PlatformModule.class);
 
     @Provides
     @Singleton
     static AuthManager provideAuthManager(
             PlatformDetectionStrategy<?> platformStrategy,
             Environment env,
-            Set<AuthManager> authManagers,
-            Logger logger) {
+            Set<AuthManager> authManagers) {
         final String authManagerClass;
         if (env.hasEnv(Variables.AUTH_MANAGER_ENV_VAR)) {
             authManagerClass = env.getEnv(Variables.AUTH_MANAGER_ENV_VAR);

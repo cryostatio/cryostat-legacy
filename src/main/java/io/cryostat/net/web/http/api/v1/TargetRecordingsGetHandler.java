@@ -26,7 +26,6 @@ import javax.inject.Provider;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
@@ -56,9 +55,8 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
             TargetConnectionManager connectionManager,
             Provider<WebServer> webServerProvider,
             RecordingMetadataManager recordingMetadataManager,
-            Gson gson,
-            Logger logger) {
-        super(auth, credentialsManager, logger);
+            Gson gson) {
+        super(auth, credentialsManager);
         this.connectionManager = connectionManager;
         this.webServerProvider = webServerProvider;
         this.recordingMetadataManager = recordingMetadataManager;

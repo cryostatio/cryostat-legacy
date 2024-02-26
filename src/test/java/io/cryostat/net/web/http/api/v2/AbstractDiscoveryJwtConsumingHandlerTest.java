@@ -29,7 +29,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.discovery.PluginInfo;
 import io.cryostat.net.AuthManager;
@@ -72,14 +71,13 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
     @Mock AuthManager auth;
     @Mock DiscoveryJwtHelper jwtHelper;
     @Mock WebServer webServer;
-    @Mock Logger logger;
 
     @Mock RoutingContext ctx;
     @Mock HttpServerResponse resp;
 
     @BeforeEach
     void setup() {
-        this.handler = new JwtConsumingHandler(storage, auth, jwtHelper, () -> webServer, logger);
+        this.handler = new JwtConsumingHandler(storage, auth, jwtHelper, () -> webServer);
         Mockito.lenient().when(ctx.response()).thenReturn(resp);
         Mockito.lenient()
                 .when(
@@ -396,7 +394,7 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
             Exception expectedException = new ApiException(200);
             handler =
                     new ThrowingJwtConsumingHandler(
-                            storage, auth, jwtHelper, () -> webServer, logger, expectedException);
+                            storage, auth, jwtHelper, () -> webServer, expectedException);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -408,7 +406,7 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
             Exception expectedException = new NullPointerException();
             handler =
                     new ThrowingJwtConsumingHandler(
-                            storage, auth, jwtHelper, () -> webServer, logger, expectedException);
+                            storage, auth, jwtHelper, () -> webServer, expectedException);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -421,9 +419,8 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
                 DiscoveryStorage storage,
                 AuthManager auth,
                 DiscoveryJwtHelper jwtHelper,
-                Lazy<WebServer> webServer,
-                Logger logger) {
-            super(storage, auth, jwtHelper, webServer, UUID::fromString, logger);
+                Lazy<WebServer> webServer) {
+            super(storage, auth, jwtHelper, webServer, UUID::fromString);
         }
 
         @Override
@@ -458,9 +455,8 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
                 AuthManager auth,
                 DiscoveryJwtHelper jwtHelper,
                 Lazy<WebServer> webServer,
-                Logger logger,
                 Exception thrown) {
-            super(storage, auth, jwtHelper, webServer, logger);
+            super(storage, auth, jwtHelper, webServer);
             this.thrown = thrown;
         }
 

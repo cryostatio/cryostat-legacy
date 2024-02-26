@@ -24,7 +24,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.discovery.DiscoveryStorage.NotFoundException;
 import io.cryostat.net.AuthManager;
@@ -57,9 +56,8 @@ class DiscoveryPostHandler extends AbstractDiscoveryJwtConsumingHandler<Void> {
             Lazy<WebServer> webServer,
             DiscoveryStorage storage,
             @Named(MainModule.UUID_FROM_STRING) Function<String, UUID> uuidFromString,
-            Gson gson,
-            Logger logger) {
-        super(storage, auth, jwtFactory, webServer, uuidFromString, logger);
+            Gson gson) {
+        super(storage, auth, jwtFactory, webServer, uuidFromString);
         this.storage = storage;
         this.uuidFromString = uuidFromString;
         this.gson = gson;

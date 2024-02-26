@@ -25,13 +25,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class PeriodicArchiver implements Runnable {
 
@@ -44,7 +45,7 @@ class PeriodicArchiver implements Runnable {
     private final Rule rule;
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final Function<Pair<String, Rule>, Void> failureNotifier;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final Queue<String> previousRecordings;
 
@@ -53,14 +54,12 @@ class PeriodicArchiver implements Runnable {
             CredentialsManager credentialsManager,
             Rule rule,
             RecordingArchiveHelper recordingArchiveHelper,
-            Function<Pair<String, Rule>, Void> failureNotifier,
-            Logger logger) {
+            Function<Pair<String, Rule>, Void> failureNotifier) {
         this.serviceRef = serviceRef;
         this.credentialsManager = credentialsManager;
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.rule = rule;
         this.failureNotifier = failureNotifier;
-        this.logger = logger;
 
         this.previousRecordings = new ArrayDeque<>(this.rule.getPreservedArchives());
     }
@@ -100,7 +99,7 @@ class PeriodicArchiver implements Runnable {
 
             performArchival();
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Execution exception", e);
 
             if (AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)
                     || AbstractAuthenticatedRequestHandler.isJmxSslFailure(e)

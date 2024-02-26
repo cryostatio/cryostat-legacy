@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 
 import javax.script.ScriptException;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.rules.RuleRegistry.RuleEvent;
@@ -35,6 +34,8 @@ import io.cryostat.util.events.EventType;
 
 import com.google.gson.Gson;
 import dagger.Lazy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
 
@@ -43,19 +44,17 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
     private final FileSystem fs;
     private final Set<Rule> rules;
     private final Gson gson;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     RuleRegistry(
             Path rulesDir,
             Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             FileSystem fs,
-            Gson gson,
-            Logger logger) {
+            Gson gson) {
         this.rulesDir = rulesDir;
         this.matchExpressionEvaluator = matchExpressionEvaluator;
         this.fs = fs;
         this.gson = gson;
-        this.logger = logger;
         this.rules = new HashSet<>();
     }
 
@@ -68,7 +67,7 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
                             try {
                                 return fs.readFile(path);
                             } catch (IOException e) {
-                                logger.warn(e);
+                                logger.warn("Load exception", e);
                                 return null;
                             }
                         })
@@ -78,7 +77,7 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
                             try (reader) {
                                 return gson.fromJson(reader, Rule.class);
                             } catch (IOException ioe) {
-                                logger.error(ioe);
+                                logger.error("JSON parse exception", ioe);
                                 return null;
                             }
                         })
@@ -113,11 +112,11 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
         try {
             return matchExpressionEvaluator.get().applies(rule.getMatchExpression(), serviceRef);
         } catch (ScriptException se) {
-            logger.error(se);
+            logger.error("Script exception", se);
             try {
                 deleteRule(rule);
             } catch (IOException ioe) {
-                logger.error(ioe);
+                logger.error("Delete exception", ioe);
             }
             return false;
         }

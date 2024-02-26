@@ -24,7 +24,6 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.LocalProbeTemplateService;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
@@ -39,7 +38,6 @@ class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     static final String PATH = "probes/:probetemplateName";
 
-    private final Logger logger;
     private final NotificationFactory notificationFactory;
     private final LocalProbeTemplateService probeTemplateService;
     private final FileSystem fs;
@@ -51,12 +49,10 @@ class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
             CredentialsManager credentialsManager,
             NotificationFactory notificationFactory,
             LocalProbeTemplateService probeTemplateService,
-            Logger logger,
             FileSystem fs,
             Gson gson) {
         super(auth, credentialsManager, gson);
         this.notificationFactory = notificationFactory;
-        this.logger = logger;
         this.probeTemplateService = probeTemplateService;
         this.fs = fs;
     }

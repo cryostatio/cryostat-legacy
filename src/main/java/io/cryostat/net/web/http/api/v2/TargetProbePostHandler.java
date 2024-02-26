@@ -29,7 +29,6 @@ import io.cryostat.core.agent.AgentJMXHelper;
 import io.cryostat.core.agent.Event;
 import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.agent.ProbeTemplate;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -44,6 +43,8 @@ import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * TargetProbePostHandler will facilitate adding probes to a target and will have the following form
@@ -74,7 +75,7 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
 
     static final String PATH = "targets/:targetId/probes/:probeTemplate";
 
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final NotificationFactory notificationFactory;
     private final LocalProbeTemplateService probeTemplateService;
     private final FileSystem fs;
@@ -85,7 +86,6 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
 
     @Inject
     TargetProbePostHandler(
-            Logger logger,
             NotificationFactory notificationFactory,
             LocalProbeTemplateService service,
             FileSystem fs,
@@ -96,7 +96,6 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
             Environment env,
             Gson gson) {
         super(auth, credentialsManager, gson);
-        this.logger = logger;
         this.notificationFactory = notificationFactory;
         this.probeTemplateService = service;
         this.jvmIdHelper = jvmIdHelper;
@@ -165,7 +164,7 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
                                 .send();
                     } catch (JvmIdGetException e) {
                         logger.info("Retain null jvmId for target [{}]", targetId);
-                        logger.info(e);
+                        logger.info("JVM ID exception", e);
                     }
                     return new IntermediateResponse<Void>().body(null);
                 });

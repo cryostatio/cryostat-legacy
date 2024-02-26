@@ -25,7 +25,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.web.WebServer;
 
 import com.nimbusds.jose.EncryptionMethod;
@@ -65,8 +64,7 @@ public class AssetJwtHelper {
             JWSVerifier verifier,
             JWEEncrypter encrypter,
             JWEDecrypter decrypter,
-            boolean subjectRequired,
-            Logger logger) {
+            boolean subjectRequired) {
         this.webServer = webServer;
         this.signer = signer;
         this.verifier = verifier;

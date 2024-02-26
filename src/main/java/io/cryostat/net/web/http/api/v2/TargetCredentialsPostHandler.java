@@ -24,7 +24,6 @@ import javax.inject.Inject;
 import javax.persistence.RollbackException;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
@@ -49,19 +48,16 @@ class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
 
     private final CredentialsManager credentialsManager;
     private final NotificationFactory notificationFactory;
-    private final Logger logger;
 
     @Inject
     TargetCredentialsPostHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
             NotificationFactory notificationFactory,
-            Gson gson,
-            Logger logger) {
+            Gson gson) {
         super(auth, credentialsManager, gson);
         this.credentialsManager = credentialsManager;
         this.notificationFactory = notificationFactory;
-        this.logger = logger;
     }
 
     @Override

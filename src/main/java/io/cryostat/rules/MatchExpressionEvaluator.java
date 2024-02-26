@@ -26,7 +26,6 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.platform.ServiceRef;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -37,20 +36,20 @@ import jdk.jfr.Event;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MatchExpressionEvaluator {
 
     private final ScriptEngine scriptEngine;
     private final LoadingCache<Pair<String, ServiceRef>, Boolean> cache;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     MatchExpressionEvaluator(
             ScriptEngine scriptEngine,
             CredentialsManager credentialsManager,
-            RuleRegistry ruleRegistry,
-            Logger logger) {
+            RuleRegistry ruleRegistry) {
         this.scriptEngine = scriptEngine;
-        this.logger = logger;
         this.cache =
                 Caffeine.newBuilder()
                         .maximumSize(1024) // should this be configurable?

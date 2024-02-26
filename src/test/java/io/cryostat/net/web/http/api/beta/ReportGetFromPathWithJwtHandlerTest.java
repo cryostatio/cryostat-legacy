@@ -25,7 +25,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.security.ResourceAction;
@@ -66,7 +65,6 @@ class ReportGetFromPathWithJwtHandlerTest {
     @Mock JvmIdHelper jvmIdHelper;
     @Mock ReportService reports;
     @Mock RecordingArchiveHelper archiveHelper;
-    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
@@ -79,8 +77,7 @@ class ReportGetFromPathWithJwtHandlerTest {
                         jvmIdHelper,
                         reports,
                         archiveHelper,
-                        30,
-                        logger);
+                        30);
     }
 
     @Nested

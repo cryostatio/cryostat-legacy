@@ -27,7 +27,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.ReportsModule;
@@ -65,9 +64,8 @@ class ReportGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
             Lazy<WebServer> webServer,
             ReportService reportService,
             RecordingArchiveHelper recordingArchiveHelper,
-            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
-            Logger logger) {
-        super(auth, credentialsManager, jwtFactory, webServer, logger);
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds) {
+        super(auth, credentialsManager, jwtFactory, webServer);
         this.reportService = reportService;
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.generationTimeoutSeconds = generationTimeoutSeconds;

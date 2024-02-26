@@ -25,7 +25,6 @@ import java.util.concurrent.CompletableFuture;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.HttpServer;
@@ -57,9 +56,8 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
             CredentialsManager credentialsManager,
             TargetConnectionManager targetConnectionManager,
             HttpServer httpServer,
-            RecordingTargetHelper recordingTargetHelper,
-            Logger logger) {
-        super(auth, credentialsManager, logger);
+            RecordingTargetHelper recordingTargetHelper) {
+        super(auth, credentialsManager);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.vertx = httpServer.getVertx();

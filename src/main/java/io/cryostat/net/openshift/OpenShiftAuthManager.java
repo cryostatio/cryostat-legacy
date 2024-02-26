@@ -41,7 +41,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AbstractAuthManager;
 import io.cryostat.net.AuthenticationErrorException;
@@ -115,9 +114,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             ClassPropertiesLoader classPropertiesLoader,
             Gson gson,
             Executor cacheExecutor,
-            Scheduler cacheScheduler,
-            Logger logger) {
-        super(logger);
+            Scheduler cacheScheduler) {
         this.env = env;
         this.namespace = namespace;
         this.serviceAccountClient = serviceAccountClient;
@@ -133,17 +130,16 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                         .removalListener((k, v, cause) -> v.close());
         this.userClients = cacheBuilder.build(clientProvider::apply);
 
-        this.resourceMap = processResourceMapping(classPropertiesLoader, logger);
+        this.resourceMap = processResourceMapping(classPropertiesLoader);
     }
 
-    static Map<ResourceType, Set<GroupResource>> processResourceMapping(
-            ClassPropertiesLoader loader, Logger logger) {
+    Map<ResourceType, Set<GroupResource>> processResourceMapping(ClassPropertiesLoader loader) {
         Map<ResourceType, Set<GroupResource>> resourceMap = new HashMap<>();
         Map<String, String> props;
         try {
             props = loader.loadAsMap(OpenShiftAuthManager.class);
         } catch (IOException ioe) {
-            logger.error(ioe);
+            logger.error("Configuration properties load exception", ioe);
             return Collections.unmodifiableMap(resourceMap);
         }
         props.entrySet()
@@ -159,7 +155,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                                 .collect(Collectors.toSet());
                                 resourceMap.put(type, values);
                             } catch (IllegalArgumentException iae) {
-                                logger.error(iae);
+                                logger.error("Configuration properties processing exception", iae);
                             }
                         });
         return Collections.unmodifiableMap(resourceMap);
@@ -248,11 +244,11 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return CompletableFuture.completedFuture(true);
         } catch (KubernetesClientException | ExecutionException e) {
             userClients.invalidate(token);
-            logger.info(e);
+            logger.info("Kubernetes exception", e);
             return CompletableFuture.failedFuture(e);
         } catch (Exception e) {
             userClients.invalidate(token);
-            logger.error(e);
+            logger.error("Token validation exception", e);
             return CompletableFuture.failedFuture(e);
         }
     }
@@ -384,7 +380,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                                 sc.getField(), sc.getReason(), sc.getMessage()))
                         .toList();
         if (!causes.isEmpty()) {
-            logger.warn(new TokenNotFoundException(causes));
+            logger.warn("Token not found", new TokenNotFoundException(causes));
         }
     }
 
@@ -417,10 +413,10 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             }
             return CompletableFuture.completedFuture(status);
         } catch (KubernetesClientException e) {
-            logger.info(e);
+            logger.info("Kubernetes exception", e);
             return CompletableFuture.failedFuture(e);
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Token review exception", e);
             return CompletableFuture.failedFuture(e);
         }
     }

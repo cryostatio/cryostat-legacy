@@ -40,7 +40,6 @@ import javax.script.ScriptException;
 import io.cryostat.VerticleDeployer;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.StoredCredentials;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.platform.ServiceRef;
@@ -66,6 +65,8 @@ import io.vertx.ext.web.client.WebClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
@@ -82,7 +83,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private final Gson gson;
     private final Clock clock;
     private final WebClient http;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private ScheduledFuture<?> pluginPruneTask;
     private ScheduledFuture<?> targetRetryTask;
 
@@ -103,8 +104,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             Gson gson,
             WebClient http,
-            Clock clock,
-            Logger logger) {
+            Clock clock) {
         this.deployer = deployer;
         this.scheduler = scheduler;
         this.executor = executor;
@@ -117,7 +117,6 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         this.gson = gson;
         this.http = http;
         this.clock = clock;
-        this.logger = logger;
     }
 
     @Override
@@ -174,7 +173,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                                                             target);
                                                     return credentialsApply && testJvmId(target);
                                                 } catch (ScriptException e) {
-                                                    logger.error(e);
+                                                    logger.error("Target test exception", e);
                                                     return false;
                                                 }
                                             });
@@ -244,7 +243,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             return StringUtils.isNotBlank(id);
         } catch (JvmIdGetException e) {
             logger.trace("Retain null jvmId for target [{}]", serviceRef.getServiceUri());
-            logger.trace(e);
+            logger.trace("JVM ID exception", e);
             return false;
         }
     }
@@ -438,7 +437,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                     child = new TargetNode(child.getNodeType(), ref, child.getLabels());
                 } catch (Exception e) {
                     logger.info("Update node [{}] with null jvmId", child.getName());
-                    logger.info(e);
+                    logger.info("JVM ID exception", e);
                     ConnectionAttemptRecord attemptRecord = new ConnectionAttemptRecord();
                     attemptRecord.firstAttemptTimestamp = clock.now().getEpochSecond();
                     attemptRecord.lastAttemptTimestamp = attemptRecord.firstAttemptTimestamp;

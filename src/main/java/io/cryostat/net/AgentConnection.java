@@ -30,7 +30,6 @@ import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.ServiceNotAvailableException;
 
 import io.cryostat.core.JvmIdentifier;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.IDException;
 import io.cryostat.core.net.JFRConnection;
@@ -48,13 +47,11 @@ public class AgentConnection implements JFRConnection {
     private final AgentClient client;
     private final FileSystem fs;
     private final Environment env;
-    private final Logger logger;
 
-    AgentConnection(AgentClient client, FileSystem fs, Environment env, Logger logger) {
+    AgentConnection(AgentClient client, FileSystem fs, Environment env) {
         this.client = client;
         this.fs = fs;
         this.env = env;
-        this.logger = logger;
     }
 
     @Override
@@ -120,7 +117,7 @@ public class AgentConnection implements JFRConnection {
     @Override
     public CryostatFlightRecorderService getService()
             throws ConnectionException, IOException, ServiceNotAvailableException {
-        return new AgentJFRService(client, (MergedTemplateService) getTemplateService(), logger);
+        return new AgentJFRService(client, (MergedTemplateService) getTemplateService());
     }
 
     @Override
@@ -151,17 +148,15 @@ public class AgentConnection implements JFRConnection {
         private final AgentClient.Factory clientFactory;
         private final FileSystem fs;
         private final Environment env;
-        private final Logger logger;
 
-        Factory(AgentClient.Factory clientFactory, FileSystem fs, Environment env, Logger logger) {
+        Factory(AgentClient.Factory clientFactory, FileSystem fs, Environment env) {
             this.clientFactory = clientFactory;
             this.fs = fs;
             this.env = env;
-            this.logger = logger;
         }
 
         AgentConnection createConnection(URI agentUri) {
-            return new AgentConnection(clientFactory.create(agentUri), fs, env, logger);
+            return new AgentConnection(clientFactory.create(agentUri), fs, env);
         }
     }
 }
