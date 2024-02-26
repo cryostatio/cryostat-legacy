@@ -19,7 +19,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -59,14 +58,13 @@ class DiscoveryDeregistrationHandlerTest {
     @Mock DiscoveryJwtHelper jwt;
     @Mock WebServer webServer;
     @Mock DiscoveryStorage storage;
-    @Mock Logger logger;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() {
         this.handler =
                 new DiscoveryDeregistrationHandler(
-                        auth, jwt, () -> webServer, storage, UUID::fromString, gson, logger);
+                        auth, jwt, () -> webServer, storage, UUID::fromString, gson);
     }
 
     @Nested

@@ -23,7 +23,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -47,7 +46,6 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
 
     private final RuleRegistry ruleRegistry;
     private final NotificationFactory notificationFactory;
-    private final Logger logger;
 
     @Inject
     RulesPostHandler(
@@ -55,12 +53,10 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
             CredentialsManager credentialsManager,
             RuleRegistry ruleRegistry,
             NotificationFactory notificationFactory,
-            Gson gson,
-            Logger logger) {
+            Gson gson) {
         super(auth, credentialsManager, gson);
         this.ruleRegistry = ruleRegistry;
         this.notificationFactory = notificationFactory;
-        this.logger = logger;
     }
 
     @Override

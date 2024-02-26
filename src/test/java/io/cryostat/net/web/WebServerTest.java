@@ -33,7 +33,6 @@ import javax.management.remote.JMXServiceURL;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
@@ -57,18 +56,15 @@ class WebServerTest {
     @Mock HttpServer httpServer;
     @Mock NetworkConfiguration netConf;
     @Mock AuthManager authManager;
-    @Mock Logger logger;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock Path recordingsPath;
     @Mock io.vertx.core.Vertx vertx;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() {
-        exporter =
-                new WebServer(
-                        httpServer, netConf, Set.of(), gson, authManager, logger, recordingsPath);
+        exporter = new WebServer(httpServer, netConf, Set.of(), gson, authManager, recordingsPath);
     }
 
     @Test
@@ -83,13 +79,7 @@ class WebServerTest {
         assertDoesNotThrow(
                 () ->
                         new WebServer(
-                                httpServer,
-                                netConf,
-                                Set.of(),
-                                gson,
-                                authManager,
-                                logger,
-                                recordingsPath));
+                                httpServer, netConf, Set.of(), gson, authManager, recordingsPath));
     }
 
     @Test

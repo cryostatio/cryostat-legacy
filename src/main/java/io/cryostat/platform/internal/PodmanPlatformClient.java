@@ -38,7 +38,6 @@ import java.util.function.Consumer;
 
 import javax.management.remote.JMXServiceURL;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.sys.Environment;
@@ -61,6 +60,8 @@ import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.codec.BodyCodec;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PodmanPlatformClient extends AbstractPlatformClient {
 
@@ -76,7 +77,7 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
     private final SocketAddress podmanSocket;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Gson gson;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private long timerId;
 
     private final CopyOnWriteArrayList<ContainerSpec> containers = new CopyOnWriteArrayList<>();
@@ -88,8 +89,7 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
             Lazy<Vertx> vertx,
             SocketAddress podmanSocket,
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            Gson gson,
-            Logger logger) {
+            Gson gson) {
         super(environment);
         this.executor = executor;
         this.webClient = webClient;
@@ -97,7 +97,6 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
         this.podmanSocket = podmanSocket;
         this.connectionToolkit = connectionToolkit;
         this.gson = gson;
-        this.logger = logger;
     }
 
     @Override
@@ -243,7 +242,7 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
                                         .Hostname;
                     } catch (InterruptedException | TimeoutException | ExecutionException e) {
                         containers.remove(desc);
-                        logger.warn(e);
+                        logger.warn("Target inspection exception", e);
                         return null;
                     }
                 }
@@ -270,7 +269,7 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
             return serviceRef;
         } catch (NumberFormatException | URISyntaxException | MalformedURLException e) {
             containers.remove(desc);
-            logger.warn(e);
+            logger.warn("Target conversion exception", e);
             return null;
         }
     }

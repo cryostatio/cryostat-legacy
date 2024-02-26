@@ -29,7 +29,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.management.remote.JMXServiceURL;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.DiscoveredJvmDescriptor;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
@@ -59,12 +58,11 @@ class DefaultPlatformClientTest {
 
     @Mock Environment env;
     @Mock JvmDiscoveryClient discoveryClient;
-    @Mock Logger logger;
     DefaultPlatformClient client;
 
     @BeforeEach
     void setup() {
-        this.client = new DefaultPlatformClient(env, discoveryClient, logger);
+        this.client = new DefaultPlatformClient(env, discoveryClient);
     }
 
     @Test

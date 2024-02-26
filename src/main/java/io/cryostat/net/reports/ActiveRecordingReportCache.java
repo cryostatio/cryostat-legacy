@@ -29,7 +29,6 @@ import javax.inject.Provider;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.messaging.notifications.Notification;
@@ -41,6 +40,8 @@ import io.cryostat.recordings.RecordingTargetHelper;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ActiveRecordingReportCache implements NotificationListener<Map<String, Object>> {
     protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
@@ -51,7 +52,7 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
     protected final long cacheExpirySeconds;
     protected final long cacheRefreshSeconds;
 
-    protected final Logger logger;
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     protected static final String EMPTY_FILTERS = "";
 
@@ -61,15 +62,13 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
             TargetConnectionManager targetConnectionManager,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             @Named(ReportsModule.ACTIVE_REPORT_CACHE_EXPIRY_SECONDS) long cacheExpirySeconds,
-            @Named(ReportsModule.ACTIVE_REPORT_CACHE_REFRESH_SECONDS) long cacheRefreshSeconds,
-            Logger logger) {
+            @Named(ReportsModule.ACTIVE_REPORT_CACHE_REFRESH_SECONDS) long cacheRefreshSeconds) {
         this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
         this.fs = fs;
         this.targetConnectionManager = targetConnectionManager;
         this.generationTimeoutSeconds = generationTimeoutSeconds;
         this.cacheExpirySeconds = cacheExpirySeconds;
         this.cacheRefreshSeconds = cacheRefreshSeconds;
-        this.logger = logger;
         this.cache =
                 Caffeine.newBuilder()
                         .scheduler(Scheduler.systemScheduler())
@@ -127,7 +126,7 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
                                 .get(generationTimeoutSeconds, TimeUnit.SECONDS);
                 return fs.readString(saveFile);
             } catch (ExecutionException | CompletionException e) {
-                logger.error(e);
+                logger.error("Read exception", e);
 
                 delete(recordingDescriptor.connectionDescriptor, recordingDescriptor.recordingName);
 

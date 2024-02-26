@@ -22,7 +22,6 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.persistence.EntityManager;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.discovery.DiscoveryStorage;
@@ -33,16 +32,19 @@ import com.google.gson.Gson;
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Module
 public abstract class ConfigurationModule {
     public static final String CONFIGURATION_PATH = "CONFIGURATION_PATH";
     public static final String CREDENTIALS_SUBDIRECTORY = "credentials";
+    private static final Logger logger = LoggerFactory.getLogger(ConfigurationModule.class);
 
     @Provides
     @Singleton
     @Named(CONFIGURATION_PATH)
-    static Path provideConfigurationPath(Logger logger, Environment env) {
+    static Path provideConfigurationPath(Environment env) {
         String path = env.getEnv(Variables.CONFIG_PATH, "/opt/cryostat.d/conf.d");
         logger.info(String.format("Local config path set as %s", path));
         return Paths.get(path);
@@ -57,8 +59,7 @@ public abstract class ConfigurationModule {
             DiscoveryStorage discovery,
             StoredCredentialsDao dao,
             FileSystem fs,
-            Gson gson,
-            Logger logger) {
+            Gson gson) {
         Path credentialsDir = confDir.resolve(CREDENTIALS_SUBDIRECTORY);
         return new CredentialsManager(
                 credentialsDir,
@@ -67,13 +68,12 @@ public abstract class ConfigurationModule {
                 discovery,
                 dao,
                 fs,
-                gson,
-                logger);
+                gson);
     }
 
     @Provides
     @Singleton
-    static StoredCredentialsDao provideStoredCredentialsDao(EntityManager em, Logger logger) {
-        return new StoredCredentialsDao(em, logger);
+    static StoredCredentialsDao provideStoredCredentialsDao(EntityManager em) {
+        return new StoredCredentialsDao(em);
     }
 }

@@ -23,7 +23,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -40,6 +39,8 @@ import io.cryostat.rules.RuleRegistry;
 import com.google.gson.Gson;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
 
@@ -53,7 +54,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
     private final DiscoveryStorage storage;
     private final CredentialsManager credentialsManager;
     private final NotificationFactory notificationFactory;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Inject
     RuleDeleteHandler(
@@ -64,8 +65,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
             DiscoveryStorage storage,
             CredentialsManager credentialsManager,
             NotificationFactory notificationFactory,
-            Gson gson,
-            Logger logger) {
+            Gson gson) {
         super(auth, credentialsManager, gson);
         this.vertx = vertx;
         this.ruleRegistry = ruleRegistry;
@@ -73,7 +73,6 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
         this.storage = storage;
         this.credentialsManager = credentialsManager;
         this.notificationFactory = notificationFactory;
-        this.logger = logger;
     }
 
     @Override
@@ -159,7 +158,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
                                             }
                                             promise.complete();
                                         } catch (Exception e) {
-                                            logger.error(e);
+                                            logger.error("Recording stop exception", e);
                                             promise.fail(e);
                                         }
                                     });

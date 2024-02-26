@@ -22,7 +22,6 @@ import java.util.concurrent.ForkJoinPool;
 import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.DirectExecutor;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.platform.PlatformClient;
@@ -46,7 +45,6 @@ import org.mockito.stubbing.Answer;
 class TargetConnectionManagerTest {
 
     TargetConnectionManager mgr;
-    @Mock Logger logger;
     @Mock JFRConnectionToolkit jfrConnectionToolkit;
     @Mock AgentConnection.Factory agentConnectionFactory;
     @Mock PlatformClient platformClient;
@@ -63,8 +61,7 @@ class TargetConnectionManagerTest {
                         Scheduler.disabledScheduler(),
                         TTL,
                         -1,
-                        10,
-                        logger);
+                        10);
     }
 
     @Test
@@ -157,8 +154,7 @@ class TargetConnectionManagerTest {
                         Scheduler.systemScheduler(),
                         Duration.ofNanos(1),
                         1,
-                        10,
-                        logger);
+                        10);
         Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         new Answer<JFRConnection>() {
@@ -187,8 +183,7 @@ class TargetConnectionManagerTest {
                         Scheduler.disabledScheduler(),
                         Duration.ofNanos(1),
                         -1,
-                        10,
-                        logger);
+                        10);
         Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         new Answer<JFRConnection>() {
@@ -226,8 +221,7 @@ class TargetConnectionManagerTest {
                         Scheduler.disabledScheduler(),
                         Duration.ofNanos(1),
                         -1,
-                        10,
-                        logger);
+                        10);
         ConnectionDescriptor desc = new ConnectionDescriptor(url);
         JFRConnection conn = mgr.executeConnectedTask(desc, a -> a);
         MatcherAssert.assertThat(conn, Matchers.sameInstance(agentConn));

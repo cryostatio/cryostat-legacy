@@ -31,7 +31,6 @@ import java.util.concurrent.TimeoutException;
 import javax.script.ScriptException;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.ConnectionDescriptor;
@@ -47,6 +46,8 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, String> {
 
@@ -54,7 +55,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
     private final CredentialsManager credentialsManager;
     private final long connectionTimeoutSeconds;
     private final Base32 base32;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final AsyncLoadingCache<String, String> ids;
     private final Map<String, ServiceRef> reverse;
@@ -66,13 +67,11 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
             long connectionTimeoutSeconds,
             Executor executor,
             Scheduler scheduler,
-            Base32 base32,
-            Logger logger) {
+            Base32 base32) {
         this.targetConnectionManager = targetConnectionManager;
         this.credentialsManager = credentialsManager;
         this.connectionTimeoutSeconds = connectionTimeoutSeconds;
         this.base32 = base32;
-        this.logger = logger;
         this.ids =
                 Caffeine.newBuilder()
                         .executor(executor)

@@ -32,7 +32,6 @@ import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.FlightRecorderException;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthenticationErrorException;
@@ -47,6 +46,8 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
 
@@ -57,13 +58,12 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
 
     protected final AuthManager auth;
     protected final CredentialsManager credentialsManager;
-    protected final Logger logger;
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     protected AbstractAuthenticatedRequestHandler(
-            AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
+            AuthManager auth, CredentialsManager credentialsManager) {
         this.auth = auth;
         this.credentialsManager = credentialsManager;
-        this.logger = logger;
     }
 
     public abstract void handleAuthenticated(RoutingContext ctx) throws Exception;

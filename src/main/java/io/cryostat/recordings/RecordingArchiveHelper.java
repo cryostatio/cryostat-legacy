@@ -56,7 +56,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.FlightRecorderException;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
@@ -80,13 +79,15 @@ import io.vertx.core.Vertx;
 import io.vertx.ext.web.FileUpload;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RecordingArchiveHelper {
 
     private final TargetConnectionManager targetConnectionManager;
     private final FileSystem fs;
     private final Provider<WebServer> webServerProvider;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Path archivedRecordingsPath;
     private final Path archivedRecordingsReportPath;
     private final RecordingMetadataManager recordingMetadataManager;
@@ -122,7 +123,6 @@ public class RecordingArchiveHelper {
     RecordingArchiveHelper(
             FileSystem fs,
             Provider<WebServer> webServerProvider,
-            Logger logger,
             @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
             @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path webServerTempPath,
             TargetConnectionManager targetConnectionManager,
@@ -135,7 +135,6 @@ public class RecordingArchiveHelper {
             Base32 base32) {
         this.fs = fs;
         this.webServerProvider = webServerProvider;
-        this.logger = logger;
         this.archivedRecordingsPath = archivedRecordingsPath;
         this.archivedRecordingsReportPath = webServerTempPath;
         this.targetConnectionManager = targetConnectionManager;
@@ -249,9 +248,9 @@ public class RecordingArchiveHelper {
                                     }
                                     FileUtils.deleteQuietly(subdirectoryPath.toFile());
                                 } catch (IOException e) {
-                                    logger.warn(e);
+                                    logger.warn("IO exception", e);
                                 } catch (CancellationException e) {
-                                    logger.error(e);
+                                    logger.error("Task cancellation exception", e);
                                 }
                                 return null;
                             });
@@ -636,7 +635,7 @@ public class RecordingArchiveHelper {
                                             getFileSize(file),
                                             getArchivedTime(file));
                                 } catch (IOException | URISyntaxException e) {
-                                    logger.warn(e);
+                                    logger.warn("Recording list exception", e);
                                     return null;
                                 }
                             })
@@ -700,7 +699,7 @@ public class RecordingArchiveHelper {
                                                         getFileSize(file),
                                                         getArchivedTime(file));
                                             } catch (IOException | URISyntaxException e) {
-                                                logger.warn(e);
+                                                logger.warn("Directory walk exception", e);
                                                 return null;
                                             }
                                         })
@@ -756,7 +755,7 @@ public class RecordingArchiveHelper {
                                                         getFileSize(file),
                                                         getArchivedTime(file));
                                             } catch (IOException | URISyntaxException e) {
-                                                logger.warn(e);
+                                                logger.warn("Recording list exception", e);
                                                 return null;
                                             }
                                         })
@@ -834,7 +833,7 @@ public class RecordingArchiveHelper {
                 }
             }
         } catch (IOException ioe) {
-            logger.error(ioe);
+            logger.error("Directory search exception", ioe);
         }
         return recordingPath;
     }

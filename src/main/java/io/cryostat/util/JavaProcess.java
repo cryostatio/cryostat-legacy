@@ -22,11 +22,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import io.cryostat.core.log.Logger;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JavaProcess {
+
+    private static Logger logger = LoggerFactory.getLogger(JavaProcess.class);
 
     static Process exec(
             Class<?> klazz, Map<String, String> env, List<String> jvmArgs, List<String> processArgs)
@@ -41,7 +43,7 @@ public class JavaProcess {
         cmd.add(className);
         cmd.addAll(processArgs);
 
-        Logger.INSTANCE.trace("Forking process: " + cmd.toString());
+        logger.trace("Forking process: {}", cmd.toString());
         var pb = new ProcessBuilder();
         pb.environment().putAll(env);
         return pb.command(cmd).inheritIO().start();

@@ -23,7 +23,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.platform.PlatformClient;
@@ -55,8 +54,7 @@ class CredentialsManagerTest {
     @Mock PlatformClient platformClient;
     @Mock StoredCredentialsDao dao;
     @Mock FileSystem fs;
-    @Mock Logger logger;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
     Base32 base32 = new Base32();
 
     @BeforeEach
@@ -69,8 +67,7 @@ class CredentialsManagerTest {
                         platformClient,
                         dao,
                         fs,
-                        gson,
-                        logger);
+                        gson);
     }
 
     @Test

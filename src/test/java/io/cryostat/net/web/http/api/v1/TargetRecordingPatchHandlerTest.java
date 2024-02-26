@@ -19,7 +19,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
@@ -56,13 +55,12 @@ class TargetRecordingPatchHandlerTest {
     @Mock HttpServerRequest req;
     @Mock HttpServerResponse resp;
     @Mock ConnectionDescriptor connectionDescriptor;
-    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         this.handler =
                 new TargetRecordingPatchHandler(
-                        authManager, credentialsManager, patchSave, patchStop, logger);
+                        authManager, credentialsManager, patchSave, patchStop);
     }
 
     @Test

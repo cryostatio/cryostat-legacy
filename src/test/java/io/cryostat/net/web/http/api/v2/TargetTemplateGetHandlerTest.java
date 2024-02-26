@@ -19,7 +19,6 @@ import java.util.EnumSet;
 import java.util.Optional;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateService;
 import io.cryostat.net.AuthManager;
@@ -59,18 +58,12 @@ class TargetTemplateGetHandlerTest {
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
     @Mock TargetConnectionManager targetConnectionManager;
-    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         this.handler =
                 new TargetTemplateGetHandler(
-                        auth,
-                        credentialsManager,
-                        jwt,
-                        () -> webServer,
-                        targetConnectionManager,
-                        logger);
+                        auth, credentialsManager, jwt, () -> webServer, targetConnectionManager);
     }
 
     @Nested

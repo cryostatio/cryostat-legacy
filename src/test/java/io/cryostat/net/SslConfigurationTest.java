@@ -28,7 +28,6 @@ import static org.mockito.Mockito.when;
 
 import java.nio.file.Path;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 
@@ -52,14 +51,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class SslConfigurationTest {
     @Mock Environment env;
     @Mock FileSystem fs;
-    @Mock Logger logger;
     @Mock SslConfiguration.SslConfigurationStrategy strategy;
 
     SslConfiguration sslConf;
 
     @BeforeEach
     void setup() {
-        sslConf = new SslConfiguration(env, fs, logger, strategy);
+        sslConf = new SslConfiguration(env, fs, strategy);
     }
 
     @Test
@@ -70,7 +68,7 @@ class SslConfigurationTest {
         when(dne.resolve(anyString())).thenReturn(dne);
         when(fs.exists(any(Path.class))).thenReturn(false);
 
-        sslConf = new SslConfiguration(env, fs, logger);
+        sslConf = new SslConfiguration(env, fs);
 
         MatcherAssert.assertThat(sslConf.enabled(), Matchers.equalTo(false));
     }

@@ -36,7 +36,6 @@ import javax.inject.Named;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
@@ -64,6 +63,8 @@ import io.vertx.ext.web.impl.BlockingHandlerDecorator;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.EnglishReasonPhraseCatalog;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WebServer extends AbstractVerticle {
 
@@ -77,7 +78,7 @@ public class WebServer extends AbstractVerticle {
     private final Path recordingsPath;
     private final Gson gson;
     private final AuthManager auth;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     WebServer(
             HttpServer server,
@@ -85,7 +86,6 @@ public class WebServer extends AbstractVerticle {
             Set<RequestHandler> requestHandlers,
             Gson gson,
             AuthManager auth,
-            Logger logger,
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath) {
         this.server = server;
         this.netConf = netConf;
@@ -94,7 +94,6 @@ public class WebServer extends AbstractVerticle {
         this.recordingsPath = recordingsPath;
         this.gson = gson;
         this.auth = auth;
-        this.logger = logger;
     }
 
     @Override

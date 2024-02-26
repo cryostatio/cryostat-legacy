@@ -41,7 +41,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.net.MBeanMetrics;
 import io.cryostat.core.serialization.SerializableRecordingDescriptor;
@@ -64,6 +63,8 @@ import jdk.jfr.RecordingState;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.auth.InvalidCredentialsException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AgentClient {
     public static final String NULL_CREDENTIALS = "No credentials found for agent";
@@ -74,7 +75,7 @@ public class AgentClient {
     private final WebClient webClient;
     private final CredentialsManager credentialsManager;
     private final URI agentUri;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     AgentClient(
             ExecutorService executor,
@@ -82,15 +83,13 @@ public class AgentClient {
             long httpTimeout,
             WebClient webClient,
             CredentialsManager credentialsManager,
-            URI agentUri,
-            Logger logger) {
+            URI agentUri) {
         this.executor = executor;
         this.gson = gson;
         this.httpTimeout = httpTimeout;
         this.webClient = webClient;
         this.credentialsManager = credentialsManager;
         this.agentUri = agentUri;
-        this.logger = logger;
     }
 
     URI getUri() {
@@ -337,7 +336,9 @@ public class AgentClient {
                                                             } catch (
                                                                     QuantityConversionException
                                                                             qce) {
-                                                                logger.warn(qce);
+                                                                logger.warn(
+                                                                        "Event settings exception",
+                                                                        qce);
                                                             }
                                                         });
                                     });
@@ -390,7 +391,7 @@ public class AgentClient {
                                                                 credentials.getUsername(),
                                                                 credentials.getPassword()));
                                     } catch (ScriptException | InvalidCredentialsException e) {
-                                        logger.error(e);
+                                        logger.error("Authentication exception", e);
                                         throw new IllegalStateException(e);
                                     }
 
@@ -407,7 +408,7 @@ public class AgentClient {
                                                     .get();
                                         }
                                     } catch (InterruptedException | ExecutionException e) {
-                                        logger.error(e);
+                                        logger.error("Remote request invocation exception", e);
                                         throw new RuntimeException(e);
                                     }
                                 },
@@ -425,26 +426,23 @@ public class AgentClient {
         private final long httpTimeout;
         private final WebClient webClient;
         private final CredentialsManager credentialsManager;
-        private final Logger logger;
 
         Factory(
                 ExecutorService executor,
                 Gson gson,
                 long httpTimeout,
                 WebClient webClient,
-                CredentialsManager credentialsManager,
-                Logger logger) {
+                CredentialsManager credentialsManager) {
             this.executor = executor;
             this.gson = gson;
             this.httpTimeout = httpTimeout;
             this.webClient = webClient;
             this.credentialsManager = credentialsManager;
-            this.logger = logger;
         }
 
         AgentClient create(URI agentUri) {
             return new AgentClient(
-                    executor, gson, httpTimeout, webClient, credentialsManager, agentUri, logger);
+                    executor, gson, httpTimeout, webClient, credentialsManager, agentUri);
         }
     }
 

@@ -39,7 +39,6 @@ import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.CryostatCore;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.reports.InterruptibleReportGenerator;
 import io.cryostat.core.reports.InterruptibleReportGenerator.AnalysisResult;
 import io.cryostat.core.sys.Environment;
@@ -51,6 +50,8 @@ import io.cryostat.util.JavaProcess;
 
 import com.google.gson.Gson;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SubprocessReportGenerator extends AbstractReportGeneratorService {
 
@@ -58,14 +59,15 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
     private final Provider<JavaProcess.Builder> javaProcessBuilderProvider;
     private final long generationTimeoutSeconds;
 
+    private static final Logger logger = LoggerFactory.getLogger(SubprocessReportGenerator.class);
+
     SubprocessReportGenerator(
             Environment env,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
             Provider<JavaProcess.Builder> javaProcessBuilderProvider,
-            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
-            Logger logger) {
-        super(targetConnectionManager, fs, logger);
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds) {
+        super(targetConnectionManager, fs);
         this.env = env;
         this.javaProcessBuilderProvider = javaProcessBuilderProvider;
         this.generationTimeoutSeconds = generationTimeoutSeconds;
@@ -122,14 +124,14 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
                                 throw new SubprocessReportGenerationException(status);
                         }
                     } catch (InterruptedException e) {
-                        logger.error(e);
+                        logger.error("Report generation exception", e);
                         throw new CompletionException(
                                 new SubprocessReportGenerationException(ExitStatus.TERMINATED));
                     } catch (IOException
                             | ReportGenerationException
                             | RecordingNotFoundException
                             | IllegalThreadStateException e) {
-                        logger.error(e);
+                        logger.error("Report generation exception", e);
                         throw new CompletionException(e);
                     } finally {
                         if (proc != null) {
@@ -163,15 +165,14 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
 
     public static void main(String[] args) {
         long startTime = System.nanoTime();
-        Logger.INSTANCE.info(SubprocessReportGenerator.class.getName() + " starting");
+        logger.info("starting");
         Runtime.getRuntime()
                 .addShutdownHook(
                         new Thread(
                                 () -> {
                                     long elapsedTime = System.nanoTime() - startTime;
-                                    Logger.INSTANCE.info(
-                                            "{} shutting down after {}ms",
-                                            SubprocessReportGenerator.class.getName(),
+                                    logger.info(
+                                            "shutting down after {}ms",
                                             TimeUnit.NANOSECONDS.toMillis(elapsedTime));
                                 }));
 
@@ -184,15 +185,11 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
             // +1000 to ensure we're killed first if memory runs out
             Path selfProc = fs.pathOf("/proc/self");
             if (fs.isDirectory(selfProc)) {
-                Logger.INSTANCE.info(
-                        SubprocessReportGenerator.class.getName()
-                                + " adjusting subprocess OOM score");
+                logger.info("adjusting subprocess OOM score");
                 Path oomScoreAdj = selfProc.resolve("oom_score_adj");
                 fs.writeString(oomScoreAdj, "1000");
             } else {
-                Logger.INSTANCE.info(
-                        SubprocessReportGenerator.class.getName()
-                                + "/proc/self does not exist; ignoring OOM score adjustment");
+                logger.info("/proc/self does not exist; ignoring OOM score adjustment");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -207,7 +204,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         String filter = args[2];
 
         try {
-            Logger.INSTANCE.info(SubprocessReportGenerator.class.getName() + " processing report");
+            logger.info("processing report");
             Map<String, AnalysisResult> evalMapResult = generateEvalMapFromFile(recording, filter);
             fs.writeString(
                     saveFile,
@@ -234,7 +231,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
             throws Exception {
         Pair<Predicate<IRule>, FileSystem> hPair = generateHelper(recording, filter);
         try (InputStream stream = hPair.getRight().newInputStream(recording)) {
-            return new InterruptibleReportGenerator(ForkJoinPool.commonPool(), Logger.INSTANCE)
+            return new InterruptibleReportGenerator(ForkJoinPool.commonPool())
                     .generateEvalMapInterruptibly(stream, hPair.getLeft())
                     .get();
         } catch (IOException ioe) {

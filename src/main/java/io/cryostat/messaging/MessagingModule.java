@@ -19,7 +19,6 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.configuration.Variables;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -34,6 +33,8 @@ import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
 import io.vertx.core.Vertx;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Module(
         includes = {
@@ -42,6 +43,7 @@ import io.vertx.core.Vertx;
 public abstract class MessagingModule {
 
     static final String WS_MAX_CONNECTIONS = "WS_MAX_CONNECTIONS";
+    private static final Logger logger = LoggerFactory.getLogger(MessagingModule.class);
 
     @Provides
     @Singleton
@@ -53,18 +55,9 @@ public abstract class MessagingModule {
             NotificationFactory notificationFactory,
             @Named(WS_MAX_CONNECTIONS) int maxConnections,
             Clock clock,
-            Logger logger,
             Gson gson) {
         return new MessagingServer(
-                vertx,
-                server,
-                env,
-                authManager,
-                notificationFactory,
-                maxConnections,
-                clock,
-                logger,
-                gson);
+                vertx, server, env, authManager, notificationFactory, maxConnections, clock, gson);
     }
 
     @Binds
@@ -73,7 +66,7 @@ public abstract class MessagingModule {
 
     @Provides
     @Named(WS_MAX_CONNECTIONS)
-    static int provideWebSocketMaxConnections(Environment env, Logger logger) {
+    static int provideWebSocketMaxConnections(Environment env) {
         try {
             int count =
                     Integer.parseInt(
@@ -87,7 +80,7 @@ public abstract class MessagingModule {
             }
             return count;
         } catch (NumberFormatException nfe) {
-            logger.warn(nfe);
+            logger.warn("Max WS connections exception", nfe);
             return Integer.MAX_VALUE;
         }
     }

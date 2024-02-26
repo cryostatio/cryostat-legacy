@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.AbstractNode;
@@ -39,17 +38,18 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import dagger.Lazy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> {
 
     private final Lazy<Set<PluggableTypeAdapter<?>>> adapters;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public AbstractNodeTypeAdapter(
-            Class<AbstractNode> klazz, Lazy<Set<PluggableTypeAdapter<?>>> adapters, Logger logger) {
+            Class<AbstractNode> klazz, Lazy<Set<PluggableTypeAdapter<?>>> adapters) {
         super(klazz);
         this.adapters = adapters;
-        this.logger = logger;
     }
 
     @Override

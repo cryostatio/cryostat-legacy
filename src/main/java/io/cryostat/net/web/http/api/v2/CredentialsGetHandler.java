@@ -25,7 +25,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -39,8 +38,7 @@ import io.vertx.core.http.HttpMethod;
 class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
 
     @Inject
-    CredentialsGetHandler(
-            AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
+    CredentialsGetHandler(AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
         super(auth, credentialsManager, gson);
     }
 

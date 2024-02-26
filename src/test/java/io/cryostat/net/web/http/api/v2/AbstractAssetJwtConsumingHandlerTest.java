@@ -25,7 +25,6 @@ import java.util.concurrent.ExecutionException;
 import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.PermissionDeniedException;
@@ -65,7 +64,6 @@ class AbstractAssetJwtConsumingHandlerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock AssetJwtHelper jwtHelper;
     @Mock WebServer webServer;
-    @Mock Logger logger;
 
     @Mock RoutingContext ctx;
     @Mock HttpServerResponse resp;
@@ -73,8 +71,7 @@ class AbstractAssetJwtConsumingHandlerTest {
     @BeforeEach
     void setup() {
         this.handler =
-                new JwtConsumingHandler(
-                        auth, credentialsManager, jwtHelper, () -> webServer, logger);
+                new JwtConsumingHandler(auth, credentialsManager, jwtHelper, () -> webServer);
         Mockito.lenient().when(ctx.response()).thenReturn(resp);
         Mockito.lenient()
                 .when(
@@ -295,7 +292,6 @@ class AbstractAssetJwtConsumingHandlerTest {
                             credentialsManager,
                             jwtHelper,
                             () -> webServer,
-                            logger,
                             expectedException);
 
             ApiException ex =
@@ -314,7 +310,6 @@ class AbstractAssetJwtConsumingHandlerTest {
                             credentialsManager,
                             jwtHelper,
                             () -> webServer,
-                            logger,
                             expectedException);
 
             Mockito.when(ctx.response()).thenReturn(resp);
@@ -336,7 +331,6 @@ class AbstractAssetJwtConsumingHandlerTest {
                             credentialsManager,
                             jwtHelper,
                             () -> webServer,
-                            logger,
                             expectedException);
 
             ApiException ex =
@@ -358,7 +352,6 @@ class AbstractAssetJwtConsumingHandlerTest {
                             credentialsManager,
                             jwtHelper,
                             () -> webServer,
-                            logger,
                             expectedException);
 
             ApiException ex =
@@ -376,7 +369,6 @@ class AbstractAssetJwtConsumingHandlerTest {
                             credentialsManager,
                             jwtHelper,
                             () -> webServer,
-                            logger,
                             expectedException);
 
             ApiException ex =
@@ -418,7 +410,7 @@ class AbstractAssetJwtConsumingHandlerTest {
 
             handler =
                     new ConnectionDescriptorHandler(
-                            auth, credentialsManager, jwtHelper, () -> webServer, logger);
+                            auth, credentialsManager, jwtHelper, () -> webServer);
             Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
         }
@@ -530,9 +522,8 @@ class AbstractAssetJwtConsumingHandlerTest {
                 AuthManager auth,
                 CredentialsManager credentialsManager,
                 AssetJwtHelper jwtHelper,
-                Lazy<WebServer> webServer,
-                Logger logger) {
-            super(auth, credentialsManager, jwtHelper, webServer, logger);
+                Lazy<WebServer> webServer) {
+            super(auth, credentialsManager, jwtHelper, webServer);
         }
 
         @Override
@@ -567,9 +558,8 @@ class AbstractAssetJwtConsumingHandlerTest {
                 CredentialsManager credentialsManager,
                 AssetJwtHelper jwtHelper,
                 Lazy<WebServer> webServer,
-                Logger logger,
                 Exception thrown) {
-            super(auth, credentialsManager, jwtHelper, webServer, logger);
+            super(auth, credentialsManager, jwtHelper, webServer);
             this.thrown = thrown;
         }
 
@@ -586,9 +576,8 @@ class AbstractAssetJwtConsumingHandlerTest {
                 AuthManager auth,
                 CredentialsManager credentialsManager,
                 AssetJwtHelper jwtHelper,
-                Lazy<WebServer> webServer,
-                Logger logger) {
-            super(auth, credentialsManager, jwtHelper, webServer, logger);
+                Lazy<WebServer> webServer) {
+            super(auth, credentialsManager, jwtHelper, webServer);
         }
 
         @Override

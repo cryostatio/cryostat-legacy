@@ -19,7 +19,6 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.SslConfiguration;
@@ -31,12 +30,8 @@ import io.vertx.core.http.HttpMethod;
 class CorsOptionsHandler extends CorsEnablingHandler {
 
     @Inject
-    CorsOptionsHandler(
-            Environment env,
-            NetworkConfiguration netConf,
-            SslConfiguration sslConf,
-            Logger logger) {
-        super(env, netConf, sslConf, logger);
+    CorsOptionsHandler(Environment env, NetworkConfiguration netConf, SslConfiguration sslConf) {
+        super(env, netConf, sslConf);
     }
 
     @Override

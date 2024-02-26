@@ -24,7 +24,6 @@ import java.util.function.Function;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
@@ -104,8 +103,7 @@ public abstract class OpenShiftNetworkModule {
             Lazy<OpenShiftClient> serviceAccountClient,
             @Named(TOKENED_CLIENT) Function<String, OpenShiftClient> clientProvider,
             ClassPropertiesLoader classPropertiesLoader,
-            Gson gson,
-            Logger logger) {
+            Gson gson) {
         return new OpenShiftAuthManager(
                 env,
                 namespace,
@@ -114,8 +112,7 @@ public abstract class OpenShiftNetworkModule {
                 classPropertiesLoader,
                 gson,
                 ForkJoinPool.commonPool(),
-                Scheduler.systemScheduler(),
-                logger);
+                Scheduler.systemScheduler());
     }
 
     @Binds

@@ -29,7 +29,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -58,7 +57,6 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
     private final DiscoveryStorage storage;
     private final JvmIdHelper jvmIdHelper;
     private final CustomTargetPlatformClient customTargetPlatformClient;
-    private final Logger logger;
     private final NotificationFactory notificationFactory;
 
     @Inject
@@ -69,13 +67,11 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             DiscoveryStorage storage,
             JvmIdHelper jvmIdHelper,
             CustomTargetPlatformClient customTargetPlatformClient,
-            NotificationFactory notificationFactory,
-            Logger logger) {
+            NotificationFactory notificationFactory) {
         super(auth, credentialsManager, gson);
         this.storage = storage;
         this.jvmIdHelper = jvmIdHelper;
         this.customTargetPlatformClient = customTargetPlatformClient;
-        this.logger = logger;
         this.notificationFactory = notificationFactory;
     }
 

@@ -26,7 +26,6 @@ import javax.inject.Inject;
 
 import io.cryostat.ApplicationVersion;
 import io.cryostat.configuration.Variables;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -41,6 +40,8 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class HealthGetHandler implements RequestHandler {
 
@@ -48,20 +49,15 @@ class HealthGetHandler implements RequestHandler {
     private final WebClient webClient;
     private final Environment env;
     private final Gson gson;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Inject
     HealthGetHandler(
-            ApplicationVersion appVersion,
-            WebClient webClient,
-            Environment env,
-            Gson gson,
-            Logger logger) {
+            ApplicationVersion appVersion, WebClient webClient, Environment env, Gson gson) {
         this.appVersion = appVersion;
         this.webClient = webClient;
         this.env = env;
         this.gson = gson;
-        this.logger = logger;
     }
 
     @Override
@@ -131,7 +127,7 @@ class HealthGetHandler implements RequestHandler {
             try {
                 uri = new URI(this.env.getEnv(envName));
             } catch (URISyntaxException e) {
-                logger.error(e);
+                logger.error("URI check exception", e);
                 future.complete(false);
                 return;
             }
@@ -145,7 +141,8 @@ class HealthGetHandler implements RequestHandler {
                     .send(
                             handler -> {
                                 if (handler.failed()) {
-                                    this.logger.warn(new IOException(handler.cause()));
+                                    this.logger.warn(
+                                            "Request exception", new IOException(handler.cause()));
                                     future.complete(false);
                                     return;
                                 }

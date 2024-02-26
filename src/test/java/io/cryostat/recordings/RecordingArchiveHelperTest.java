@@ -35,7 +35,6 @@ import javax.management.remote.JMXServiceURL;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
@@ -78,7 +77,6 @@ class RecordingArchiveHelperTest {
     @Mock RecordingMetadataManager recordingMetadataManager;
     @Mock FileSystem fs;
     @Mock WebServer webServer;
-    @Mock Logger logger;
     @Mock Path destinationFile;
     @Mock Path archivedRecordingsPath;
     @Mock Path archivedRecordingsReportPath;
@@ -148,7 +146,6 @@ class RecordingArchiveHelperTest {
                 new RecordingArchiveHelper(
                         fs,
                         () -> webServer,
-                        logger,
                         archivedRecordingsPath,
                         archivedRecordingsReportPath,
                         targetConnectionManager,

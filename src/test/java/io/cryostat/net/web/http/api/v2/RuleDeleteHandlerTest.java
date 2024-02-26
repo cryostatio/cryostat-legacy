@@ -25,7 +25,6 @@ import io.cryostat.MainModule;
 import io.cryostat.MockVertx;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.FlightRecorderException;
-import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -66,8 +65,7 @@ class RuleDeleteHandlerTest {
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
-    @Mock Logger logger;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() {
@@ -94,8 +92,7 @@ class RuleDeleteHandlerTest {
                         storage,
                         credentialsManager,
                         notificationFactory,
-                        gson,
-                        logger);
+                        gson);
     }
 
     @Nested
@@ -229,7 +226,6 @@ class RuleDeleteHandlerTest {
             Mockito.verify(recordingTargetHelper)
                     .stopRecording(
                             Mockito.any(), Mockito.eq(rule.getRecordingName()), Mockito.eq(true));
-            Mockito.verify(logger).error(exception);
         }
 
         @Test

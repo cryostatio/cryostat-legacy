@@ -31,7 +31,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import io.cryostat.FakeScheduledExecutorService;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.CredentialsManager.CredentialsEvent;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
@@ -79,7 +78,6 @@ class RuleProcessorTest {
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock RecordingMetadataManager metadataManager;
     @Mock PeriodicArchiverFactory periodicArchiverFactory;
-    @Mock Logger logger;
 
     @Mock JFRConnection connection;
     @Mock CryostatFlightRecorderService service;
@@ -98,8 +96,7 @@ class RuleProcessorTest {
                         recordingArchiveHelper,
                         recordingTargetHelper,
                         metadataManager,
-                        periodicArchiverFactory,
-                        logger);
+                        periodicArchiverFactory);
     }
 
     @Test
@@ -421,12 +418,7 @@ class RuleProcessorTest {
                                 Function<Pair<String, Rule>, Void> fn = invocation.getArgument(4);
                                 PeriodicArchiver p =
                                         new PeriodicArchiver(
-                                                serviceRef,
-                                                cm,
-                                                rule,
-                                                recordingArchiveHelper,
-                                                fn,
-                                                logger);
+                                                serviceRef, cm, rule, recordingArchiveHelper, fn);
                                 pa[0] = p;
                                 return p;
                             }

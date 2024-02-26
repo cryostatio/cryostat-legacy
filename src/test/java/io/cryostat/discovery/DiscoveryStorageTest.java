@@ -34,7 +34,6 @@ import io.cryostat.MainModule;
 import io.cryostat.MockVertx;
 import io.cryostat.VerticleDeployer;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.discovery.DiscoveryStorage.NotFoundException;
@@ -86,9 +85,8 @@ class DiscoveryStorageTest {
     @Mock MatchExpressionEvaluator matchExpressionEvaluator;
     @Mock WebClient http;
     @Mock Clock clock;
-    @Mock Logger logger;
     Vertx vertx = MockVertx.vertx();
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @Singleton
     @Component(modules = {MainModule.class})
@@ -120,8 +118,7 @@ class DiscoveryStorageTest {
                         () -> matchExpressionEvaluator,
                         gson,
                         http,
-                        clock,
-                        logger);
+                        clock);
         this.storage.init(vertx, null);
     }
 

@@ -23,7 +23,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.Variables;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.SslConfiguration;
@@ -37,6 +36,8 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.CorsHandler;
 import org.apache.http.HttpHeaders;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class CorsEnablingHandler implements RequestHandler {
     protected static final String DEV_ORIGIN = "http://localhost:9000";
@@ -44,18 +45,13 @@ class CorsEnablingHandler implements RequestHandler {
     protected final Environment env;
     protected final NetworkConfiguration netConf;
     protected final SslConfiguration sslConf;
-    protected final Logger logger;
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Inject
-    CorsEnablingHandler(
-            Environment env,
-            NetworkConfiguration netConf,
-            SslConfiguration sslConf,
-            Logger logger) {
+    CorsEnablingHandler(Environment env, NetworkConfiguration netConf, SslConfiguration sslConf) {
         this.env = env;
         this.netConf = netConf;
         this.sslConf = sslConf;
-        this.logger = logger;
         this.corsHandler =
                 CorsHandler.create()
                         .addOrigin(getWebClientOrigin())
@@ -122,7 +118,7 @@ class CorsEnablingHandler implements RequestHandler {
                             netConf.getWebServerHost(),
                             netConf.getExternalWebServerPort()));
         } catch (SocketException | UnknownHostException e) {
-            logger.warn(e);
+            logger.warn("Could not determine own origin", e);
             return List.of();
         }
     }

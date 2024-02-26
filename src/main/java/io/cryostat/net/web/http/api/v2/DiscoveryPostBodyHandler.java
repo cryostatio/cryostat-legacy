@@ -19,7 +19,6 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -33,7 +32,7 @@ class DiscoveryPostBodyHandler implements RequestHandler {
     static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 
     @Inject
-    DiscoveryPostBodyHandler(Logger logger) {}
+    DiscoveryPostBodyHandler() {}
 
     @Override
     public ApiVersion apiVersion() {

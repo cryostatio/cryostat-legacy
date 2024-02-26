@@ -35,7 +35,6 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.EventOptionsBuilder;
 import io.cryostat.core.RecordingOptionsCustomizer;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -85,8 +84,7 @@ public abstract class RecordingsModule {
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
             RecordingMetadataManager recordingMetadataManager,
-            RecordingArchiveHelper recordingArchiveHelper,
-            Logger logger) {
+            RecordingArchiveHelper recordingArchiveHelper) {
         return new RecordingTargetHelper(
                 vertx,
                 targetConnectionManager,
@@ -97,8 +95,7 @@ public abstract class RecordingsModule {
                 recordingOptionsBuilderFactory,
                 reportService,
                 recordingMetadataManager,
-                recordingArchiveHelper,
-                logger);
+                recordingArchiveHelper);
     }
 
     @Provides
@@ -106,7 +103,6 @@ public abstract class RecordingsModule {
     static RecordingArchiveHelper provideRecordingArchiveHelper(
             FileSystem fs,
             Provider<WebServer> webServerProvider,
-            Logger logger,
             @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
             @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path archivedRecordingsReportPath,
             TargetConnectionManager targetConnectionManager,
@@ -120,7 +116,6 @@ public abstract class RecordingsModule {
         return new RecordingArchiveHelper(
                 fs,
                 webServerProvider,
-                logger,
                 archivedRecordingsPath,
                 archivedRecordingsReportPath,
                 targetConnectionManager,
@@ -166,8 +161,7 @@ public abstract class RecordingsModule {
             NotificationFactory notificationFactory,
             JvmIdHelper jvmIdHelper,
             Gson gson,
-            Base32 base32,
-            Logger logger) {
+            Base32 base32) {
         try {
             Path metadataDir = confDir.resolve(METADATA_SUBDIRECTORY);
             if (!fs.isDirectory(metadataDir)) {
@@ -192,8 +186,7 @@ public abstract class RecordingsModule {
                     notificationFactory,
                     jvmIdHelper,
                     gson,
-                    base32,
-                    logger);
+                    base32);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -206,8 +199,7 @@ public abstract class RecordingsModule {
             @Named(Variables.JMX_CONNECTION_TIMEOUT) long connectionTimeoutSeconds,
             CredentialsManager credentialsManager,
             DiscoveryStorage storage,
-            Base32 base32,
-            Logger logger) {
+            Base32 base32) {
         return new JvmIdHelper(
                 targetConnectionManager,
                 credentialsManager,
@@ -215,7 +207,6 @@ public abstract class RecordingsModule {
                 connectionTimeoutSeconds,
                 Executors.newCachedThreadPool(),
                 Scheduler.systemScheduler(),
-                base32,
-                logger);
+                base32);
     }
 }

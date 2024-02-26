@@ -25,7 +25,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.templates.LocalStorageTemplateService;
 import io.cryostat.core.templates.MutableTemplateService.InvalidEventTemplateException;
@@ -49,7 +48,6 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private final LocalStorageTemplateService templateService;
     private final FileSystem fs;
-    private final Logger logger;
     private final NotificationFactory notificationFactory;
     private static final String NOTIFICATION_CATEGORY = "TemplateUploaded";
 
@@ -59,13 +57,11 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
             CredentialsManager credentialsManager,
             LocalStorageTemplateService templateService,
             FileSystem fs,
-            NotificationFactory notificationFactory,
-            Logger logger) {
-        super(auth, credentialsManager, logger);
+            NotificationFactory notificationFactory) {
+        super(auth, credentialsManager);
         this.notificationFactory = notificationFactory;
         this.templateService = templateService;
         this.fs = fs;
-        this.logger = logger;
     }
 
     @Override

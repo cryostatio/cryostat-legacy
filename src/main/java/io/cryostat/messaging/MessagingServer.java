@@ -28,7 +28,6 @@ import java.util.concurrent.TimeoutException;
 
 import javax.inject.Named;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.Notification;
@@ -44,6 +43,8 @@ import com.google.gson.Gson;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MessagingServer extends AbstractVerticle
         implements AutoCloseable, NotificationListener {
@@ -54,7 +55,7 @@ public class MessagingServer extends AbstractVerticle
     private final NotificationFactory notificationFactory;
     private final Clock clock;
     private final int maxConnections;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Gson gson;
 
     private long prunerTaskId;
@@ -68,7 +69,6 @@ public class MessagingServer extends AbstractVerticle
             NotificationFactory notificationFactory,
             @Named(MessagingModule.WS_MAX_CONNECTIONS) int maxConnections,
             Clock clock,
-            Logger logger,
             Gson gson) {
         this.vertx = vertx;
         this.connections = new HashSet<>();
@@ -77,7 +77,6 @@ public class MessagingServer extends AbstractVerticle
         this.notificationFactory = notificationFactory;
         this.maxConnections = maxConnections;
         this.clock = clock;
-        this.logger = logger;
         this.gson = gson;
         this.pingTasks = new ConcurrentHashMap<>();
     }
@@ -112,7 +111,7 @@ public class MessagingServer extends AbstractVerticle
                     }
                     logger.info("Connected remote client {}", remoteAddress);
 
-                    WsClient wsc = new WsClient(this.logger, sws, clock);
+                    WsClient wsc = new WsClient(sws, clock);
                     sws.closeHandler((unused) -> removeConnection(wsc));
                     sws.textMessageHandler(
                             msg -> {
@@ -148,6 +147,7 @@ public class MessagingServer extends AbstractVerticle
                                                         result.cause(),
                                                         AuthenticationErrorException.class)) {
                                                     logger.info(
+                                                            "Authentication exception",
                                                             (AuthenticationErrorException)
                                                                     result.cause());
                                                     logger.info(
@@ -162,7 +162,9 @@ public class MessagingServer extends AbstractVerticle
                                                             (short) 1002,
                                                             "Invalid auth subprotocol");
                                                 } else {
-                                                    logger.info(new IOException(result.cause()));
+                                                    logger.info(
+                                                            "I/O exception",
+                                                            new IOException(result.cause()));
                                                     sws.close(
                                                             (short) 1011,
                                                             String.format(
@@ -264,7 +266,7 @@ public class MessagingServer extends AbstractVerticle
                 }
             }
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Connection prune exception", e);
         }
     }
 

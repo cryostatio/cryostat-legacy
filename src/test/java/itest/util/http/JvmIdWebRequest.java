@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
 
 import com.google.gson.Gson;
 import io.vertx.core.buffer.Buffer;
@@ -36,7 +35,7 @@ import itest.util.Utils;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class JvmIdWebRequest {
-    private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
+    private static final Gson gson = MainModule.provideGson();
 
     public static final int REQUEST_TIMEOUT_SECONDS = 10;
     public static final WebClient webClient = Utils.getWebClient();

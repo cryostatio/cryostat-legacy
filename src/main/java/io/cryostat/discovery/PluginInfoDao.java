@@ -29,7 +29,6 @@ import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.storage.AbstractDao;
@@ -40,8 +39,8 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
 
     private final Gson gson;
 
-    PluginInfoDao(EntityManager em, Gson gson, Logger logger) {
-        super(PluginInfo.class, em, logger);
+    PluginInfoDao(EntityManager em, Gson gson) {
+        super(PluginInfo.class, em);
         this.gson = gson;
     }
 
@@ -89,7 +88,7 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
                 if (transaction != null) {
                     transaction.rollback();
                 }
-                logger.error(e);
+                logger.error("Update exception", e);
                 throw e;
             }
         }
@@ -124,7 +123,7 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
                 if (transaction != null) {
                     transaction.rollback();
                 }
-                logger.error(e);
+                logger.error("Update exception", e);
                 throw e;
             }
         }

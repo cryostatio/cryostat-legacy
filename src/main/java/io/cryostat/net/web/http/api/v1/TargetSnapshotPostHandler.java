@@ -23,7 +23,6 @@ import java.util.concurrent.ExecutionException;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -47,9 +46,8 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
     TargetSnapshotPostHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
-            RecordingTargetHelper recordingTargetHelper,
-            Logger logger) {
-        super(auth, credentialsManager, logger);
+            RecordingTargetHelper recordingTargetHelper) {
+        super(auth, credentialsManager);
         this.recordingTargetHelper = recordingTargetHelper;
     }
 

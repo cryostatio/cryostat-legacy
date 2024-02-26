@@ -19,17 +19,14 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
-import io.cryostat.core.log.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ApplicationVersion {
 
     private static final String RESOURCE_LOCATION = "/io/cryostat/version";
     private volatile String version;
-    private final Logger logger;
-
-    ApplicationVersion(Logger logger) {
-        this.logger = logger;
-    }
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public synchronized String getVersionString() {
         if (version == null) {
@@ -49,7 +46,7 @@ public class ApplicationVersion {
                                                                 RESOURCE_LOCATION)))
                                 .trim();
             } catch (Exception e) {
-                logger.error(e);
+                logger.error("Version retrieval exception", e);
                 version = "unknown";
             }
         }

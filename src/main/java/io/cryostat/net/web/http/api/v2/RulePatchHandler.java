@@ -23,7 +23,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -41,6 +40,8 @@ import com.google.gson.Gson;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class RulePatchHandler extends AbstractV2RequestHandler<Void> {
 
@@ -53,7 +54,7 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
     private final DiscoveryStorage storage;
     private final RecordingTargetHelper recordings;
     private final NotificationFactory notificationFactory;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Inject
     RulePatchHandler(
@@ -64,15 +65,13 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
             CredentialsManager credentialsManager,
             RuleRegistry ruleRegistry,
             NotificationFactory notificationFactory,
-            Gson gson,
-            Logger logger) {
+            Gson gson) {
         super(auth, credentialsManager, gson);
         this.vertx = vertx;
         this.recordings = recordings;
         this.ruleRegistry = ruleRegistry;
         this.storage = storage;
         this.notificationFactory = notificationFactory;
-        this.logger = logger;
     }
 
     @Override
@@ -173,7 +172,7 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
                                             }
                                             promise.complete();
                                         } catch (Exception e) {
-                                            logger.error(e);
+                                            logger.error("Recording stop exception", e);
                                             promise.fail(e);
                                         }
                                     });

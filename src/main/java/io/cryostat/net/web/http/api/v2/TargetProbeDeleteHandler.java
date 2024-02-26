@@ -23,7 +23,6 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.AgentJMXHelper;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -41,7 +40,6 @@ class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     static final String PATH = "targets/:targetId/probes";
 
-    private final Logger logger;
     private final NotificationFactory notificationFactory;
     private final FileSystem fs;
     private final TargetConnectionManager connectionManager;
@@ -50,7 +48,6 @@ class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     @Inject
     TargetProbeDeleteHandler(
-            Logger logger,
             NotificationFactory notificationFactory,
             FileSystem fs,
             AuthManager auth,
@@ -59,7 +56,6 @@ class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
             Environment env,
             Gson gson) {
         super(auth, credentialsManager, gson);
-        this.logger = logger;
         this.notificationFactory = notificationFactory;
         this.connectionManager = connectionManager;
         this.env = env;

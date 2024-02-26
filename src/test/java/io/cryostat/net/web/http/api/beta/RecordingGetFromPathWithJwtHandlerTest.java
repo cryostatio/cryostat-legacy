@@ -23,7 +23,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
@@ -61,19 +60,12 @@ class RecordingGetFromPathWithJwtHandlerTest {
     @Mock WebServer webServer;
     @Mock JvmIdHelper jvmIdHelper;
     @Mock RecordingArchiveHelper archive;
-    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         this.handler =
                 new RecordingGetFromPathWithJwtHandler(
-                        auth,
-                        credentialsManager,
-                        jwt,
-                        () -> webServer,
-                        jvmIdHelper,
-                        archive,
-                        logger);
+                        auth, credentialsManager, jwt, () -> webServer, jvmIdHelper, archive);
     }
 
     @Nested

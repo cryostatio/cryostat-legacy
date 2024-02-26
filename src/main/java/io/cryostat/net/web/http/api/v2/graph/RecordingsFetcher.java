@@ -30,7 +30,6 @@ import javax.inject.Provider;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -46,6 +45,8 @@ import io.cryostat.rules.ArchivedRecordingInfo;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import graphql.schema.DataFetchingEnvironment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
 
@@ -54,7 +55,7 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
     private final CredentialsManager credentialsManager;
     private final RecordingMetadataManager metadataManager;
     private final Provider<WebServer> webServer;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Inject
     RecordingsFetcher(
@@ -63,15 +64,13 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
             RecordingArchiveHelper archiveHelper,
             CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
-            Provider<WebServer> webServer,
-            Logger logger) {
+            Provider<WebServer> webServer) {
         super(auth);
         this.targetConnectionManager = targetConnectionManager;
         this.archiveHelper = archiveHelper;
         this.credentialsManager = credentialsManager;
         this.metadataManager = metadataManager;
         this.webServer = webServer;
-        this.logger = logger;
     }
 
     @Override
@@ -144,7 +143,7 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
                                                     } catch (QuantityConversionException
                                                             | URISyntaxException
                                                             | IOException e) {
-                                                        logger.error(e);
+                                                        logger.error("Recordings get exception", e);
                                                         return null;
                                                     }
                                                 })
@@ -159,7 +158,7 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
             } catch (ExecutionException e) {
                 recordings.archived = List.of();
                 logger.warn("Couldn't get archived recordings for {}", targetId);
-                logger.warn(e);
+                logger.warn("Archived recordings get exception", e);
             }
         }
 

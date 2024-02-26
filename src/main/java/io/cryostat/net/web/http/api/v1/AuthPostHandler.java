@@ -20,7 +20,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
@@ -33,8 +32,8 @@ import io.vertx.ext.web.RoutingContext;
 class AuthPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Inject
-    AuthPostHandler(AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
-        super(auth, credentialsManager, logger);
+    AuthPostHandler(AuthManager auth, CredentialsManager credentialsManager) {
+        super(auth, credentialsManager);
     }
 
     @Override

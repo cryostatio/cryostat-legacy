@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 
 import io.cryostat.configuration.Variables;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
@@ -35,6 +34,8 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
 
@@ -44,11 +45,9 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     protected final Lazy<? extends AuthManager> authMgr;
     protected final Environment env;
     protected final FileSystem fs;
-    protected final Logger logger;
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
-    KubeApiPlatformStrategy(
-            Lazy<? extends AuthManager> authMgr, Environment env, FileSystem fs, Logger logger) {
-        this.logger = logger;
+    KubeApiPlatformStrategy(Lazy<? extends AuthManager> authMgr, Environment env, FileSystem fs) {
         this.authMgr = authMgr;
         this.env = env;
         this.fs = fs;
@@ -60,7 +59,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
         try (KubernetesClient client = createClient()) {
             return testAvailability(client);
         } catch (Exception e) {
-            logger.info(e);
+            logger.info("Target test exception", e);
         }
         return false;
     }
@@ -80,7 +79,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
                         .filter(n -> !NO_PORT_NUMBER.equals(n))
                         .toList();
         return new KubeApiPlatformClient(
-                env, getNamespaces(), portNames, portNumbers, createClient(), logger);
+                env, getNamespaces(), portNames, portNumbers, createClient());
     }
 
     @Override
@@ -105,7 +104,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
         try {
             return fs.readString(Paths.get(Config.KUBERNETES_NAMESPACE_PATH));
         } catch (IOException e) {
-            logger.trace(e);
+            logger.trace("Namespace read exception", e);
             return null;
         }
     }

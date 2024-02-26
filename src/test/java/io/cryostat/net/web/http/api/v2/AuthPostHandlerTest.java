@@ -20,7 +20,6 @@ import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthenticationScheme;
 import io.cryostat.net.UnknownUserException;
@@ -49,8 +48,7 @@ class AuthPostHandlerTest {
     AuthPostHandler handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
-    @Mock Logger logger;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @Mock RoutingContext ctx;
     @Mock RequestParameters requestParams;

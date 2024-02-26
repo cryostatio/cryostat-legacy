@@ -26,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
@@ -52,7 +51,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 @TestMethodOrder(OrderAnnotation.class)
 public class RecordingMetadataIT extends ExternalTargetsTest {
-    private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
+    private static final Gson gson = MainModule.provideGson();
 
     static final Map<String, String> NULL_RESULT = new HashMap<>();
     static final Map<String, String> requestLabels =

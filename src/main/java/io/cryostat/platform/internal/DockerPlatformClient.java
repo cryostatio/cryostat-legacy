@@ -33,7 +33,6 @@ import java.util.function.Consumer;
 
 import javax.management.remote.JMXServiceURL;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.sys.Environment;
@@ -54,6 +53,8 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.codec.BodyCodec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DockerPlatformClient extends AbstractPlatformClient {
 
@@ -68,7 +69,7 @@ public class DockerPlatformClient extends AbstractPlatformClient {
     private final SocketAddress dockerSocket;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Gson gson;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private long timerId;
 
     private final CopyOnWriteArrayList<ContainerSpec> containers = new CopyOnWriteArrayList<>();
@@ -79,15 +80,13 @@ public class DockerPlatformClient extends AbstractPlatformClient {
             Lazy<Vertx> vertx,
             SocketAddress dockerSocket,
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            Gson gson,
-            Logger logger) {
+            Gson gson) {
         super(environment);
         this.webClient = webClient;
         this.vertx = vertx;
         this.dockerSocket = dockerSocket;
         this.connectionToolkit = connectionToolkit;
         this.gson = gson;
-        this.logger = logger;
     }
 
     @Override
@@ -222,7 +221,7 @@ public class DockerPlatformClient extends AbstractPlatformClient {
             return serviceRef;
         } catch (NumberFormatException | URISyntaxException | MalformedURLException e) {
             containers.remove(desc);
-            logger.warn(e);
+            logger.warn("Container discovery exception", e);
             return null;
         }
     }

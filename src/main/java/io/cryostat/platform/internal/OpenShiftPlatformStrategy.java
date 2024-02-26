@@ -15,7 +15,6 @@
  */
 package io.cryostat.platform.internal;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
@@ -26,9 +25,8 @@ import io.fabric8.openshift.client.OpenShiftClient;
 
 class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
 
-    OpenShiftPlatformStrategy(
-            Lazy<? extends AuthManager> authMgr, Environment env, FileSystem fs, Logger logger) {
-        super(authMgr, env, fs, logger);
+    OpenShiftPlatformStrategy(Lazy<? extends AuthManager> authMgr, Environment env, FileSystem fs) {
+        super(authMgr, env, fs);
     }
 
     @Override

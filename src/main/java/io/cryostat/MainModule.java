@@ -31,7 +31,6 @@ import javax.script.ScriptEngineManager;
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.agent.ProbeTemplate;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.tui.ClientWriter;
 import io.cryostat.discovery.DiscoveryModule;
@@ -61,6 +60,8 @@ import dagger.Module;
 import dagger.Provides;
 import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Module(
         includes = {
@@ -81,16 +82,12 @@ public abstract class MainModule {
     public static final String CONF_DIR = "CONF_DIR";
     public static final String UUID_FROM_STRING = "UUID_FROM_STRING";
 
-    @Provides
-    @Singleton
-    static ApplicationVersion provideApplicationVersion(Logger logger) {
-        return new ApplicationVersion(logger);
-    }
+    private static final Logger logger = LoggerFactory.getLogger(MainModule.class);
 
     @Provides
     @Singleton
-    static Logger provideLogger() {
-        return Logger.INSTANCE;
+    static ApplicationVersion provideApplicationVersion() {
+        return new ApplicationVersion();
     }
 
     @Provides
@@ -102,7 +99,8 @@ public abstract class MainModule {
     @Singleton
     // FIXME remove this outdated ClientWriter abstraction and simply replace with an injected
     // Logger at all ClientWriter injection sites
-    static ClientWriter provideClientWriter(Logger logger) {
+    static ClientWriter provideClientWriter() {
+        Logger logger = LoggerFactory.getLogger(ClientWriter.class);
         return new ClientWriter() {
             @Override
             public void print(String s) {
@@ -111,14 +109,14 @@ public abstract class MainModule {
 
             @Override
             public void println(Exception e) {
-                logger.warn(e);
+                logger.warn("Write exception", e);
             }
         };
     }
 
     // testing-only when extra adapters aren't needed
-    public static Gson provideGson(Logger logger) {
-        return provideGson(Set.of(), Set.of(), logger);
+    public static Gson provideGson() {
+        return provideGson(Set.of(), Set.of());
     }
 
     // public since this is useful to use directly in tests
@@ -126,14 +124,12 @@ public abstract class MainModule {
     @Singleton
     public static Gson provideGson(
             Set<PluggableTypeAdapter<?>> extraAdapters,
-            Set<PluggableJsonDeserializer<?>> deserializers,
-            Logger logger) {
+            Set<PluggableJsonDeserializer<?>> deserializers) {
         GsonBuilder builder =
                 new GsonBuilder()
                         .serializeNulls()
                         .disableHtmlEscaping()
-                        .registerTypeAdapter(
-                                JMXServiceURL.class, new GsonJmxServiceUrlAdapter(logger))
+                        .registerTypeAdapter(JMXServiceURL.class, new GsonJmxServiceUrlAdapter())
                         .registerTypeAdapter(HttpMimeType.class, new HttpMimeTypeAdapter())
                         .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter())
                         .registerTypeAdapter(Rule.class, new RuleDeserializer())
@@ -151,7 +147,7 @@ public abstract class MainModule {
     @Provides
     @Singleton
     @Named(RECORDINGS_PATH)
-    static Path provideSavedRecordingsPath(Logger logger, Environment env) {
+    static Path provideSavedRecordingsPath(Environment env) {
         String archivePath = env.getEnv(Variables.ARCHIVE_PATH, "/flightrecordings");
         logger.info("Local save path for flight recordings set as {}", archivePath);
         return Paths.get(archivePath);
@@ -180,7 +176,7 @@ public abstract class MainModule {
     @Provides
     @Singleton
     public static VerticleDeployer provideVerticleDeployer(
-            Vertx vertx, @Named(Variables.VERTX_POOL_SIZE) int poolSize, Logger logger) {
-        return new VerticleDeployer(vertx, poolSize, logger);
+            Vertx vertx, @Named(Variables.VERTX_POOL_SIZE) int poolSize) {
+        return new VerticleDeployer(vertx, poolSize);
     }
 }

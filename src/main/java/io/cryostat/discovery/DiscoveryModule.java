@@ -26,7 +26,6 @@ import javax.persistence.EntityManager;
 import io.cryostat.VerticleDeployer;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -62,8 +61,8 @@ public abstract class DiscoveryModule {
 
     @Provides
     @Singleton
-    static PluginInfoDao providePluginInfoDao(EntityManager em, Gson gson, Logger logger) {
-        return new PluginInfoDao(em, gson, logger);
+    static PluginInfoDao providePluginInfoDao(EntityManager em, Gson gson) {
+        return new PluginInfoDao(em, gson);
     }
 
     @Provides
@@ -78,8 +77,7 @@ public abstract class DiscoveryModule {
             Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             Gson gson,
             WebClient http,
-            Clock clock,
-            Logger logger) {
+            Clock clock) {
         return new DiscoveryStorage(
                 deployer,
                 Executors.newSingleThreadScheduledExecutor(),
@@ -92,8 +90,7 @@ public abstract class DiscoveryModule {
                 matchExpressionEvaluator,
                 gson,
                 http,
-                clock,
-                logger);
+                clock);
     }
 
     @Provides
@@ -104,16 +101,15 @@ public abstract class DiscoveryModule {
                     Set<PlatformDetectionStrategy<?>> selectedStrategies,
             @Named(PlatformModule.UNSELECTED_PLATFORMS)
                     Set<PlatformDetectionStrategy<?>> unselectedStrategies,
-            NotificationFactory notificationFactory,
-            Logger logger) {
+            NotificationFactory notificationFactory) {
         return new BuiltInDiscovery(
-                storage, selectedStrategies, unselectedStrategies, notificationFactory, logger);
+                storage, selectedStrategies, unselectedStrategies, notificationFactory);
     }
 
     @Provides
     @IntoSet
     static PluggableTypeAdapter<?> provideBaseNodeTypeAdapter(
-            Lazy<Set<PluggableTypeAdapter<?>>> adapters, Logger logger) {
-        return new AbstractNodeTypeAdapter(AbstractNode.class, adapters, logger);
+            Lazy<Set<PluggableTypeAdapter<?>>> adapters) {
+        return new AbstractNodeTypeAdapter(AbstractNode.class, adapters);
     }
 }

@@ -18,7 +18,6 @@ package io.cryostat.net;
 import java.nio.file.Path;
 
 import io.cryostat.configuration.Variables;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 
@@ -27,19 +26,19 @@ import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.PfxOptions;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SslConfiguration {
     private final Environment env;
     private final FileSystem fs;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final SslConfigurationStrategy strategy;
 
-    SslConfiguration(Environment env, FileSystem fs, Logger logger)
-            throws SslConfigurationException {
+    SslConfiguration(Environment env, FileSystem fs) throws SslConfigurationException {
         this.env = env;
         this.fs = fs;
-        this.logger = logger;
 
         if ("true".equals(env.getEnv(Variables.DISABLE_SSL))) {
             strategy = new NoSslStrategy();
@@ -93,11 +92,9 @@ public class SslConfiguration {
     }
 
     // Test-only constructor
-    SslConfiguration(
-            Environment env, FileSystem fs, Logger logger, SslConfigurationStrategy strategy) {
+    SslConfiguration(Environment env, FileSystem fs, SslConfigurationStrategy strategy) {
         this.env = env;
         this.fs = fs;
-        this.logger = logger;
         this.strategy = strategy;
     }
 

@@ -28,7 +28,6 @@ import org.openjdk.jmc.rjmx.IConnectionHandle;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -61,13 +60,12 @@ public class TargetProbeDeleteHandlerTest {
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock FileSystem fs;
-    @Mock Logger logger;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Environment env;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() {
@@ -85,7 +83,6 @@ public class TargetProbeDeleteHandlerTest {
         lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
                 new TargetProbeDeleteHandler(
-                        logger,
                         notificationFactory,
                         fs,
                         auth,

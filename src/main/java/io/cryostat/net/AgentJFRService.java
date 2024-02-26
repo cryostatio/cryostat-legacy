@@ -47,7 +47,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.core.EventOptionsBuilder.EventOptionException;
 import io.cryostat.core.EventOptionsBuilder.EventTypeException;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.templates.MergedTemplateService;
 import io.cryostat.core.templates.Template;
@@ -56,17 +55,18 @@ import io.cryostat.core.templates.TemplateType;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import org.jsoup.nodes.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class AgentJFRService implements CryostatFlightRecorderService {
 
     private final AgentClient client;
     private final MergedTemplateService templateService;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    AgentJFRService(AgentClient client, MergedTemplateService templateService, Logger logger) {
+    AgentJFRService(AgentClient client, MergedTemplateService templateService) {
         this.client = client;
         this.templateService = templateService;
-        this.logger = logger;
     }
 
     @Override
@@ -107,7 +107,7 @@ class AgentJFRService implements CryostatFlightRecorderService {
         try {
             return client.eventTypes().toCompletionStage().toCompletableFuture().get();
         } catch (ExecutionException | InterruptedException e) {
-            logger.warn(e);
+            logger.warn("Event type exception", e);
             return List.of();
         }
     }
@@ -123,7 +123,7 @@ class AgentJFRService implements CryostatFlightRecorderService {
         try {
             return client.activeRecordings().toCompletionStage().toCompletableFuture().get();
         } catch (ExecutionException | InterruptedException e) {
-            logger.warn(e);
+            logger.warn("Available recordings exception", e);
             return List.of();
         }
     }
@@ -136,7 +136,7 @@ class AgentJFRService implements CryostatFlightRecorderService {
                             client.eventSettings().toCompletionStage().toCompletableFuture().get())
                     .orElse(new DefaultValueMap<>(Map.of()));
         } catch (ExecutionException | InterruptedException e) {
-            logger.warn(e);
+            logger.warn("Event type settings exception", e);
             return new DefaultValueMap<>(Map.of());
         }
     }
@@ -167,7 +167,7 @@ class AgentJFRService implements CryostatFlightRecorderService {
         try {
             return client.eventTemplates().toCompletionStage().toCompletableFuture().get();
         } catch (ExecutionException | InterruptedException e) {
-            logger.warn(e);
+            logger.warn("Server templates exception", e);
             return List.of();
         }
     }
@@ -201,7 +201,7 @@ class AgentJFRService implements CryostatFlightRecorderService {
             Buffer b = f.toCompletionStage().toCompletableFuture().get();
             return new BufferedInputStream(new ByteArrayInputStream(b.getBytes()));
         } catch (ExecutionException | InterruptedException e) {
-            logger.warn(e);
+            logger.warn("JFR stream exception", e);
             throw new FlightRecorderException("Failed to open remote recording stream", e);
         }
     }

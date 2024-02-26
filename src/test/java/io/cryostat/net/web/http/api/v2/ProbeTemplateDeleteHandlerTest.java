@@ -25,7 +25,6 @@ import java.util.Set;
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.LocalProbeTemplateService;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -55,11 +54,10 @@ public class ProbeTemplateDeleteHandlerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock LocalProbeTemplateService templateService;
     @Mock FileSystem fs;
-    @Mock Logger logger;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() {
@@ -77,13 +75,7 @@ public class ProbeTemplateDeleteHandlerTest {
         lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
                 new ProbeTemplateDeleteHandler(
-                        auth,
-                        credentialsManager,
-                        notificationFactory,
-                        templateService,
-                        logger,
-                        fs,
-                        gson);
+                        auth, credentialsManager, notificationFactory, templateService, fs, gson);
     }
 
     @Nested

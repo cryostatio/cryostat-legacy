@@ -22,7 +22,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.MBeanMetrics;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
@@ -36,18 +35,15 @@ import io.vertx.core.http.HttpMethod;
 public class MBeanMetricsGetHandler extends AbstractV2RequestHandler<MBeanMetrics> {
 
     private final TargetConnectionManager tcm;
-    private final Logger logger;
 
     @Inject
     MBeanMetricsGetHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
             Gson gson,
-            TargetConnectionManager tcm,
-            Logger logger) {
+            TargetConnectionManager tcm) {
         super(auth, credentialsManager, gson);
         this.tcm = tcm;
-        this.logger = logger;
     }
 
     @Override

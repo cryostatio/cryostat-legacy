@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 
 import javax.management.remote.JMXServiceURL;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.platform.AbstractPlatformClient;
@@ -58,6 +57,8 @@ import org.apache.commons.lang3.concurrent.ConcurrentException;
 import org.apache.commons.lang3.concurrent.LazyInitializer;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KubeApiPlatformClient extends AbstractPlatformClient {
 
@@ -98,7 +99,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
             };
     private Integer memoHash;
     private EnvironmentNode memoTree;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Map<Triple<String, String, String>, Pair<HasMetadata, EnvironmentNode>>
             discoveryNodeCache = new ConcurrentHashMap<>();
     private final Map<Triple<String, String, String>, Object> queryLocks =
@@ -109,14 +110,12 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
             Collection<String> namespaces,
             Collection<String> portNames,
             Collection<Integer> portNumbers,
-            KubernetesClient k8sClient,
-            Logger logger) {
+            KubernetesClient k8sClient) {
         super(environment);
         this.namespaces = new HashSet<>(namespaces);
         this.portNames = new HashSet<>(portNames);
         this.portNumbers = new HashSet<>(portNumbers);
         this.k8sClient = k8sClient;
-        this.logger = logger;
     }
 
     @Override
@@ -133,7 +132,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
         try {
             return getAllServiceRefs();
         } catch (Exception e) {
-            logger.warn(e);
+            logger.warn("Target list exeption", e);
             return Collections.emptyList();
         }
     }
@@ -168,7 +167,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                                         .flatMap(endpoints -> getTargetTuples(endpoints).stream())
                                         .forEach(tuple -> buildOwnerChain(nsNode, tuple));
                             } catch (Exception e) {
-                                logger.warn(e);
+                                logger.warn("Target ownership chain exception", e);
                             } finally {
                                 discoveryNodeCache.clear();
                                 queryLocks.clear();
@@ -413,7 +412,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                                 addr.getTargetRef().getName()));
                 return serviceRef;
             } catch (Exception e) {
-                logger.warn(e);
+                logger.warn("Target conversion exception", e);
                 return null;
             }
         }

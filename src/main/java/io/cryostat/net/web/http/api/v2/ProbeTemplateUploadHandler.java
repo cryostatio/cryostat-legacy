@@ -29,7 +29,6 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.agent.ProbeTemplate;
 import io.cryostat.core.agent.ProbeValidationException;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
@@ -40,12 +39,14 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
 
     static final String PATH = "probes/:probetemplateName";
 
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final NotificationFactory notificationFactory;
     private final LocalProbeTemplateService probeTemplateService;
     private final FileSystem fs;
@@ -57,12 +58,10 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
             CredentialsManager credentialsManager,
             NotificationFactory notificationFactory,
             LocalProbeTemplateService probeTemplateService,
-            Logger logger,
             FileSystem fs,
             Gson gson) {
         super(auth, credentialsManager, gson);
         this.notificationFactory = notificationFactory;
-        this.logger = logger;
         this.probeTemplateService = probeTemplateService;
         this.fs = fs;
     }
@@ -131,13 +130,13 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
                 }
             }
         } catch (ProbeValidationException pve) {
-            logger.error(pve.getMessage());
+            logger.error(pve.getMessage(), pve);
             throw new ApiException(400, pve.getMessage(), pve);
         } catch (FileAlreadyExistsException faee) {
-            logger.error(faee.getMessage());
+            logger.error(faee.getMessage(), faee);
             throw new ApiException(400, faee.getMessage(), faee);
         } catch (Exception e) {
-            logger.error(e.getMessage());
+            logger.error(e.getMessage(), e);
             throw new ApiException(500, e.getMessage(), e);
         }
         return new IntermediateResponse<Void>().body(null);

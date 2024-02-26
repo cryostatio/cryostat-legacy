@@ -23,7 +23,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
@@ -59,13 +58,12 @@ class RecordingGetWithJwtHandlerTest {
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
     @Mock RecordingArchiveHelper archive;
-    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         this.handler =
                 new RecordingGetWithJwtHandler(
-                        auth, credentialsManager, jwt, () -> webServer, archive, logger);
+                        auth, credentialsManager, jwt, () -> webServer, archive);
     }
 
     @Nested

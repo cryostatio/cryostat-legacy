@@ -24,7 +24,6 @@ import java.util.Set;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.Notification;
@@ -66,11 +65,10 @@ class TargetsPostHandlerTest {
     @Mock DiscoveryStorage storage;
     @Mock JvmIdHelper jvmIdHelper;
     @Mock CustomTargetPlatformClient customTargetPlatformClient;
-    @Mock Logger logger;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification.Builder notificationBuilder;
     @Mock Notification notification;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() {
@@ -99,8 +97,7 @@ class TargetsPostHandlerTest {
                         storage,
                         jvmIdHelper,
                         customTargetPlatformClient,
-                        notificationFactory,
-                        logger);
+                        notificationFactory);
     }
 
     @Test

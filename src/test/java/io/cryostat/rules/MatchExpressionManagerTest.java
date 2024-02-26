@@ -22,7 +22,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 
@@ -47,8 +46,7 @@ class MatchExpressionManagerTest {
     @Mock MatchExpressionEvaluator matchExpressionEvaluator;
     @Mock PlatformClient platformClient;
     @Mock MatchExpressionDao dao;
-    @Mock Logger logger;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
     Base32 base32 = new Base32();
 
     @BeforeEach
@@ -59,8 +57,7 @@ class MatchExpressionManagerTest {
                         () -> matchExpressionEvaluator,
                         platformClient,
                         dao,
-                        gson,
-                        logger);
+                        gson);
     }
 
     @Test

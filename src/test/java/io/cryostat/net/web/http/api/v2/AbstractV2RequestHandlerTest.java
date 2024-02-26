@@ -32,7 +32,6 @@ import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -73,8 +72,7 @@ class AbstractV2RequestHandlerTest {
     @Mock HttpServerResponse resp;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
-    @Mock Logger logger;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() {

@@ -15,7 +15,6 @@
  */
 package io.cryostat.messaging;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -26,16 +25,17 @@ import jdk.jfr.Category;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class WsClient implements AutoCloseable {
 
     private final ServerWebSocket sws;
     private final long connectionTime;
     private volatile boolean isAccepted;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    WsClient(Logger logger, ServerWebSocket sws, Clock clock) {
-        this.logger = logger;
+    WsClient(ServerWebSocket sws, Clock clock) {
         this.sws = sws;
         this.connectionTime = clock.getMonotonicTime();
     }
@@ -66,7 +66,7 @@ class WsClient implements AutoCloseable {
                 this.sws.writeTextMessage(message);
 
             } catch (Exception e) {
-                logger.warn(e);
+                logger.warn("Message write exception", e);
                 evt.setExceptionThrown(true);
 
             } finally {

@@ -27,7 +27,6 @@ import javax.inject.Singleton;
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -63,8 +62,8 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static HttpServer provideHttpServer(
-            Vertx vertx, NetworkConfiguration netConf, SslConfiguration sslConf, Logger logger) {
-        return new HttpServer(vertx, netConf, sslConf, logger);
+            Vertx vertx, NetworkConfiguration netConf, SslConfiguration sslConf) {
+        return new HttpServer(vertx, netConf, sslConf);
     }
 
     @Provides
@@ -96,8 +95,8 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static AgentConnection.Factory provideAgentConnectionFactory(
-            AgentClient.Factory clientFactory, FileSystem fs, Environment env, Logger logger) {
-        return new AgentConnection.Factory(clientFactory, fs, env, logger);
+            AgentClient.Factory clientFactory, FileSystem fs, Environment env) {
+        return new AgentConnection.Factory(clientFactory, fs, env);
     }
 
     @Provides
@@ -106,15 +105,9 @@ public abstract class NetworkModule {
             Gson gson,
             @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeout,
             WebClient webClient,
-            CredentialsManager credentialsManager,
-            Logger logger) {
+            CredentialsManager credentialsManager) {
         return new AgentClient.Factory(
-                Executors.newCachedThreadPool(),
-                gson,
-                httpTimeout,
-                webClient,
-                credentialsManager,
-                logger);
+                Executors.newCachedThreadPool(), gson, httpTimeout, webClient, credentialsManager);
     }
 
     @Provides
@@ -125,8 +118,7 @@ public abstract class NetworkModule {
             DiscoveryStorage storage,
             @Named(Variables.TARGET_CACHE_TTL) Duration maxTargetTtl,
             @Named(Variables.TARGET_MAX_CONCURRENT_CONNECTIONS) int maxTargetConnections,
-            @Named(Variables.JMX_CONNECTION_TIMEOUT) long connectionTimeoutSeconds,
-            Logger logger) {
+            @Named(Variables.JMX_CONNECTION_TIMEOUT) long connectionTimeoutSeconds) {
         return new TargetConnectionManager(
                 connectionToolkit,
                 agentConnectionFactory,
@@ -135,8 +127,7 @@ public abstract class NetworkModule {
                 Scheduler.systemScheduler(),
                 maxTargetTtl,
                 maxTargetConnections,
-                connectionTimeoutSeconds,
-                logger);
+                connectionTimeoutSeconds);
     }
 
     @Provides
@@ -178,9 +169,9 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static SslConfiguration provideSslConfiguration(Environment env, FileSystem fs, Logger logger) {
+    static SslConfiguration provideSslConfiguration(Environment env, FileSystem fs) {
         try {
-            return new SslConfiguration(env, fs, logger);
+            return new SslConfiguration(env, fs);
         } catch (SslConfiguration.SslConfigurationException e) {
             throw new RuntimeException(e); // @Provides methods may only throw unchecked exceptions
         }
@@ -188,8 +179,8 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static NoopAuthManager provideNoopAuthManager(Logger logger, FileSystem fs) {
-        return new NoopAuthManager(logger);
+    static NoopAuthManager provideNoopAuthManager(FileSystem fs) {
+        return new NoopAuthManager();
     }
 
     @Binds
@@ -199,10 +190,8 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static BasicAuthManager provideBasicAuthManager(
-            Logger logger,
-            FileSystem fs,
-            @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir) {
-        return new BasicAuthManager(logger, fs, confDir);
+            FileSystem fs, @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir) {
+        return new BasicAuthManager(fs, confDir);
     }
 
     @Binds

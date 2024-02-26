@@ -22,7 +22,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -53,7 +52,6 @@ class RecordingGetHandlerTest {
     @Mock AuthManager authManager;
     @Mock CredentialsManager credentialsManager;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
-    @Mock Logger logger;
 
     @Mock RoutingContext ctx;
     @Mock HttpServerResponse resp;
@@ -61,8 +59,7 @@ class RecordingGetHandlerTest {
     @BeforeEach
     void setup() {
         this.handler =
-                new RecordingGetHandler(
-                        authManager, credentialsManager, recordingArchiveHelper, logger);
+                new RecordingGetHandler(authManager, credentialsManager, recordingArchiveHelper);
     }
 
     @Test

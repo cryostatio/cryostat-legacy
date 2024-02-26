@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingTargetHelper.ReplacementPolicy;
 
@@ -63,7 +62,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 @TestMethodOrder(OrderAnnotation.class)
 class GraphQLIT extends ExternalTargetsTest {
 
-    private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
+    private static final Gson gson = MainModule.provideGson();
 
     private final ExecutorService worker = ForkJoinPool.commonPool();
 

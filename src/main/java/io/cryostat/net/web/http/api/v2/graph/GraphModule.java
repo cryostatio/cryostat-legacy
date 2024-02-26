@@ -25,7 +25,6 @@ import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
@@ -168,10 +167,9 @@ public abstract class GraphModule {
             RecordingArchiveHelper archiveHelper,
             CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
-            Provider<WebServer> webServer,
-            Logger logger) {
+            Provider<WebServer> webServer) {
         return new RecordingsFetcher(
-                auth, tcm, archiveHelper, credentialsManager, metadataManager, webServer, logger);
+                auth, tcm, archiveHelper, credentialsManager, metadataManager, webServer);
     }
 
     @Binds
@@ -190,8 +188,8 @@ public abstract class GraphModule {
 
     @Provides
     static AllArchivedRecordingsFetcher provideAllArchivedRecordingsFetcher(
-            AuthManager auth, RecordingArchiveHelper recordingArchiveHelper, Logger logger) {
-        return new AllArchivedRecordingsFetcher(auth, recordingArchiveHelper, logger);
+            AuthManager auth, RecordingArchiveHelper recordingArchiveHelper) {
+        return new AllArchivedRecordingsFetcher(auth, recordingArchiveHelper);
     }
 
     @Binds
@@ -400,11 +398,8 @@ public abstract class GraphModule {
 
     @Provides
     static MBeanMetricsFetcher provideMBeanMetricsFetcher(
-            AuthManager auth,
-            TargetConnectionManager tcm,
-            CredentialsManager credentialsManager,
-            Logger logger) {
-        return new MBeanMetricsFetcher(auth, tcm, credentialsManager, logger);
+            AuthManager auth, TargetConnectionManager tcm, CredentialsManager credentialsManager) {
+        return new MBeanMetricsFetcher(auth, tcm, credentialsManager);
     }
 
     @Binds

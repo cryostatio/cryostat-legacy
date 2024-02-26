@@ -24,9 +24,11 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Named;
 import javax.inject.Provider;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.recordings.RecordingArchiveHelper;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ArchivedRecordingReportCache {
 
@@ -34,19 +36,17 @@ class ArchivedRecordingReportCache {
     protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
     protected final RecordingArchiveHelper recordingArchiveHelper;
     protected final long generationTimeoutSeconds;
-    protected final Logger logger;
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     ArchivedRecordingReportCache(
             FileSystem fs,
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             RecordingArchiveHelper recordingArchiveHelper,
-            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
-            Logger logger) {
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds) {
         this.fs = fs;
         this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.generationTimeoutSeconds = generationTimeoutSeconds;
-        this.logger = logger;
     }
 
     Future<Path> getFromPath(String subdirectoryName, String recordingName, String filter) {
@@ -75,12 +75,12 @@ class ArchivedRecordingReportCache {
                             .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             f.complete(saveFile);
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Read exception", e);
             f.completeExceptionally(e);
             try {
                 fs.deleteIfExists(dest);
             } catch (IOException ioe) {
-                logger.warn(ioe);
+                logger.warn("Delete exception", ioe);
             }
         }
         return f;
@@ -113,12 +113,12 @@ class ArchivedRecordingReportCache {
                             .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             f.complete(saveFile);
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Read exception", e);
             f.completeExceptionally(e);
             try {
                 fs.deleteIfExists(dest);
             } catch (IOException ioe) {
-                logger.warn(ioe);
+                logger.warn("Delete exception", ioe);
             }
         }
         return f;

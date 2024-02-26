@@ -32,7 +32,6 @@ import java.util.Set;
 
 import javax.script.ScriptException;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.platform.PlatformClient;
@@ -49,6 +48,8 @@ import com.google.gson.JsonObject;
 import dagger.Lazy;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CredentialsManager
         extends AbstractEventEmitter<CredentialsManager.CredentialsEvent, String> {
@@ -60,7 +61,7 @@ public class CredentialsManager
     private final StoredCredentialsDao dao;
     private final FileSystem fs;
     private final Gson gson;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     CredentialsManager(
             Path credentialsDir,
@@ -69,8 +70,7 @@ public class CredentialsManager
             PlatformClient platformClient,
             StoredCredentialsDao dao,
             FileSystem fs,
-            Gson gson,
-            Logger logger) {
+            Gson gson) {
         this.credentialsDir = credentialsDir;
         this.matchExpressionValidator = matchExpressionValidator;
         this.matchExpressionEvaluator = matchExpressionEvaluator;
@@ -78,7 +78,6 @@ public class CredentialsManager
         this.dao = dao;
         this.fs = fs;
         this.gson = gson;
-        this.logger = logger;
     }
 
     // TODO remove after 2.2 release
@@ -126,7 +125,7 @@ public class CredentialsManager
                     }
                 }
             } catch (IOException | IllegalStateException e) {
-                logger.warn(e);
+                logger.warn("Migration exception", e);
                 continue;
             }
         }
@@ -231,7 +230,7 @@ public class CredentialsManager
                     matchedTargets.add(target);
                 }
             } catch (ScriptException e) {
-                logger.error(e);
+                logger.error("Script execution exception", e);
                 break;
             }
         }

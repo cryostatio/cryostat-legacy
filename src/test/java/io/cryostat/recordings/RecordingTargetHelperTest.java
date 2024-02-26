@@ -39,7 +39,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 import io.cryostat.core.EventOptionsBuilder;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateService;
@@ -90,7 +89,6 @@ public class RecordingTargetHelperTest {
     @Mock ReportService reportService;
     @Mock RecordingMetadataManager recordingMetadataManager;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
-    @Mock Logger logger;
 
     @Mock JFRConnection connection;
     @Mock CryostatFlightRecorderService service;
@@ -132,8 +130,7 @@ public class RecordingTargetHelperTest {
                         recordingOptionsBuilderFactory,
                         reportService,
                         recordingMetadataManager,
-                        recordingArchiveHelper,
-                        logger);
+                        recordingArchiveHelper);
     }
 
     @Test

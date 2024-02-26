@@ -20,8 +20,6 @@ import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Set;
 
-import io.cryostat.core.log.Logger;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
@@ -30,13 +28,15 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.ServerWebSocket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HttpServer extends AbstractVerticle {
 
     private final NetworkConfiguration netConf;
     private final SslConfiguration sslConf;
     private final Set<Runnable> shutdownListeners;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final Vertx vertx;
     private final HandlerDelegate<HttpServerRequest> requestHandlerDelegate =
@@ -47,12 +47,11 @@ public class HttpServer extends AbstractVerticle {
     private final io.vertx.core.http.HttpServer server;
     private volatile boolean isAlive;
 
-    HttpServer(Vertx vertx, NetworkConfiguration netConf, SslConfiguration sslConf, Logger logger) {
+    HttpServer(Vertx vertx, NetworkConfiguration netConf, SslConfiguration sslConf) {
         this.vertx = vertx;
         this.netConf = netConf;
         this.sslConf = sslConf;
         this.shutdownListeners = new HashSet<>();
-        this.logger = logger;
         this.server =
                 vertx.createHttpServer(
                         sslConf.applyToHttpServerOptions(
