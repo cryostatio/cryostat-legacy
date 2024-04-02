@@ -195,8 +195,8 @@ runDemoApps() {
         --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar" \
         --env QUARKUS_HTTP_PORT=10009 \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_TLS_TRUST_ALL="true" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_TLS_VERIFY_HOSTNAME="false" \
         --rm -d quay.io/andrewazores/quarkus-test:latest
 
     podman run \
@@ -206,11 +206,14 @@ runDemoApps() {
         --env QUARKUS_HTTP_PORT=10010 \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
         --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent-1" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_TLS_TRUST_ALL="true" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_TLS_VERIFY_HOSTNAME="false" \
         --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
         --env CRYOSTAT_AGENT_WEBSERVER_PORT="9977" \
-        --env CRYOSTAT_AGENT_CALLBACK="http://localhost:9977/" \
+        --env CRYOSTAT_AGENT_WEBSERVER_TLS_KEYSTORE_PASS="/certs/keystore.pass" \
+        --env CRYOSTAT_AGENT_WEBSERVER_TLS_KEYSTORE_FILE="/certs/crysotat-keystore.p12" \
+        --env CRYOSTAT_AGENT_WEBSERVER_TLS_CERT_FILE="/certs/server.cer" \
+        --env CRYOSTAT_AGENT_CALLBACK="https://localhost:9977/" \
         --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
@@ -225,11 +228,14 @@ runDemoApps() {
         --env QUARKUS_HTTP_PORT=10011 \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
         --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent-2" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_TLS_TRUST_ALL="true" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_TLS_VERIFY_HOSTNAME="false" \
         --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
         --env CRYOSTAT_AGENT_WEBSERVER_PORT="9988" \
-        --env CRYOSTAT_AGENT_CALLBACK="http://localhost:9988/" \
+        --env CRYOSTAT_AGENT_WEBSERVER_TLS_KEYSTORE_PASS="/certs/keystore.pass" \
+        --env CRYOSTAT_AGENT_WEBSERVER_TLS_KEYSTORE_FILE="/certs/crysotat-keystore.p12" \
+        --env CRYOSTAT_AGENT_WEBSERVER_TLS_CERT_FILE="/certs/server.cer" \
+        --env CRYOSTAT_AGENT_CALLBACK="https://localhost:9988/" \
         --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
