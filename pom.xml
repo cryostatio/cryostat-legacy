@@ -106,7 +106,7 @@
   <com.h2database.h2.version>2.1.214</com.h2database.h2.version>
   <org.postgresql.postgresql.version>42.7.2</org.postgresql.postgresql.version>
 
-  <com.github.spotbugs.version>4.8.0</com.github.spotbugs.version>
+  <com.github.spotbugs.version>4.8.4</com.github.spotbugs.version>
   <com.github.spotbugs.plugin.version>4.7.3.6</com.github.spotbugs.plugin.version>
   <org.junit.jupiter.version>5.10.2</org.junit.jupiter.version>
   <org.hamcrest.version>2.2</org.hamcrest.version>
