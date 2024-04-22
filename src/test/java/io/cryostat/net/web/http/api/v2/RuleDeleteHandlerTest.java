@@ -38,6 +38,7 @@ import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
+import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
@@ -178,7 +179,7 @@ class RuleDeleteHandlerTest {
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
 
-            Mockito.verify(vertx, Mockito.never()).executeBlocking(Mockito.any());
+            Mockito.verify(vertx, Mockito.never()).executeBlocking(Mockito.any(Handler.class));
             Mockito.verify(registry, Mockito.never()).deleteRule(Mockito.any(Rule.class));
             Mockito.verify(registry, Mockito.never()).deleteRule(Mockito.anyString());
             Mockito.verify(registry, Mockito.never()).applies(Mockito.any(), Mockito.any());
@@ -220,7 +221,7 @@ class RuleDeleteHandlerTest {
             IntermediateResponse<Void> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
 
-            Mockito.verify(vertx, Mockito.times(2)).executeBlocking(Mockito.any());
+            Mockito.verify(vertx, Mockito.times(2)).executeBlocking(Mockito.any(Handler.class));
             Mockito.verify(registry).deleteRule(rule);
             Mockito.verify(registry).applies(rule, serviceRef);
             Mockito.verify(recordingTargetHelper)
@@ -249,7 +250,7 @@ class RuleDeleteHandlerTest {
             IntermediateResponse<Void> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
 
-            Mockito.verify(vertx, Mockito.times(1)).executeBlocking(Mockito.any());
+            Mockito.verify(vertx, Mockito.times(1)).executeBlocking(Mockito.any(Handler.class));
             Mockito.verify(registry).deleteRule(rule);
             Mockito.verify(registry, Mockito.never()).applies(Mockito.any(), Mockito.any());
             Mockito.verify(recordingTargetHelper, Mockito.never())
@@ -284,7 +285,7 @@ class RuleDeleteHandlerTest {
             IntermediateResponse<Void> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
 
-            Mockito.verify(vertx, Mockito.times(2)).executeBlocking(Mockito.any());
+            Mockito.verify(vertx, Mockito.times(2)).executeBlocking(Mockito.any(Handler.class));
             Mockito.verify(registry).deleteRule(rule);
             Mockito.verify(registry).applies(Mockito.any(), Mockito.any());
             Mockito.verify(recordingTargetHelper)
