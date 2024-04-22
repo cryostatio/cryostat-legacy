@@ -114,7 +114,7 @@ public class MockVertx {
                 .executeBlocking(Mockito.any(), Mockito.any());
 
         Mockito.lenient()
-                .when(vertx.executeBlocking(Mockito.any()))
+                .when(vertx.executeBlocking(Mockito.any(Handler.class)))
                 .thenAnswer(
                         new Answer() {
                             @Override
