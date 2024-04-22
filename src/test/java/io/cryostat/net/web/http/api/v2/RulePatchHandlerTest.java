@@ -39,6 +39,7 @@ import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
+import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
@@ -220,7 +221,7 @@ class RulePatchHandlerTest {
             Mockito.verify(notificationBuilder).build();
             Mockito.verify(notification).send();
 
-            Mockito.verify(vertx, Mockito.times(2)).executeBlocking(Mockito.any());
+            Mockito.verify(vertx, Mockito.times(2)).executeBlocking(Mockito.any(Handler.class));
             Mockito.verify(registry)
                     .applies(Mockito.any(Rule.class), Mockito.any(ServiceRef.class));
             Mockito.verify(recordingTargetHelper)
