@@ -279,6 +279,9 @@ public class TargetConnectionManager {
         }
     }
 
+    @Override
+    protected final void finalize() {}
+
     private class ConnectionLoader
             implements AsyncCacheLoader<ConnectionDescriptor, JFRConnection> {
 

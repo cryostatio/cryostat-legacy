@@ -185,6 +185,9 @@ public class Rule {
     }
 
     @Override
+    protected final void finalize() {}
+
+    @Override
     public boolean equals(Object other) {
         if (other == null) {
             return false;

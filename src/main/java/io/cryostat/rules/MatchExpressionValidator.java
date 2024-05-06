@@ -50,4 +50,7 @@ public class MatchExpressionValidator {
         }
         return matchExpression;
     }
+
+    @Override
+    protected final void finalize() {}
 }
