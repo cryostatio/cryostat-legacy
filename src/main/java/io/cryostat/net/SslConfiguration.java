@@ -184,6 +184,9 @@ public class SslConfiguration {
         return strategy.enabled();
     }
 
+    @Override
+    protected final void finalize() {}
+
     interface SslConfigurationStrategy {
         HttpServerOptions applyToHttpServerOptions(HttpServerOptions options);
 
@@ -240,6 +243,9 @@ public class SslConfiguration {
             throw new IllegalStateException(); // extension checked in constructor. should never
             // reach this step
         }
+
+        @Override
+        protected final void finalize() {}
     }
 
     static class KeyCertStrategy implements SslConfigurationStrategy {
@@ -267,6 +273,9 @@ public class SslConfiguration {
                                     .setKeyPath(keyPath.toString())
                                     .setCertPath(certPath.toString()));
         }
+
+        @Override
+        protected final void finalize() {}
     }
 
     static class SslConfigurationException extends Exception {

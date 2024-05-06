@@ -122,4 +122,7 @@ class CorsEnablingHandler implements RequestHandler {
             return List.of();
         }
     }
+
+    @Override
+    protected final void finalize() {}
 }
