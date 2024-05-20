@@ -69,7 +69,7 @@
   <org.apache.maven.plugins.assembly.version>3.7.1</org.apache.maven.plugins.assembly.version>
   <com.github.eirslett.frontend.plugin.version>1.15.0</com.github.eirslett.frontend.plugin.version>
   <org.codehaus.mojo.exec.plugin.version>3.2.0</org.codehaus.mojo.exec.plugin.version>
-  <org.codehaus.mojo.build.helper.plugin.version>3.5.0</org.codehaus.mojo.build.helper.plugin.version>
+  <org.codehaus.mojo.build.helper.plugin.version>3.6.0</org.codehaus.mojo.build.helper.plugin.version>
   <com.mycila.license.maven.plugin.version>4.5</com.mycila.license.maven.plugin.version>
   <org.owasp.dependency.check.version>9.2.0</org.owasp.dependency.check.version>
   <com.google.cloud.tools.jib.maven.plugin.version>3.4.1</com.google.cloud.tools.jib.maven.plugin.version>
