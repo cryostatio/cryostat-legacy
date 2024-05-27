@@ -11,7 +11,15 @@
 
 A container-native JVM application which acts as a bridge to other containerized JVMs and exposes a secure API for producing, analyzing, and retrieving JDK Flight Recorder data from your cloud workloads.
 
+**This repository is no longer maintained.** See [**cryostat3**](https://github.com/cryostatio/cryostat3) for the
+source repository for Cryostat 3.0+ and active development.
+
 ## SEE ALSO
+
+* [**cryostat3**](https://github.com/cryostatio/cryostat3) : the new source repository
+  for Cryostat version 3.0+, where active development is taking place. This
+  repository contains the source for versions up to 2.4.1 and will not be
+  maintained after 3.0 is released.
 
 * [cryostat.io](https://cryostat.io) : upstream documentation website with user
   guides, tutorials, blog posts, and other user-facing content. Start here if
