@@ -50,7 +50,6 @@ jobs:
         IMAGE_VERSION: ${{ needs.build-and-test-amd64.outputs.image-version }}
       run: |
           podman load -i cryostat-amd64.tar
-          podman tag $CRYOSTAT_IMG:$IMAGE_VERSION-linux-amd64
       if: github.repository_owner == 'cryostatio'
     - uses: actions/download-artifact@v3
       with:
@@ -61,7 +60,6 @@ jobs:
         IMAGE_VERSION: ${{ needs.build-and-test-arm64.outputs.image-version }}
       run: |
           podman load -i cryostat-arm64.tar
-          podman tag $CRYOSTAT_IMG:$IMAGE_VERSION-linux-arm64
       if: github.repository_owner == 'cryostatio'
     - name: Create OCI Manifest
       id: create-manifest
